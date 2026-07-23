@@ -15,7 +15,7 @@ S3_BASE_URL = f"s3a://{AWS_S3_BUCKET}/banking_v2/snapshots"
 SCHEMA_DB = "workspace.bronze"
 
 # ==============================================================================
-# BẢNG CẤU HÌNH 41 BẢNG + FULL SCHEMA HINTS THEO ĐÚNG DBML
+# 41-TABLE CONFIGURATION
 # ==============================================================================
 TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
     # --- 1. Customer Master Data ---
@@ -200,7 +200,7 @@ except Exception:
     AVAILABLE_BUSINESS_DATES = [20260705, 20260706, 20260707, 20260708, 20260709, 20260710]
 
 # ==============================================================================
-# HELPER: BỔ SUNG CÁC CỘT AUDIT / CDC METADATA
+# HELPER: ADDING AUDIT / CDC METADATA COLUMN
 # ==============================================================================
 def add_enterprise_cdc_metadata(
     df: DataFrame, 
@@ -244,7 +244,7 @@ def add_enterprise_cdc_metadata(
     )
 
 # ==============================================================================
-# MAIN BUILDER: CDC FLOW VỚI DYNAMIC SCHEMA HINTS
+# MAIN BUILDER: CDC FLOW 
 # ==============================================================================
 def build_cdc_flow(table_name: str, domain: str, keys: list[str], cdc_type: str, schema_hints: str):
     target_table_identifier = f"{SCHEMA_DB}.{table_name}"
@@ -261,7 +261,7 @@ def build_cdc_flow(table_name: str, domain: str, keys: list[str], cdc_type: str,
     )
 
     # --------------------------------------------------------------------------
-    # NHÁNH A: STREAM CDC (BẢNG EVENT / LOG DATA)
+    # NHÁNH A: STREAM CDC (EVENT / LOG DATA TABLES)
     # --------------------------------------------------------------------------
     if cdc_type == "stream":
         view_name = f"v_{table_name}_stream"
@@ -280,7 +280,6 @@ def build_cdc_flow(table_name: str, domain: str, keys: list[str], cdc_type: str,
                 .option("cloudFiles.rescuedDataColumn", "_rescued_data")
             )
 
-            # Chỉ truyền schemaHints nếu bảng đó có cấu hình hints (không rỗng)
             if schema_hints:
                 reader = reader.option("cloudFiles.schemaHints", schema_hints)
 
@@ -296,7 +295,7 @@ def build_cdc_flow(table_name: str, domain: str, keys: list[str], cdc_type: str,
         )
 
     # --------------------------------------------------------------------------
-    # NHÁNH B: SNAPSHOT CDC (BẢNG MASTER / STATE DATA)
+    # NHÁNH B: SNAPSHOT CDC (MASTER / STATE DATA TABLES)
     # --------------------------------------------------------------------------
     else:
         def next_snapshot_and_version(
@@ -341,7 +340,7 @@ def build_cdc_flow(table_name: str, domain: str, keys: list[str], cdc_type: str,
         )
 
 # ==============================================================================
-# ĐĂNG KÝ AUTOMATION TẤT CẢ 41 BẢNG VÀO DLT DAG
+# AUTOMATION REGISTER ALL TABLES INTO DLT DAG
 # ==============================================================================
 for tbl_name, config in TABLE_CONFIGS.items():
     build_cdc_flow(
