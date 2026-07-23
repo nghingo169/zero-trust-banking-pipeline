@@ -15,57 +15,182 @@ S3_BASE_URL = f"s3a://{AWS_S3_BUCKET}/banking_v2/snapshots"
 SCHEMA_DB = "workspace.bronze"
 
 # ==============================================================================
-# BẢNG CẤU HÌNH 41 BẢNG (PHÂN LOẠI SNAPSHOT VS STREAM)
+# BẢNG CẤU HÌNH 41 BẢNG + FULL SCHEMA HINTS THEO ĐÚNG DBML
 # ==============================================================================
 TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
-    # 1. Customer Master Data
-    "core_banking_customer": {"domain": "customer_master", "keys": ["cust_no"], "cdc_type": "snapshot"},
-    "crm_customer": {"domain": "customer_master", "keys": ["party_id"], "cdc_type": "snapshot"},
-    "customer_kyc": {"domain": "customer_master", "keys": ["kyc_id"], "cdc_type": "snapshot"},
-    "customer_employment": {"domain": "customer_master", "keys": ["employment_id"], "cdc_type": "snapshot"},
-    "customer_request": {"domain": "customer_master", "keys": ["request_id"], "cdc_type": "stream"},
-    "customer_account": {"domain": "customer_master", "keys": ["link_id"], "cdc_type": "snapshot"},
-    "account": {"domain": "customer_master", "keys": ["account_id"], "cdc_type": "snapshot"},
+    # --- 1. Customer Master Data ---
+    "core_banking_customer": {
+        "domain": "customer_master", "keys": ["cust_no"], "cdc_type": "snapshot",
+        "hints": "date_of_birth DATE, created_date DATE"
+    },
+    "crm_customer": {
+        "domain": "customer_master", "keys": ["party_id"], "cdc_type": "snapshot",
+        "hints": "created_date DATE"
+    },
+    "customer_kyc": {
+        "domain": "customer_master", "keys": ["kyc_id"], "cdc_type": "snapshot",
+        "hints": "verified_date DATE"
+    },
+    "customer_employment": {
+        "domain": "customer_master", "keys": ["employment_id"], "cdc_type": "snapshot",
+        "hints": "monthly_income DECIMAL(12,2)"
+    },
+    "customer_request": {
+        "domain": "customer_master", "keys": ["request_id"], "cdc_type": "stream",
+        "hints": "request_date DATE, resolution_date DATE"
+    },
+    "customer_account": {
+        "domain": "customer_master", "keys": ["link_id"], "cdc_type": "snapshot",
+        "hints": "account_id BIGINT, linked_date DATE"
+    },
+    "account": {
+        "domain": "customer_master", "keys": ["account_id"], "cdc_type": "snapshot",
+        "hints": "account_id BIGINT, open_date DATE"
+    },
     
-    # 2. Customer Transaction Data
-    "account_transaction": {"domain": "customer_transaction", "keys": ["account_txn_id"], "cdc_type": "stream"},
-    "account_transaction_status_event": {"domain": "customer_transaction", "keys": ["status_event_id"], "cdc_type": "stream"},
-    "atm_transaction_status_event": {"domain": "customer_transaction", "keys": ["status_event_id"], "cdc_type": "stream"},
-    "payment_gateway_status_event": {"domain": "customer_transaction", "keys": ["status_event_id"], "cdc_type": "stream"},
-    "transaction_channel": {"domain": "customer_transaction", "keys": ["channel_id"], "cdc_type": "snapshot"},
-    "merchant": {"domain": "customer_transaction", "keys": ["merchant_id"], "cdc_type": "snapshot"},
-    "merchant_store": {"domain": "customer_transaction", "keys": ["store_id"], "cdc_type": "snapshot"},
-    "log_atm": {"domain": "customer_transaction", "keys": ["log_id"], "cdc_type": "stream"},
-    "payment_gateway_log": {"domain": "customer_transaction", "keys": ["gateway_txn_id"], "cdc_type": "stream"},
-    "balance_snapshot": {"domain": "customer_transaction", "keys": ["balance_id"], "cdc_type": "snapshot"},
+    # --- 2. Customer Transaction Data ---
+    "account_transaction": {
+        "domain": "customer_transaction", "keys": ["account_txn_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, account_id BIGINT, amount DECIMAL(12,2), txn_timestamp TIMESTAMP"
+    },
+    "account_transaction_status_event": {
+        "domain": "customer_transaction", "keys": ["status_event_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, status_timestamp TIMESTAMP, source_arrival_timestamp TIMESTAMP, sequence_number BIGINT"
+    },
+    "atm_transaction_status_event": {
+        "domain": "customer_transaction", "keys": ["status_event_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, status_timestamp TIMESTAMP, source_arrival_timestamp TIMESTAMP, sequence_number BIGINT"
+    },
+    "payment_gateway_status_event": {
+        "domain": "customer_transaction", "keys": ["status_event_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, card_txn_id BIGINT, status_timestamp TIMESTAMP, source_arrival_timestamp TIMESTAMP, sequence_number BIGINT"
+    },
+    "transaction_channel": {
+        "domain": "customer_transaction", "keys": ["channel_id"], "cdc_type": "snapshot",
+        "hints": ""
+    },
+    "merchant": {
+        "domain": "customer_transaction", "keys": ["merchant_id"], "cdc_type": "snapshot",
+        "hints": ""
+    },
+    "merchant_store": {
+        "domain": "customer_transaction", "keys": ["store_id"], "cdc_type": "snapshot",
+        "hints": "registered_date DATE"
+    },
+    "log_atm": {
+        "domain": "customer_transaction", "keys": ["log_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, amount DECIMAL(12,2), log_timestamp TIMESTAMP"
+    },
+    "payment_gateway_log": {
+        "domain": "customer_transaction", "keys": ["gateway_txn_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, card_txn_id BIGINT, amount DECIMAL(12,2), gateway_timestamp TIMESTAMP"
+    },
+    "balance_snapshot": {
+        "domain": "customer_transaction", "keys": ["balance_id"], "cdc_type": "snapshot",
+        "hints": "account_id BIGINT, balance_date DATE, opening_balance DECIMAL(14,2), closing_balance DECIMAL(14,2), available_balance DECIMAL(14,2)"
+    },
     
-    # 3. Financial Crime Data
-    "fraud_alert": {"domain": "financial_crime", "keys": ["alert_id"], "cdc_type": "stream"},
-    "transaction_monitoring_alert": {"domain": "financial_crime", "keys": ["alert_id"], "cdc_type": "stream"},
-    "transaction_monitoring_alert_account_transaction": {"domain": "financial_crime", "keys": ["alert_account_txn_link_id"], "cdc_type": "stream"},
-    "transaction_monitoring_alert_card_transaction": {"domain": "financial_crime", "keys": ["alert_card_txn_link_id"], "cdc_type": "stream"},
-    "investigation_case_transaction_monitoring_alert": {"domain": "financial_crime", "keys": ["case_alert_link_id"], "cdc_type": "stream"},
-    "investigation_case_card_fraud_flag": {"domain": "financial_crime", "keys": ["case_flag_link_id"], "cdc_type": "stream"},
-    "investigation_case": {"domain": "financial_crime", "keys": ["case_id"], "cdc_type": "snapshot"},
-    "investigation_case_account_transaction": {"domain": "financial_crime", "keys": ["case_account_txn_link_id"], "cdc_type": "stream"},
-    "investigation_case_card_transaction": {"domain": "financial_crime", "keys": ["case_card_txn_link_id"], "cdc_type": "stream"},
-    "investigation_case_fraud_alert": {"domain": "financial_crime", "keys": ["case_alert_link_id"], "cdc_type": "stream"},
-    "investigation_case_sanction_screening": {"domain": "financial_crime", "keys": ["case_screening_link_id"], "cdc_type": "stream"},
-    "investigation_note": {"domain": "financial_crime", "keys": ["note_id"], "cdc_type": "stream"},
-    "aml_case": {"domain": "financial_crime", "keys": ["case_id"], "cdc_type": "snapshot"},
-    "sanction_screening": {"domain": "financial_crime", "keys": ["screening_id"], "cdc_type": "stream"},
-    "suspicious_activity_report": {"domain": "financial_crime", "keys": ["sar_id"], "cdc_type": "snapshot"},
-    "watchlist": {"domain": "financial_crime", "keys": ["watchlist_id"], "cdc_type": "snapshot"},
-    "account_transaction_risk_score": {"domain": "financial_crime", "keys": ["score_id"], "cdc_type": "stream"},
-    "call_center_log": {"domain": "financial_crime", "keys": ["call_id"], "cdc_type": "stream"},
-    "chargeback": {"domain": "financial_crime", "keys": ["chargeback_id"], "cdc_type": "stream"},
+    # --- 3. Financial Crime Data ---
+    "fraud_alert": {
+        "domain": "financial_crime", "keys": ["alert_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, alert_score DECIMAL(5,2), created_date DATE"
+    },
+    "transaction_monitoring_alert": {
+        "domain": "financial_crime", "keys": ["alert_id"], "cdc_type": "stream",
+        "hints": "primary_account_txn_id BIGINT, alert_score DECIMAL(5,2), alert_timestamp TIMESTAMP"
+    },
+    "transaction_monitoring_alert_account_transaction": {
+        "domain": "financial_crime", "keys": ["alert_account_txn_link_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, is_primary BOOLEAN"
+    },
+    "transaction_monitoring_alert_card_transaction": {
+        "domain": "financial_crime", "keys": ["alert_card_txn_link_id"], "cdc_type": "stream",
+        "hints": "card_txn_id BIGINT, is_primary BOOLEAN"
+    },
+    "investigation_case_transaction_monitoring_alert": {
+        "domain": "financial_crime", "keys": ["case_alert_link_id"], "cdc_type": "stream",
+        "hints": "linked_timestamp TIMESTAMP"
+    },
+    "investigation_case_card_fraud_flag": {
+        "domain": "financial_crime", "keys": ["case_flag_link_id"], "cdc_type": "stream",
+        "hints": "linked_timestamp TIMESTAMP"
+    },
+    "investigation_case": {
+        "domain": "financial_crime", "keys": ["case_id"], "cdc_type": "snapshot",
+        "hints": "opened_timestamp TIMESTAMP, closed_timestamp TIMESTAMP"
+    },
+    "investigation_case_account_transaction": {
+        "domain": "financial_crime", "keys": ["case_account_txn_link_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, linked_timestamp TIMESTAMP"
+    },
+    "investigation_case_card_transaction": {
+        "domain": "financial_crime", "keys": ["case_card_txn_link_id"], "cdc_type": "stream",
+        "hints": "card_txn_id BIGINT, linked_timestamp TIMESTAMP"
+    },
+    "investigation_case_fraud_alert": {
+        "domain": "financial_crime", "keys": ["case_alert_link_id"], "cdc_type": "stream",
+        "hints": "linked_timestamp TIMESTAMP"
+    },
+    "investigation_case_sanction_screening": {
+        "domain": "financial_crime", "keys": ["case_screening_link_id"], "cdc_type": "stream",
+        "hints": "linked_timestamp TIMESTAMP"
+    },
+    "investigation_note": {
+        "domain": "financial_crime", "keys": ["note_id"], "cdc_type": "stream",
+        "hints": "note_timestamp TIMESTAMP, source_arrival_timestamp TIMESTAMP"
+    },
+    "aml_case": {
+        "domain": "financial_crime", "keys": ["case_id"], "cdc_type": "snapshot",
+        "hints": "opened_date DATE, closed_date DATE"
+    },
+    "sanction_screening": {
+        "domain": "financial_crime", "keys": ["screening_id"], "cdc_type": "stream",
+        "hints": "match_score DECIMAL(5,2), screening_date DATE"
+    },
+    "suspicious_activity_report": {
+        "domain": "financial_crime", "keys": ["sar_id"], "cdc_type": "snapshot",
+        "hints": "filed_date DATE"
+    },
+    "watchlist": {
+        "domain": "financial_crime", "keys": ["watchlist_id"], "cdc_type": "snapshot",
+        "hints": "added_date DATE"
+    },
+    "account_transaction_risk_score": {
+        "domain": "financial_crime", "keys": ["score_id"], "cdc_type": "stream",
+        "hints": "account_txn_id BIGINT, model_score DECIMAL(6,4), scored_date DATE"
+    },
+    "call_center_log": {
+        "domain": "financial_crime", "keys": ["call_id"], "cdc_type": "stream",
+        "hints": "call_timestamp TIMESTAMP, call_duration_seconds BIGINT"
+    },
+    "chargeback": {
+        "domain": "financial_crime", "keys": ["chargeback_id"], "cdc_type": "stream",
+        "hints": "card_txn_id BIGINT, dispute_amount DECIMAL(12,2), filed_date DATE, resolved_date DATE"
+    },
     
-    # 4. Card Data
-    "card": {"domain": "card", "keys": ["card_id"], "cdc_type": "snapshot"},
-    "card_transaction": {"domain": "card", "keys": ["card_txn_id"], "cdc_type": "stream"},
-    "card_fraud_flag": {"domain": "card", "keys": ["flag_id"], "cdc_type": "stream"},
-    "card_limit_history": {"domain": "card", "keys": ["history_id"], "cdc_type": "snapshot"},
-    "card_transaction_status_event": {"domain": "card", "keys": ["status_event_id"], "cdc_type": "stream"},
+    # --- 4. Card Data ---
+    "card": {
+        "domain": "card", "keys": ["card_id"], "cdc_type": "snapshot",
+        "hints": "account_id BIGINT, issue_date DATE, expiry_date DATE"
+    },
+    "card_transaction": {
+        "domain": "card", "keys": ["card_txn_id"], "cdc_type": "stream",
+        "hints": "card_txn_id BIGINT, amount DECIMAL(12,2), txn_timestamp TIMESTAMP, is_fraud BOOLEAN"
+    },
+    "card_fraud_flag": {
+        "domain": "card", "keys": ["flag_id"], "cdc_type": "stream",
+        "hints": "card_txn_id BIGINT, flag_date DATE"
+    },
+    "card_limit_history": {
+        "domain": "card", 
+        "keys": ["history_id"], 
+        "cdc_type": "stream",
+        "hints": "limit_amount DECIMAL(12,2), effective_date DATE"
+    },
+    "card_transaction_status_event": {
+        "domain": "card", "keys": ["status_event_id"], "cdc_type": "stream",
+        "hints": "card_txn_id BIGINT, status_timestamp TIMESTAMP, source_arrival_timestamp TIMESTAMP, sequence_number BIGINT"
+    }
 }
 
 try:
@@ -75,42 +200,13 @@ except Exception:
     AVAILABLE_BUSINESS_DATES = [20260705, 20260706, 20260707, 20260708, 20260709, 20260710]
 
 # ==============================================================================
-# HELPER: SANITIZE INJECTED SCHEMA ERRORS
-# ==============================================================================
-def sanitize_injected_schema_errors(df: DataFrame, table_name: str) -> DataFrame:
-    """Safe cast cho các cột bị Injected Schema Error trong dataset."""
-    cols = df.columns
-    
-    # 1. Fix call_duration_seconds (biến text thành integer/double)
-    if "call_duration_seconds" in cols:
-        df = df.withColumn("call_duration_seconds", F.col("call_duration_seconds").cast("double"))
-        
-    # 2. Fix note arrival timestamp (biến ISO text thành timestamp chuẩn)
-    for c in cols:
-        if "arrival_timestamp" in c or "note_timestamp" in c or c == "arrival_time" or c == "note_time":
-            df = df.withColumn(c, F.to_timestamp(F.col(c)))
-            
-    # 3. Fix limit_amount (biến text decimal thành decimal(12,2))
-    if "limit_amount" in cols:
-        df = df.withColumn("limit_amount", F.col("limit_amount").cast("decimal(12,2)"))
-        
-    return df
-
-# ==============================================================================
 # HELPER: BỔ SUNG CÁC CỘT AUDIT / CDC METADATA
 # ==============================================================================
 def add_enterprise_cdc_metadata(
     df: DataFrame, 
     domain: str, 
-    table_name: str = "", 
     current_date_str: Optional[str] = None
 ) -> DataFrame:
-    """Thêm các cột Audit CDC chuẩn Enterprise."""
-    
-    # 1. Bước Sanitization: Sửa các cột bị injected schema error trước
-    if table_name:
-        df = sanitize_injected_schema_errors(df, table_name)
-        
     now_ts = F.current_timestamp()
     
     source_path_col = (
@@ -148,9 +244,9 @@ def add_enterprise_cdc_metadata(
     )
 
 # ==============================================================================
-# MAIN BUILDER: CDC FLOW VỚI FULL SCHEMA EVOLUTION CAPABILITIES
+# MAIN BUILDER: CDC FLOW VỚI DYNAMIC SCHEMA HINTS
 # ==============================================================================
-def build_cdc_flow(table_name: str, domain: str, keys: list[str], cdc_type: str):
+def build_cdc_flow(table_name: str, domain: str, keys: list[str], cdc_type: str, schema_hints: str):
     target_table_identifier = f"{SCHEMA_DB}.{table_name}"
 
     dp.create_streaming_table(
@@ -172,20 +268,24 @@ def build_cdc_flow(table_name: str, domain: str, keys: list[str], cdc_type: str)
 
         @dp.view(name=view_name)
         def stream_view():
-            # FIX: Explicitly include {domain} instead of wildcard '*'
             stream_path = f"{S3_BASE_URL}/simulation_id=*/snapshot_type=full/business_date=*/{domain}/{table_name}"
             schema_location = f"/Volumes/workspace/bronze/checkpoints/{table_name}_schema"
 
-            raw_df = (
+            reader = (
                 spark.readStream
                 .format("cloudFiles")
                 .option("cloudFiles.format", "parquet")
                 .option("cloudFiles.schemaEvolutionMode", "addNewColumnsWithTypeWidening")
                 .option("cloudFiles.schemaLocation", schema_location)
                 .option("cloudFiles.rescuedDataColumn", "_rescued_data")
-                .load(stream_path)
             )
-            return add_enterprise_cdc_metadata(raw_df, domain, table_name=table_name)
+
+            # Chỉ truyền schemaHints nếu bảng đó có cấu hình hints (không rỗng)
+            if schema_hints:
+                reader = reader.option("cloudFiles.schemaHints", schema_hints)
+
+            raw_df = reader.load(stream_path)
+            return add_enterprise_cdc_metadata(raw_df, domain)
 
         dp.create_auto_cdc_flow(
             target=target_table_identifier,
@@ -226,7 +326,7 @@ def build_cdc_flow(table_name: str, domain: str, keys: list[str], cdc_type: str)
                     .parquet(exact_snapshot_path)
                 )
 
-                df = add_enterprise_cdc_metadata(df, domain, table_name=table_name, current_date_str=date_formatted)
+                df = add_enterprise_cdc_metadata(df, domain, current_date_str=date_formatted)
                 return (df, next_ver)
 
             except Exception as e:
@@ -248,5 +348,6 @@ for tbl_name, config in TABLE_CONFIGS.items():
         table_name=tbl_name, 
         domain=config["domain"], 
         keys=config["keys"],
-        cdc_type=config["cdc_type"]
+        cdc_type=config["cdc_type"],
+        schema_hints=config.get("hints", "")
     )
