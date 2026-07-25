@@ -1,0 +1,18 @@
+resources:
+  pipelines:
+    poc_card_silver_quality:
+      name: poc-card-silver-quality
+      catalog: ${var.catalog}
+      schema: ${var.poc_silver_schema}
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/quality_rules.py
+        - file:
+            path: ../notebooks/pipeline/transformations/poc_card_silver_quality.py
+      configuration:
+        pipeline.catalog: ${var.catalog}
+        pipeline.bronze_schema: ${var.poc_bronze_schema}
+        pipeline.quarantine_schema: ${var.poc_quarantine_schema}
+        pipeline.quality_rules_path: ${workspace.file_path}/src

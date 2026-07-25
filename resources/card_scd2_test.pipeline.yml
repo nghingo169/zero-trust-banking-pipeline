@@ -1,0 +1,14 @@
+resources:
+  pipelines:
+    card_scd2_test:
+      name: card-scd2-snapshot-test
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../notebooks/pipeline/transformations/card_scd2_snapshot_test.py
+      configuration:
+        pipeline.bronze_card_table: ${var.catalog}.${var.bronze_schema}.card
+        pipeline.scd2_snapshot_dates: ${var.scd2_snapshot_dates}

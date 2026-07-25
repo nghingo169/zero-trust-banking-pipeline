@@ -1,0 +1,92 @@
+# This is a Declarative Automation Bundle definition for zero-trust-banking-pipeline.
+# The Databricks extension requires databricks.yml configuration file.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+
+bundle:
+  name: zero-trust-banking-pipeline
+
+experimental:
+  # Development mode normally prefixes UC schema names with the deployer.
+  # This personal-workspace POC uses explicit, stable dev_* schema names.
+  skip_name_prefix_for_schema: true
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog destination catalog.
+    default: workspace
+  bronze_schema:
+    description: Schema for Card Bronze CDC/SCD Type 2 tables.
+    default: dev_bronze
+  silver_schema:
+    description: Schema for the isolated Card SCD Type 2 proof of concept.
+    default: dev_silver
+  landing_schema:
+    description: Schema containing the Free Edition file-arrival simulation volume.
+    default: dev_landing
+  landing_volume:
+    description: Managed volume used to simulate the external raw-file landing zone.
+    default: card_snapshot_files
+  source_root:
+    description: Root containing incoming snapshot files; S3 in full environments or a UC volume in Free Edition.
+    default: s3://nab-src-dataset/banking_v2/snapshots
+  simulation_id:
+    description: Source simulation identifier below the snapshots root.
+    default: banking-20260705-20260710
+  card_tables:
+    description: Comma-separated Card source tables expected by the Bronze pipeline.
+    default: card,card_transaction,card_fraud_flag,card_limit_history,card_transaction_status_event
+  bronze_snapshot_dates:
+    description: Ordered complete snapshot versions for Card Bronze master tables.
+    default: "20260705,20260706"
+  scd2_snapshot_dates:
+    description: Ordered snapshots used only by the Card SCD Type 2 proof of concept.
+    default: "2026-07-05,2026-07-06"
+  poc_landing_schema:
+    description: Isolated schema for the two-day Card POC landing volume.
+    default: poc_card_landing
+  poc_landing_volume:
+    description: Managed volume that receives one Card snapshot date at a time.
+    default: daily_snapshot_files
+  poc_bronze_schema:
+    description: Isolated Card Bronze schema for the two-day POC.
+    default: poc_card_bronze
+  poc_silver_schema:
+    description: Isolated clean Silver schema for the two-day Card POC.
+    default: poc_card_silver
+  poc_quarantine_schema:
+    description: Isolated Silver quarantine schema for the two-day Card POC.
+    default: poc_card_quarantine
+  poc_snapshot_dates:
+    description: Ordered dates that the Card POC stages and replays.
+    default: "20260705,20260706"
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+    #https://dbc-d1f10ecb-c387.cloud.databricks.com/ - team workspace
+    #https://dbc-6ea87deb-1ce6.cloud.databricks.com/ - personal workspace
+      host: https://dbc-6ea87deb-1ce6.cloud.databricks.com/
+    variables:
+      catalog: workspace
+      bronze_schema: dev_bronze
+      silver_schema: dev_silver
+      landing_schema: dev_landing
+      landing_volume: card_snapshot_files
+      source_root: /Volumes/workspace/dev_landing/card_snapshot_files/banking_v2/snapshots
+      poc_landing_schema: poc_card_landing
+      poc_landing_volume: daily_snapshot_files
+      poc_bronze_schema: poc_card_bronze
+      poc_silver_schema: poc_card_silver
+      poc_quarantine_schema: poc_card_quarantine
+      poc_snapshot_dates: "20260705,20260706"
+
+  ## Optionally, there could be 'staging' or 'prod' targets here.
+  #
+  # prod:
+  #   workspace:
+  #     host: https://dbc-f9a83294-6561.cloud.databricks.com
