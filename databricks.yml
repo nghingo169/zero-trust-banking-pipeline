@@ -55,6 +55,18 @@ variables:
     default: dev_customer_silver
   dev_customer_quarantine_schema:
     default: dev_customer_quarantine
+  dev_transaction_bronze_schema:
+    default: dev_transaction_bronze
+  dev_transaction_silver_schema:
+    default: dev_transaction_silver
+  dev_transaction_quarantine_schema:
+    default: dev_transaction_quarantine
+  dev_fincrime_bronze_schema:
+    default: dev_fincrime_bronze
+  dev_fincrime_silver_schema:
+    default: dev_fincrime_silver
+  dev_fincrime_quarantine_schema:
+    default: dev_fincrime_quarantine
 
 targets:
   dev:
@@ -75,6 +87,25 @@ targets:
       dev_customer_bronze_schema: dev_customer_bronze
       dev_customer_silver_schema: dev_customer_silver
       dev_customer_quarantine_schema: dev_customer_quarantine
+
+  team:
+    mode: development
+    workspace:
+      host: https://dbc-d1f10ecb-c387.cloud.databricks.com/
+    variables:
+      catalog: workspace
+      dev_card_bronze_schema: bronze
+      dev_customer_bronze_schema: bronze
+      dev_transaction_bronze_schema: bronze
+      dev_fincrime_bronze_schema: bronze
+      dev_card_silver_schema: team_card_silver
+      dev_customer_silver_schema: team_customer_silver
+      dev_transaction_silver_schema: team_transaction_silver
+      dev_fincrime_silver_schema: team_fincrime_silver
+      dev_card_quarantine_schema: team_card_quarantine
+      dev_customer_quarantine_schema: team_customer_quarantine
+      dev_transaction_quarantine_schema: team_transaction_quarantine
+      dev_fincrime_quarantine_schema: team_fincrime_quarantine
 
   ## Optionally, there could be 'staging' or 'prod' targets here.
   #
