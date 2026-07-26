@@ -1,0 +1,18 @@
+resources:
+  pipelines:
+    dev_transaction_bronze:
+      name: dev-transaction-bronze
+      catalog: ${var.catalog}
+      schema: dev_transaction_bronze
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/pipeline/bronze/transaction_ingestion.py
+      configuration:
+        pipeline.target_catalog: ${var.catalog}
+        pipeline.target_schema: dev_transaction_bronze
+        pipeline.source_root: /Volumes/${var.catalog}/${var.source_landing_schema}/${var.source_landing_volume}/banking_v2/snapshots/domain=customer_transaction
+        pipeline.simulation_id: ${var.simulation_id}
+        pipeline.available_business_dates: ${var.replay_snapshot_dates}
+        pipeline.domain_path: ${workspace.file_path}/src

@@ -9,7 +9,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from quality_rules import (
+from data_contracts.quality_rules.registry import (
     get_domain_rules,
     get_quarantine_condition,
     get_rules,
@@ -143,14 +143,57 @@ class QualityRulesTests(unittest.TestCase):
         self.assertNotIn("transaction_monitoring_alert__alert_status", get_rules("transaction_monitoring_alert"))
         self.assertNotIn("watchlist", [rule["table"] for rule in get_domain_rules("fincrime")])
 
-    def test_silver_poc_imports_the_shared_rule_module(self) -> None:
+    def test_silver_validation_imports_the_shared_rule_module(self) -> None:
         pipeline_source = (
             Path(__file__).resolve().parents[1]
-            / "notebooks/pipeline/transformations/poc_card_silver_quality.py"
+            / "src/pipeline/silver/card_validation.py"
         ).read_text()
         self.assertIn('spark.conf.get("pipeline.quality_rules_path")', pipeline_source)
-        self.assertIn("from quality_rules import get_rules", pipeline_source)
+        self.assertIn("from data_contracts.quality_rules.registry import get_rules", pipeline_source)
         self.assertNotIn("RULES_BY_TABLE =", pipeline_source)
+
+    def test_silver_validation_quarantines_null_rule_evaluations(self) -> None:
+        pipeline_source = (
+            Path(__file__).resolve().parents[1]
+            / "src/pipeline/silver/card_validation.py"
+        ).read_text()
+        self.assertIn("~F.coalesce(F.expr(constraint), F.lit(False))", pipeline_source)
+
+    def test_transaction_ingestion_separates_snapshot_scd2_and_event_history(self) -> None:
+        pipeline_source = (
+            Path(__file__).resolve().parents[1]
+            / "src/pipeline/bronze/transaction_ingestion.py"
+        ).read_text()
+        self.assertIn("EVENT_TABLES", pipeline_source)
+        self.assertIn("SNAPSHOT_TABLES", pipeline_source)
+        self.assertIn("@dp.append_flow", pipeline_source)
+        self.assertIn(".dropDuplicates([k])", pipeline_source)
+        self.assertNotIn('F.col("business_date"), F.col(key)', pipeline_source)
+
+    def test_card_ingestion_classifies_scd2_and_immutable_history(self) -> None:
+        source = (Path(__file__).resolve().parents[1] / "src/pipeline/bronze/card_ingestion.py").read_text()
+        self.assertIn("SCD2_SNAPSHOT_TABLES", source)
+        self.assertIn('DOMAINS["card"]["scd2"]', source)
+        self.assertIn("APPEND_ONLY_TABLES", source)
+        self.assertIn('DOMAINS["card"]["append"]', source)
+        self.assertIn("@dp.append_flow", source)
+
+    def test_customer_and_fincrime_are_all_scd2_snapshots(self) -> None:
+        customer = (Path(__file__).resolve().parents[1] / "src/pipeline/bronze/customer_ingestion.py").read_text()
+        fincrime = (Path(__file__).resolve().parents[1] / "src/pipeline/bronze/fincrime_ingestion.py").read_text()
+        self.assertNotIn('"stream": True', customer)
+        self.assertIn("stored_as_scd_type=\"2\"", customer)
+        self.assertIn("SCD2_SNAPSHOT_TABLES", fincrime)
+        self.assertNotIn("create_auto_cdc_flow", fincrime)
+
+    def test_quality_pipelines_use_cdf_for_quarantine_history(self) -> None:
+        root = Path(__file__).resolve().parents[1] / "src/pipeline/silver"
+        for filename in (
+            "transaction_validation.py",
+            "customer_validation.py",
+            "fincrime_validation.py",
+        ):
+            self.assertIn('option("readChangeFeed", "true")', (root / filename).read_text())
 
 
 if __name__ == "__main__":

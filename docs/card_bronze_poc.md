@@ -1,7 +1,7 @@
 # Card Bronze CDC proof of concept
 
 This is the Card-only Free Edition equivalent of
-[`bronze_layer.py`](../notebooks/pipeline/transformations/bronze_layer.py).
+[`bronze_layer.py`](../src/legacy/notebooks/pipeline/transformations/bronze_layer.py).
 Bronze owns CDC in this project; it is not a raw append-only staging table.
 
 | Card table | Source handling | Bronze result |

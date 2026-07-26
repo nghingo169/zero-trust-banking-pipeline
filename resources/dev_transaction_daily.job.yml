@@ -1,0 +1,58 @@
+resources:
+  jobs:
+    dev_transaction_daily:
+      name: dev-transaction-daily
+      max_concurrent_runs: 1
+      parameters:
+        - name: business_date
+          default: "2026-07-05"
+        - name: run_id
+          default: "{{job.run_id}}"
+      tasks:
+        - task_key: bronze
+          max_retries: 1
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.dev_transaction_bronze.id}
+        - task_key: silver_quality
+          depends_on:
+            - task_key: bronze
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.dev_transaction_silver_validation.id}
+        - task_key: quality_audit
+          depends_on:
+            - task_key: silver_quality
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/transaction_quality_audit.py
+            base_parameters:
+              business_date: "{{job.parameters.business_date}}"
+              run_id: "{{job.parameters.run_id}}"
+              quality_rules_path: ${workspace.file_path}/src
+    dev_transaction_reset_day:
+      name: dev-transaction-reset-day
+      max_concurrent_runs: 1
+      parameters:
+        - name: business_date
+          default: "2026-07-05"
+        - name: run_id
+          default: "{{job.run_id}}"
+      tasks:
+        - task_key: bronze
+          max_retries: 1
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.dev_transaction_bronze.id}
+            full_refresh: true
+        - task_key: silver_quality
+          depends_on:
+            - task_key: bronze
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.dev_transaction_silver_validation.id}
+            full_refresh: true
+        - task_key: quality_audit
+          depends_on:
+            - task_key: silver_quality
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/transaction_quality_audit.py
+            base_parameters:
+              business_date: "{{job.parameters.business_date}}"
+              run_id: "{{job.parameters.run_id}}"
+              quality_rules_path: ${workspace.file_path}/src

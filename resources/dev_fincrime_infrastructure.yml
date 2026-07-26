@@ -1,0 +1,11 @@
+resources:
+  schemas:
+    dev_fincrime_bronze_schema:
+      name: dev_fincrime_bronze
+      catalog_name: ${var.catalog}
+    dev_fincrime_silver_schema:
+      name: dev_fincrime_silver
+      catalog_name: ${var.catalog}
+    dev_fincrime_quarantine_schema:
+      name: dev_fincrime_quarantine
+      catalog_name: ${var.catalog}

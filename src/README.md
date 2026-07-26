@@ -1,17 +1,17 @@
 # Pipeline source code
 
-## Domain data quality: the Databricks quarantine pattern
+## Authoritative data definitions
 
-Rules are split into [`card_quality_rules.py`](card_quality_rules.py),
-[`customer_quality_rules.py`](customer_quality_rules.py),
-[`transaction_quality_rules.py`](transaction_quality_rules.py), and
-[`fincrime_quality_rules.py`](fincrime_quality_rules.py). The lightweight
-[`quality_rules.py`](quality_rules.py) facade routes a table to its domain, so
-existing pipeline imports remain valid. None of these modules parse
-data-contract YAML at runtime.
+[`data_contracts/`](data_contracts/) is the single source of truth for YAML
+schemas, table identity, business keys, ingestion semantics, and row-quality
+rules. Pipeline code and replay helpers live under [`pipeline/`](pipeline/) and
+[`replay_validation/`](replay_validation/) respectively.
 
-[`pipelines/card_quarantine.py`](pipelines/card_quarantine.py) applies those
-rules exactly as in the Databricks quarantine example:
+The previous standalone quarantine prototype is preserved at
+[`legacy/pipeline_definitions/card_quarantine.py`](legacy/pipeline_definitions/card_quarantine.py).
+It is not part of the deployed pipeline path.
+
+## Quarantine pattern
 
 ```python
 rules = get_rules("card")
@@ -29,7 +29,7 @@ def card_data_quarantine():
 `silver_card` reads rows where `is_quarantined=false`. `card_quarantine` keeps
 the invalid rows where `is_quarantined=true` for investigation and replay.
 
-Some catalog actions are intentionally outside the row-level quarantine
+Some data-quality actions are intentionally outside the row-level quarantine
 predicate: duplicate detection, status reconciliation, arrival-order handling,
 and stale-reference flagging need aggregate or cross-record logic. Primary-key
 uniqueness and invalid-rate thresholds likewise belong in separate monitoring

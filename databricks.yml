@@ -7,7 +7,7 @@ bundle:
 
 experimental:
   # Development mode normally prefixes UC schema names with the deployer.
-  # This personal-workspace POC uses explicit, stable dev_* schema names.
+  # This personal workspace uses explicit, stable development schema names.
   skip_name_prefix_for_schema: true
 
 include:
@@ -17,21 +17,12 @@ variables:
   catalog:
     description: Unity Catalog destination catalog.
     default: workspace
-  bronze_schema:
-    description: Schema for Card Bronze CDC/SCD Type 2 tables.
-    default: dev_bronze
-  silver_schema:
-    description: Schema for the isolated Card SCD Type 2 proof of concept.
-    default: dev_silver
-  landing_schema:
-    description: Schema containing the Free Edition file-arrival simulation volume.
-    default: dev_landing
-  landing_volume:
-    description: Managed volume used to simulate the external raw-file landing zone.
-    default: card_snapshot_files
-  source_root:
-    description: Root containing incoming snapshot files; S3 in full environments or a UC volume in Free Edition.
-    default: s3://nab-src-dataset/banking_v2/snapshots
+  source_landing_schema:
+    description: Shared immutable raw-file landing schema for every source domain.
+    default: dev_source_landing
+  source_landing_volume:
+    description: Managed volume that receives raw source snapshots before Bronze ingestion.
+    default: source_snapshot_files
   simulation_id:
     description: Source simulation identifier below the snapshots root.
     default: banking-20260705-20260710
@@ -44,24 +35,26 @@ variables:
   scd2_snapshot_dates:
     description: Ordered snapshots used only by the Card SCD Type 2 proof of concept.
     default: "2026-07-05,2026-07-06"
-  poc_landing_schema:
-    description: Isolated schema for the two-day Card POC landing volume.
-    default: poc_card_landing
-  poc_landing_volume:
-    description: Managed volume that receives one Card snapshot date at a time.
-    default: daily_snapshot_files
-  poc_bronze_schema:
-    description: Isolated Card Bronze schema for the two-day POC.
-    default: poc_card_bronze
-  poc_silver_schema:
-    description: Isolated clean Silver schema for the two-day Card POC.
-    default: poc_card_silver
-  poc_quarantine_schema:
-    description: Isolated Silver quarantine schema for the two-day Card POC.
-    default: poc_card_quarantine
-  poc_snapshot_dates:
-    description: Ordered dates that the Card POC stages and replays.
-    default: "20260705,20260706"
+  dev_card_bronze_schema:
+    description: Development Card Bronze schema.
+    default: dev_card_bronze
+  dev_card_silver_schema:
+    description: Development clean Card Silver schema.
+    default: dev_card_silver
+  dev_card_quarantine_schema:
+    description: Development Card quarantine schema.
+    default: dev_card_quarantine
+  replay_snapshot_dates:
+    description: Ordered dates staged and replayed by every development domain.
+    default: "20260705,20260706,20260707,20260708,20260709,20260710"
+  customer_tables:
+    default: core_banking_customer,crm_customer,customer_kyc,customer_employment,customer_request,account,customer_account
+  dev_customer_bronze_schema:
+    default: dev_customer_bronze
+  dev_customer_silver_schema:
+    default: dev_customer_silver
+  dev_customer_quarantine_schema:
+    default: dev_customer_quarantine
 
 targets:
   dev:
@@ -73,17 +66,15 @@ targets:
       host: https://dbc-6ea87deb-1ce6.cloud.databricks.com/
     variables:
       catalog: workspace
-      bronze_schema: dev_bronze
-      silver_schema: dev_silver
-      landing_schema: dev_landing
-      landing_volume: card_snapshot_files
-      source_root: /Volumes/workspace/dev_landing/card_snapshot_files/banking_v2/snapshots
-      poc_landing_schema: poc_card_landing
-      poc_landing_volume: daily_snapshot_files
-      poc_bronze_schema: poc_card_bronze
-      poc_silver_schema: poc_card_silver
-      poc_quarantine_schema: poc_card_quarantine
-      poc_snapshot_dates: "20260705,20260706"
+      source_landing_schema: dev_source_landing
+      source_landing_volume: source_snapshot_files
+      dev_card_bronze_schema: dev_card_bronze
+      dev_card_silver_schema: dev_card_silver
+      dev_card_quarantine_schema: dev_card_quarantine
+      replay_snapshot_dates: "20260705,20260706,20260707,20260708,20260709,20260710"
+      dev_customer_bronze_schema: dev_customer_bronze
+      dev_customer_silver_schema: dev_customer_silver
+      dev_customer_quarantine_schema: dev_customer_quarantine
 
   ## Optionally, there could be 'staging' or 'prod' targets here.
   #

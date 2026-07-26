@@ -1,0 +1,16 @@
+resources:
+  pipelines:
+    dev_transaction_silver_validation:
+      name: dev-transaction-silver-validation
+      catalog: ${var.catalog}
+      schema: dev_transaction_silver
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/pipeline/silver/transaction_validation.py
+      configuration:
+        pipeline.catalog: ${var.catalog}
+        pipeline.bronze_schema: dev_transaction_bronze
+        pipeline.quarantine_schema: dev_transaction_quarantine
+        pipeline.quality_rules_path: ${workspace.file_path}/src

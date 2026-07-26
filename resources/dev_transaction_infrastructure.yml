@@ -1,0 +1,11 @@
+resources:
+  schemas:
+    dev_transaction_bronze_schema:
+      name: dev_transaction_bronze
+      catalog_name: ${var.catalog}
+    dev_transaction_silver_schema:
+      name: dev_transaction_silver
+      catalog_name: ${var.catalog}
+    dev_transaction_quarantine_schema:
+      name: dev_transaction_quarantine
+      catalog_name: ${var.catalog}

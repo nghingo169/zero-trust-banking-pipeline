@@ -1,0 +1,16 @@
+resources:
+  pipelines:
+    dev_fincrime_silver_validation:
+      name: dev-fincrime-silver-validation
+      catalog: ${var.catalog}
+      schema: dev_fincrime_silver
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/pipeline/silver/fincrime_validation.py
+      configuration:
+        pipeline.catalog: ${var.catalog}
+        pipeline.bronze_schema: dev_fincrime_bronze
+        pipeline.quarantine_schema: dev_fincrime_quarantine
+        pipeline.quality_rules_path: ${workspace.file_path}/src

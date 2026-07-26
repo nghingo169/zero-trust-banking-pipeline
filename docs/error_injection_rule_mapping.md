@@ -4,13 +4,13 @@ This checklist maps the deliberate defects in
 [`banking_error_injection_catalog.md`](banking_error_injection_catalog.md) to
 the implemented handling. A **quarantine rule** is evaluated per row and its
 failure sets `is_quarantined=true`; its SQL is available through
-`quality_rules.get_rules(table)`. Other catalog actions need cross-row,
+`data_contracts.quality_rules.registry.get_rules(table)`. Other catalog actions need cross-row,
 cross-table, or ingestion-level processing and are not represented as a
 row-level quarantine predicate.
 
 ## Customer
 
-Registry: [`src/customer_quality_rules.py`](../src/customer_quality_rules.py)
+Registry: [`src/domains/rules/customer.py`](../src/domains/rules/customer.py)
 
 | Table.field | Injected value or condition | Handling | Implemented rule / check |
 |---|---|---|---|
@@ -32,7 +32,7 @@ Registry: [`src/customer_quality_rules.py`](../src/customer_quality_rules.py)
 
 ## Customer transactions and operational logs
 
-Registry: [`src/transaction_quality_rules.py`](../src/transaction_quality_rules.py)
+Registry: [`src/domains/rules/transaction.py`](../src/domains/rules/transaction.py)
 
 | Table.field | Injected value or condition | Handling | Implemented rule / check |
 |---|---|---|---|
@@ -53,7 +53,7 @@ Registry: [`src/transaction_quality_rules.py`](../src/transaction_quality_rules.
 
 ## Card
 
-Registry: [`src/card_quality_rules.py`](../src/card_quality_rules.py)
+Registry: [`src/domains/rules/card.py`](../src/domains/rules/card.py)
 
 | Table.field | Injected value | Handling | Implemented rule |
 |---|---|---|---|
@@ -66,7 +66,7 @@ Registry: [`src/card_quality_rules.py`](../src/card_quality_rules.py)
 
 ## Financial crime
 
-Registry: [`src/fincrime_quality_rules.py`](../src/fincrime_quality_rules.py)
+Registry: [`src/domains/rules/fincrime.py`](../src/domains/rules/fincrime.py)
 
 | Table.field | Injected value or condition | Handling | Implemented rule / check |
 |---|---|---|---|
@@ -94,7 +94,7 @@ Registry: [`src/fincrime_quality_rules.py`](../src/fincrime_quality_rules.py)
 
 These are ingestion casts, not row-quality failures; they are handled by
 `sanitize_injected_schema_errors` in
-[`bronze_layer.py`](../notebooks/pipeline/transformations/bronze_layer.py).
+[`bronze_layer.py`](../src/legacy/notebooks/pipeline/transformations/bronze_layer.py).
 
 | Table.field | Injected physical type | Handling |
 |---|---|---|
