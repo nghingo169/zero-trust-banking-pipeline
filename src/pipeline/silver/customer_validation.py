@@ -1,4 +1,4 @@
-"""Customer-master clean Silver, quarantine, and duplicate-national-ID handling."""
+"""Customer-master SCD2 Silver, quarantine, and duplicate-national-ID handling."""
 
 from __future__ import annotations
 import sys

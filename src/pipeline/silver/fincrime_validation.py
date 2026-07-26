@@ -1,4 +1,4 @@
-"""Financial Crime current Silver, CDF quarantine history, and monitors."""
+"""Financial Crime SCD2 Silver, CDF quarantine history, and monitors."""
 
 import sys
 

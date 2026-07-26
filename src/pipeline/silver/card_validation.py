@@ -1,7 +1,7 @@
 """Card Bronze-to-Silver validation and quarantine.
 
-The Bronze pipeline owns CDC. This pipeline validates its outputs, publishes
-current valid Silver tables, and appends invalid CDF records to per-table
+The Bronze pipeline owns CDC. This pipeline validates its outputs, preserves
+valid SCD2 and immutable-event history in Silver, and appends invalid CDF records to per-table
 quarantine tables with the source business date and failed rule names.
 """
 
@@ -97,7 +97,7 @@ def _validation_rows(table_name: str) -> DataFrame:
 # Reads each new Bronze change once for quarantine history.
 # ==================
 def _quarantine_change_rows(table_name: str) -> DataFrame:
-    """Return each newly written valid/current Bronze row once via Delta CDF."""
+    """Return each newly written Bronze row once via Delta CDF."""
 
     df = (
         spark.readStream.option("readChangeFeed", "true")

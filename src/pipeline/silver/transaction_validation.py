@@ -1,4 +1,4 @@
-"""Transaction clean Silver, quarantine, and documented replay/status monitors."""
+"""Transaction SCD2/event-history Silver, quarantine, and documented replay/status monitors."""
 
 import sys
 from pyspark import pipelines as dp
