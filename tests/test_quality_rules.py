@@ -195,6 +195,13 @@ class QualityRulesTests(unittest.TestCase):
         ):
             self.assertIn('option("readChangeFeed", "true")', (root / filename).read_text())
 
+    def test_silver_validation_retains_scd2_history(self) -> None:
+        root = Path(__file__).resolve().parents[1] / "src/pipeline/silver"
+        self.assertIn("with_validation_metadata(all_versions(name), name)", (root / "customer_validation.py").read_text())
+        self.assertIn("with_validation_metadata(all_rows(n), n, rules)", (root / "transaction_validation.py").read_text())
+        self.assertIn("with_validation_metadata(all_versions(n), n, r)", (root / "fincrime_validation.py").read_text())
+        self.assertIn("_with_validation_metadata(_silver_rows(table_name), table_name)", (root / "card_validation.py").read_text())
+
 
 if __name__ == "__main__":
     unittest.main()

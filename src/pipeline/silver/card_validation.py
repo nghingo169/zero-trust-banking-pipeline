@@ -51,10 +51,14 @@ def _quarantine_table(table_name: str) -> str:
 
 
 # ==================
-# Reads current entity rows or all immutable Bronze rows for validation.
+# Reads the complete SCD2 history or immutable event history for Silver.
 # ==================
+def _silver_rows(table_name: str) -> DataFrame:
+    return spark.read.table(_bronze_table(table_name))
+
+
 def _current_rows(table_name: str) -> DataFrame:
-    df = spark.read.table(_bronze_table(table_name))
+    df = _silver_rows(table_name)
     if TABLE_CONFIGS[table_name]["is_scd2"]:
         df = df.filter("__END_AT IS NULL")
     return df
@@ -83,10 +87,10 @@ def _with_validation_metadata(df: DataFrame, table_name: str) -> DataFrame:
 
 
 # ==================
-# Prepares the current Bronze rows for Lakeflow expectations.
+# Prepares every Bronze version for Lakeflow expectations.
 # ==================
-def _current_validation_rows(table_name: str) -> DataFrame:
-    return _with_validation_metadata(_current_rows(table_name), table_name)
+def _validation_rows(table_name: str) -> DataFrame:
+    return _with_validation_metadata(_silver_rows(table_name), table_name)
 
 
 # ==================
@@ -100,8 +104,6 @@ def _quarantine_change_rows(table_name: str) -> DataFrame:
         .table(_bronze_table(table_name))
         .filter("_change_type IN ('insert', 'update_postimage')")
     )
-    if TABLE_CONFIGS[table_name]["is_scd2"]:
-        df = df.filter("__END_AT IS NULL")
     return (
         _with_validation_metadata(
             df.drop("_change_type", "_commit_version", "_commit_timestamp"),
@@ -124,7 +126,7 @@ def _register_table(table_name: str) -> None:
     @dp.table(name=validation_name, temporary=True)
     @dp.expect_all(rules)
     def validation_table() -> DataFrame:
-        return _current_validation_rows(table_name)
+        return _validation_rows(table_name)
 
     # ==================
     # Publishes only rows that pass every quality rule.

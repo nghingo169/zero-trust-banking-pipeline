@@ -36,7 +36,12 @@ def q(name):
 
 
 def current(name):
-    return spark.read.table(b(name)).filter("__END_AT IS NULL")
+    return all_versions(name).filter("__END_AT IS NULL")
+
+
+def all_versions(name):
+    """Return the complete Bronze SCD2 history for Silver retention."""
+    return spark.read.table(b(name))
 
 
 def with_validation_metadata(df, name, rules):
@@ -58,7 +63,6 @@ def quarantine_changes(name, rules):
     changes = (
         spark.readStream.option("readChangeFeed", "true").table(b(name))
         .filter("_change_type IN ('insert', 'update_postimage')")
-        .filter("__END_AT IS NULL")
         .drop("_change_type", "_commit_version", "_commit_timestamp")
     )
     return with_validation_metadata(changes, name, rules).filter("is_quarantined")
@@ -72,11 +76,11 @@ def register(name):
         @dp.table(name=validation, temporary=True)
         @dp.expect_all(rules)
         def validated(n=name, r=rules):
-            return with_validation_metadata(current(n), n, r)
+            return with_validation_metadata(all_versions(n), n, r)
     else:
         @dp.table(name=validation, temporary=True)
         def validated(n=name, r=rules):
-            return with_validation_metadata(current(n), n, r)
+            return with_validation_metadata(all_versions(n), n, r)
 
     @dp.table(name=name)
     def clean(v=validation):

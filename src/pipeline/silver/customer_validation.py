@@ -26,8 +26,12 @@ def quarantine(name: str) -> str:
 
 
 def current(name: str) -> DataFrame:
-    df = spark.read.table(bronze(name))
-    return df.filter("__END_AT IS NULL")
+    return all_versions(name).filter("__END_AT IS NULL")
+
+
+def all_versions(name: str) -> DataFrame:
+    """Return the complete Bronze SCD2 history for Silver retention."""
+    return spark.read.table(bronze(name))
 
 
 def duplicate_ids() -> DataFrame:
@@ -76,7 +80,7 @@ def with_validation_metadata(df: DataFrame, name: str) -> DataFrame:
 
 
 def validated(name: str) -> DataFrame:
-    return with_validation_metadata(current(name), name)
+    return with_validation_metadata(all_versions(name), name)
 
 
 def quarantine_changes(name: str) -> DataFrame:
@@ -84,7 +88,6 @@ def quarantine_changes(name: str) -> DataFrame:
         spark.readStream.option("readChangeFeed", "true")
         .table(bronze(name))
         .filter("_change_type IN ('insert', 'update_postimage')")
-        .filter("__END_AT IS NULL")
         .drop("_change_type", "_commit_version", "_commit_timestamp")
     )
     return with_validation_metadata(changes, name).filter("is_quarantined")

@@ -38,8 +38,13 @@ def q(n):
 
 
 def current(n):
-    x = spark.read.table(b(n))
+    x = all_rows(n)
     return x.filter("__END_AT IS NULL") if n in SCD2 else x
+
+
+def all_rows(n):
+    """Return complete SCD2 history or immutable event history for Silver."""
+    return spark.read.table(b(n))
 
 
 def with_validation_metadata(x, n, rules):
@@ -63,7 +68,7 @@ def with_validation_metadata(x, n, rules):
 
 
 def valid(n, rules):
-    return with_validation_metadata(current(n), n, rules)
+    return with_validation_metadata(all_rows(n), n, rules)
 
 
 def quarantine_changes(n, rules):
@@ -73,8 +78,6 @@ def quarantine_changes(n, rules):
         .filter("_change_type IN ('insert', 'update_postimage')")
         .drop("_change_type", "_commit_version", "_commit_timestamp")
     )
-    if n in SCD2:
-        changes = changes.filter("__END_AT IS NULL")
     return with_validation_metadata(changes, n, rules).filter("is_quarantined")
 
 
