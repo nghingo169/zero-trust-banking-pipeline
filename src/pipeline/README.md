@@ -230,11 +230,36 @@ Do not delete Bronze, validated-Silver, or governance tables just to retry a
 normal failed run. Escalate before performing a full refresh or destructive
 cleanup.
 
-## 11. Production notes
+## 11. S3 access in the Free Edition team workspace
 
-The `team` target is configured for `source_mode: s3`. Do not place AWS access
-keys in `databricks.yml` or in a local override. Production access must use
-Unity Catalog storage credentials, external locations, and an external Volume.
+The `team` target is configured for `source_mode: s3`. Free Edition does not
+provide the Unity Catalog external-location setup used in a production account,
+so this learning environment uses a Databricks secret scope as a temporary
+workaround.
+
+An administrator creates the scope once:
+
+```bash
+databricks secrets create-scope banking-s3-ingestion --profile <team-profile>
+```
+
+The person who owns the AWS credentials then adds the values interactively from
+their terminal. Do not paste either value into a notebook, Bundle file, Git
+commit, or chat message:
+
+```bash
+databricks secrets put-secret banking-s3-ingestion access-key-id --profile <team-profile>
+databricks secrets put-secret banking-s3-ingestion secret-access-key --profile <team-profile>
+```
+
+The team target references those secrets as `spark.hadoop.fs.s3a.*` settings.
+It does not store the values in source control. The AWS identity behind the key
+must have `s3:ListBucket` on the bucket and `s3:GetObject` for the approved
+snapshot prefix.
+
+This is a Free Edition development workaround, not the production design. In a
+production account, use a Unity Catalog storage credential, external location,
+and external Volume instead of long-lived access keys.
 
 ## Active code locations
 

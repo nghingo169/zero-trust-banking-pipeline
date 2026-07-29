@@ -50,3 +50,13 @@ targets:
     mode: development
     variables:
       source_mode: s3
+    resources:
+      pipelines:
+        source_to_bronze:
+          configuration:
+            # Free Edition workaround: credentials are stored in a Databricks
+            # secret scope, never in this Bundle or source code.
+            spark.hadoop.fs.s3a.aws.credentials.provider: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
+            spark.hadoop.fs.s3a.access.key: "{{secrets/banking-s3-ingestion/access-key-id}}"
+            spark.hadoop.fs.s3a.secret.key: "{{secrets/banking-s3-ingestion/secret-access-key}}"
+            spark.hadoop.fs.s3a.endpoint.region: ap-southeast-1

@@ -70,7 +70,8 @@ path, token, AWS access key, or secret. Each engineer uses:
 - an ignored `.databricks/bundle/<target>/variable-overrides.json` file for
   local Bundle values; and
 - Unity Catalog storage credentials/external locations for production S3
-  access.
+  access. The Free Edition team target uses Databricks secret references as a
+  temporary learning-only S3 workaround; see the [pipeline runbook](src/pipeline/README.md).
 
 Never commit credentials, access tokens, or personal workspace paths.
 
