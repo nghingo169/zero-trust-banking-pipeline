@@ -686,9 +686,10 @@ Table silver_quarantine_record {
   source_table_name varchar
   source_business_key varchar
   bronze_record_ref varchar
-  failed_rule_name varchar
+  failed_rule_name varchar [note: 'One failed validation rule per atomic quarantine record']
   quarantine_reason varchar
   rescued_data_json string [note: 'Chứa nội dung thô từ _rescued_data ở Bronze']
+  quarantine_data_payload string [note: 'Complete raw Bronze record retained for every quarantined event']
   quarantined_at timestamp
 }
 

@@ -7,7 +7,7 @@ bundle:
 
 experimental:
   # Development mode normally prefixes UC schema names with the deployer.
-  # This personal workspace uses explicit, stable development schema names.
+  # This bundle uses explicit, stable schema names across workspaces.
   skip_name_prefix_for_schema: true
 
 include:
@@ -19,96 +19,34 @@ variables:
     default: workspace
   source_landing_schema:
     description: Shared immutable raw-file landing schema for every source domain.
-    default: dev_source_landing
+    default: source_landing
   source_landing_volume:
     description: Managed volume that receives raw source snapshots before Bronze ingestion.
     default: source_snapshot_files
-  simulation_id:
-    description: Source simulation identifier below the snapshots root.
-    default: banking-20260705-20260710
-  card_tables:
-    description: Comma-separated Card source tables expected by the Bronze pipeline.
-    default: card,card_transaction,card_fraud_flag,card_limit_history,card_transaction_status_event
-  bronze_snapshot_dates:
-    description: Ordered complete snapshot versions for Card Bronze master tables.
-    default: "20260705,20260706"
-  scd2_snapshot_dates:
-    description: Ordered snapshots used only by the Card SCD Type 2 proof of concept.
-    default: "2026-07-05,2026-07-06"
-  dev_card_bronze_schema:
-    description: Development Card Bronze schema.
-    default: dev_card_bronze
-  dev_card_silver_schema:
-    description: Development clean Card Silver schema.
-    default: dev_card_silver
-  dev_card_quarantine_schema:
-    description: Development Card quarantine schema.
-    default: dev_card_quarantine
-  replay_snapshot_dates:
-    description: Ordered dates staged and replayed by every development domain.
-    default: "20260705,20260706,20260707,20260708,20260709,20260710"
-  customer_tables:
-    default: core_banking_customer,crm_customer,customer_kyc,customer_employment,customer_request,account,customer_account
-  dev_customer_bronze_schema:
-    default: dev_customer_bronze
-  dev_customer_silver_schema:
-    default: dev_customer_silver
-  dev_customer_quarantine_schema:
-    default: dev_customer_quarantine
-  dev_transaction_bronze_schema:
-    default: dev_transaction_bronze
-  dev_transaction_silver_schema:
-    default: dev_transaction_silver
-  dev_transaction_quarantine_schema:
-    default: dev_transaction_quarantine
-  dev_fincrime_bronze_schema:
-    default: dev_fincrime_bronze
-  dev_fincrime_silver_schema:
-    default: dev_fincrime_silver
-  dev_fincrime_quarantine_schema:
-    default: dev_fincrime_quarantine
+  bronze_schema:
+    description: Unified Bronze schema for all source-domain tables.
+    default: bronze
+  source_mode:
+    description: "Source location mode: volume for local-development uploads or s3 for production."
+    default: volume
+  source_root:
+    description: Root directory containing business_date snapshot folders.
+    default: ""
+  silver_validated_schema:
+    description: Production-style schema for normalized and validated Silver source tables.
+    default: silver_validated
+  governance_schema:
+    description: Production-style schema for shared pipeline operations, audit, and quarantine tables.
+    default: governance
 
 targets:
   dev:
     mode: development
     default: true
-    workspace:
-    #https://dbc-d1f10ecb-c387.cloud.databricks.com/ - team workspace
-    #https://dbc-6ea87deb-1ce6.cloud.databricks.com/ - personal workspace
-      host: https://dbc-6ea87deb-1ce6.cloud.databricks.com/
     variables:
-      catalog: workspace
-      source_landing_schema: dev_source_landing
-      source_landing_volume: source_snapshot_files
-      dev_card_bronze_schema: dev_card_bronze
-      dev_card_silver_schema: dev_card_silver
-      dev_card_quarantine_schema: dev_card_quarantine
-      replay_snapshot_dates: "20260705,20260706,20260707,20260708,20260709,20260710"
-      dev_customer_bronze_schema: dev_customer_bronze
-      dev_customer_silver_schema: dev_customer_silver
-      dev_customer_quarantine_schema: dev_customer_quarantine
+      source_mode: volume
 
   team:
     mode: development
-    workspace:
-      host: https://dbc-d1f10ecb-c387.cloud.databricks.com/
     variables:
-      catalog: workspace
-      dev_card_bronze_schema: bronze
-      dev_customer_bronze_schema: bronze
-      dev_transaction_bronze_schema: bronze
-      dev_fincrime_bronze_schema: bronze
-      dev_card_silver_schema: team_card_silver
-      dev_customer_silver_schema: team_customer_silver
-      dev_transaction_silver_schema: team_transaction_silver
-      dev_fincrime_silver_schema: team_fincrime_silver
-      dev_card_quarantine_schema: team_card_quarantine
-      dev_customer_quarantine_schema: team_customer_quarantine
-      dev_transaction_quarantine_schema: team_transaction_quarantine
-      dev_fincrime_quarantine_schema: team_fincrime_quarantine
-
-  ## Optionally, there could be 'staging' or 'prod' targets here.
-  #
-  # prod:
-  #   workspace:
-  #     host: https://dbc-f9a83294-6561.cloud.databricks.com
+      source_mode: s3

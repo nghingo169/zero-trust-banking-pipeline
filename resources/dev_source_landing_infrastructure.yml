@@ -1,8 +1,4 @@
 resources:
-  schemas:
-    dev_source_landing_schema:
-      name: ${var.source_landing_schema}
-      catalog_name: ${var.catalog}
   volumes:
     dev_source_landing_snapshot_files:
       name: ${var.source_landing_volume}

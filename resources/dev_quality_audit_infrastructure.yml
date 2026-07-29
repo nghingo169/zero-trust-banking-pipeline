@@ -1,5 +1,0 @@
-resources:
-  schemas:
-    dev_quality_audit_schema:
-      name: dev_quality_audit
-      catalog_name: ${var.catalog}

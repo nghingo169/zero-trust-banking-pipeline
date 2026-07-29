@@ -1,8 +1,8 @@
 # Source-landing loader
 
-`load_local_snapshots.sh` stages all four domains and all six replay dates from
-the local Parquet source into the shared source-landing Volume. It does not run
-Bronze, Silver, or audit tasks.
+`load_local_snapshots.sh` stages all four source domains and all six snapshot
+dates from the local Parquet source into the shared source-landing Volume. It
+does not run Bronze, validation, quarantine, or audit tasks.
 
 ```bash
 bash scripts/source_landing/load_local_snapshots.sh

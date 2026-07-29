@@ -1,0 +1,38 @@
+resources:
+  jobs:
+    full_source_to_validated_silver:
+      name: full-source-to-validated-silver
+      description: Load source snapshots to Bronze, validate every source table, then publish the governance audit.
+      max_concurrent_runs: 1
+      parameters:
+        - name: audit_business_date
+          default: "2026-07-10"
+      tasks:
+        - task_key: ingest_bronze
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.source_to_bronze.id}
+        - task_key: audit_bronze_ingestion
+          depends_on:
+            - task_key: ingest_bronze
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/bronze_ingestion_audit.py
+            base_parameters:
+              business_date: "{{job.parameters.audit_business_date}}"
+              run_id: "{{job.run_id}}"
+              quality_rules_path: ${workspace.file_path}/src
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+        - task_key: validate_and_route
+          depends_on:
+            - task_key: audit_bronze_ingestion
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.dev_centralized_quarantine.id}
+        - task_key: silver_validation_audit
+          depends_on:
+            - task_key: validate_and_route
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/validated_quality_audit.py
+            base_parameters:
+              business_date: "{{job.parameters.audit_business_date}}"
+              run_id: "{{job.run_id}}"
+              quality_rules_path: ${workspace.file_path}/src

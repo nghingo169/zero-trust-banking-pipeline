@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Iterable, Mapping
 
 
-AUDIT_SCHEMA = "dev_quality_audit"
+AUDIT_SCHEMA = "governance"
 
 
 def _table(catalog: str, name: str) -> str:
@@ -54,6 +54,17 @@ def ensure_audit_tables(spark, catalog: str) -> None:
             evaluated_at TIMESTAMP
         ) USING DELTA"""
     )
+    spark.sql(
+        f"""CREATE TABLE IF NOT EXISTS {_table(catalog, 'pii_masking_log')} (
+            audit_id STRING,
+            pipeline_run_id STRING,
+            target_table_name STRING,
+            target_column_name STRING,
+            masking_policy STRING,
+            records_transformed BIGINT,
+            executed_at TIMESTAMP
+        ) USING DELTA"""
+    )
 
 
 def write_audit(
@@ -72,11 +83,21 @@ def write_audit(
 
     ensure_audit_tables(spark, catalog)
     now = datetime.utcnow()
-    spark.createDataFrame(
-        [(pipeline_run_id, pipeline_name, domain, date.fromisoformat(business_date), now, now, execution_status)],
+    pipeline_run = spark.createDataFrame(
+        [(pipeline_run_id, pipeline_name, "ALL", date.fromisoformat(business_date), now, now, execution_status)],
         "pipeline_run_id string, pipeline_name string, domain string, business_date date, "
         "start_time timestamp, end_time timestamp, execution_status string",
-    ).write.mode("append").saveAsTable(_table(catalog, "pipeline_run"))
+    )
+    pipeline_run.createOrReplaceTempView("_pipeline_run_to_upsert")
+    spark.sql(
+        f"""MERGE INTO {_table(catalog, 'pipeline_run')} AS target
+            USING _pipeline_run_to_upsert AS source
+            ON target.pipeline_run_id = source.pipeline_run_id
+            WHEN MATCHED THEN UPDATE SET
+              end_time = source.end_time,
+              execution_status = source.execution_status
+            WHEN NOT MATCHED THEN INSERT *"""
+    )
 
     metrics = list(table_metrics)
     if metrics:

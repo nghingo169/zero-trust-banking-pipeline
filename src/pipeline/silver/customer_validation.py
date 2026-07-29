@@ -1,43 +1,25 @@
-"""Customer-master SCD2 Silver, quarantine, and duplicate-national-ID handling."""
+"""Reusable Customer validation logic for the source-bound Silver pipeline."""
 
-from __future__ import annotations
-import sys
-from pyspark import pipelines as dp
 from pyspark.sql import DataFrame, functions as F
 
-RULE_PATH = spark.conf.get("pipeline.quality_rules_path")
-if RULE_PATH not in sys.path:
-    sys.path.insert(0, RULE_PATH)
+from data_contracts.normalization import normalize
 from data_contracts.quality_rules.registry import get_rules
 from data_contracts.table_catalog import DOMAINS
 
-CATALOG = spark.conf.get("pipeline.catalog")
-BRONZE = spark.conf.get("pipeline.bronze_schema")
-QUARANTINE = spark.conf.get("pipeline.quarantine_schema")
-TABLES = DOMAINS["customer"]["scd2"]
+
+TABLES = {**DOMAINS["customer"]["scd2"], **DOMAINS["customer"]["append"]}
+IDENTITY_TABLES = {"core_banking_customer", "crm_customer"}
 
 
-def bronze(name: str) -> str:
-    return f"{CATALOG}.{BRONZE}.{name}"
+def duplicate_national_ids(spark_session, source_table: str) -> DataFrame | None:
+    """Return duplicate active national IDs for the two customer master sources."""
 
-
-def quarantine(name: str) -> str:
-    return f"{CATALOG}.{QUARANTINE}.{name}"
-
-
-def current(name: str) -> DataFrame:
-    return all_versions(name).filter("__END_AT IS NULL")
-
-
-def all_versions(name: str) -> DataFrame:
-    """Return the complete Bronze SCD2 history for Silver retention."""
-    return spark.read.table(bronze(name))
-
-
-def duplicate_ids() -> DataFrame:
+    table_name = source_table.rsplit(".", 1)[-1]
+    if table_name not in IDENTITY_TABLES:
+        return None
     return (
-        current("core_banking_customer")
-        .filter("national_id IS NOT NULL")
+        normalize(spark_session.read.table(source_table))
+        .filter("__END_AT IS NULL AND national_id IS NOT NULL")
         .groupBy("national_id")
         .count()
         .filter("count > 1")
@@ -45,89 +27,39 @@ def duplicate_ids() -> DataFrame:
     )
 
 
-def with_validation_metadata(df: DataFrame, name: str) -> DataFrame:
-    rules = get_rules(name)
-    failed = F.concat_ws(
-        ",",
-        *[
-            F.when(~F.coalesce(F.expr(rule), F.lit(False)), F.lit(label))
-            for label, rule in rules.items()
-        ],
+def assess(
+    df: DataFrame, table_name: str, duplicate_ids: DataFrame | None = None
+) -> DataFrame:
+    """Normalize a Customer source and attach its failed rule names."""
+
+    normalized = normalize(df)
+    rules = get_rules(table_name)
+    failed_rule_names = F.filter(
+        F.array(
+            *[
+                F.when(
+                    ~F.coalesce(F.expr(rule), F.lit(False)), F.lit(name)
+                )
+                for name, rule in rules.items()
+            ]
+        ),
+        lambda rule_name: rule_name.isNotNull(),
     )
-    if name == "core_banking_customer":
-        df = df.join(
-            F.broadcast(
-                duplicate_ids().withColumn("_duplicate_national_id", F.lit(True))
-            ),
+
+    if duplicate_ids is not None:
+        normalized = normalized.join(
+            F.broadcast(duplicate_ids.withColumn("_duplicate_national_id", F.lit(True))),
             "national_id",
             "left",
         )
-        failed = F.concat_ws(
-            ",",
-            failed,
+        failed_rule_names = F.concat(
+            failed_rule_names,
             F.when(
-                F.col("_duplicate_national_id") == True,
-                F.lit("core_banking_customer__national_id__duplicate"),
-            ),
-        )
-    return (
-        df.withColumn("validation_business_date", F.col("business_date"))
-        .withColumn("source_table", F.lit(name))
-        .withColumn("failed_rules", failed)
-        .withColumn("is_quarantined", F.col("failed_rules") != "")
-        .drop("_duplicate_national_id")
-    )
-
-
-def validated(name: str) -> DataFrame:
-    return with_validation_metadata(all_versions(name), name)
-
-
-def quarantine_changes(name: str) -> DataFrame:
-    changes = (
-        spark.readStream.option("readChangeFeed", "true")
-        .table(bronze(name))
-        .filter("_change_type IN ('insert', 'update_postimage')")
-        .drop("_change_type", "_commit_version", "_commit_timestamp")
-    )
-    return with_validation_metadata(changes, name).filter("is_quarantined")
-
-
-def register(name: str) -> None:
-    rules = get_rules(name)
-    validation = f"validation_{name}"
-
-    @dp.table(name=validation, temporary=True)
-    @dp.expect_all(rules)
-    def validation_table() -> DataFrame:
-        return validated(name)
-
-    @dp.table(name=name)
-    def clean_table() -> DataFrame:
-        return (
-            spark.read.table(validation)
-            .filter("NOT is_quarantined")
-            .drop("is_quarantined", "failed_rules", "source_table")
+                F.col("_duplicate_national_id"),
+                F.array(F.lit(f"{table_name}__national_id__duplicate")),
+            ).otherwise(F.expr("CAST(array() AS ARRAY<STRING>)")),
         )
 
-    @dp.table(name=quarantine(name))
-    def quarantine_table() -> DataFrame:
-        return quarantine_changes(name)
-
-
-@dp.table(name="duplicate_national_id_monitor")
-def duplicate_national_id_monitor() -> DataFrame:
-    return (
-        current("core_banking_customer")
-        .join(duplicate_ids(), "national_id")
-        .select(
-            F.lit("core_banking_customer").alias("source_table"),
-            "national_id",
-            "cust_no",
-            "business_date",
-        )
+    return normalized.withColumn("_failed_rule_names", failed_rule_names).drop(
+        "_duplicate_national_id"
     )
-
-
-for name in TABLES:
-    register(name)

@@ -11,3 +11,4 @@ data/generated/
 output/
 checkpoints/
 .databricks
+.vscode/
