@@ -1,6 +1,6 @@
 resources:
   pipelines:
-    silver_atomic_pipeline:
+    validated_to_transform_silver:
       name: validated-to-transform-silver
       catalog: ${var.catalog}
       schema: silver
