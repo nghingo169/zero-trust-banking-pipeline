@@ -9,7 +9,7 @@ from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
 # Import trực tiếp theo cấu trúc package chuẩn DABs (Local Bundle path)
-from pipeline.silver.nab_tdm_masking import mask_phone as nab_mask_phone
+from nab_tdm_masking import mask_phone as nab_mask_phone
 
 CATALOG = spark.conf.get("pipeline.catalog", "workspace")
 SILVER_VALIDATED_SCHEMA = spark.conf.get("pipeline.silver_validated_schema", "silver_validated")

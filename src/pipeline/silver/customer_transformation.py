@@ -6,7 +6,7 @@ Domain        : Customer / Enterprise Party Domain
 
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
-from pipeline.silver.nab_tdm_masking import mask_national_id, mask_phone, mask_name, mask_address
+from nab_tdm_masking import mask_national_id, mask_phone, mask_name, mask_address
 
 CATALOG = spark.conf.get("pipeline.catalog", "workspace")
 BRONZE_SCHEMA = spark.conf.get("pipeline.bronze_schema", "bronze")

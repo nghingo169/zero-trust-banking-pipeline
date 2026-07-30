@@ -9,7 +9,7 @@ from pyspark.sql import functions as F
 import sys
 
 # Add library path for NAB TDM masking functions
-from pipeline.silver.nab_tdm_masking import mask_card_number as nab_mask_card
+from nab_tdm_masking import mask_card_number as nab_mask_card
 
 CATALOG = spark.conf.get("pipeline.catalog", "workspace")
 BRONZE_SCHEMA = spark.conf.get("pipeline.bronze_schema", "bronze")
