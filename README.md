@@ -41,7 +41,8 @@ Read the full local setup, deployment, run, and troubleshooting guide:
 For a new engineer, the normal workflow is:
 
 1. Authenticate the Databricks CLI to your own workspace.
-2. Create the required Unity Catalog schemas and source landing Volume.
+2. Bootstrap the required Unity Catalog schemas (and the local-dev landing
+   Volume when needed).
 3. Upload source snapshots to the Volume.
 4. Validate and deploy the Bundle.
 5. Run the `full_source_to_validated_silver` job.
@@ -52,7 +53,7 @@ For a new engineer, the normal workflow is:
 
 ```text
 databricks.yml              Bundle settings and portable variables
-resources/                  Pipeline, job, and Volume resource definitions
+resources/                  Deployable pipeline and job resource definitions
 src/pipeline/               Active ingestion, validation, and audit code
 src/data_contracts/         Schemas, table keys, normalization, and quality rules
 docs/                       Architecture and data-model documentation
@@ -74,6 +75,14 @@ path, token, AWS access key, or secret. Each engineer uses:
   temporary learning-only S3 workaround; see the [pipeline runbook](src/pipeline/README.md).
 
 Never commit credentials, access tokens, or personal workspace paths.
+
+## Infrastructure lifecycle
+
+Unity Catalog schemas and Volumes are persistent infrastructure. Create them
+once with [the bootstrap SQL](sql/infrastructure/01_workspace_bootstrap.sql),
+then deploy the application Bundle as often as needed. The application Bundle
+owns only pipelines, jobs, and their source code, so a normal code deployment
+does not request schema or Volume deletion.
 
 ## Engineering workflow
 
