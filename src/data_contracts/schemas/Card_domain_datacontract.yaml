@@ -1,312 +1,330 @@
-- id: card__obj
-  name: card
-  logicalType: object
-  physicalType: table
-  businessName: Card
-  description: Issued physical/virtual cards linked to accounts.
-  physicalName: card
-  properties:
-  - id: card__card_id
-    name: card_id
-    logicalType: string
-    physicalType: STRING
-    description: Card identifier.
-    required: true
-    primaryKey: true
-    primaryKeyPosition: 1
-    classification: internal
-    quality:
-    - id: card__card_id__not_null
-      metric: nullValues
-      mustBe: 0
-      unit: rows
-      dimension: completeness
-      severity: error
-      businessImpact: operational
-      description: card_id is the primary key of this table and must never be null.
-    - id: card__card_id__unique
-      metric: duplicateValues
-      mustBe: 0
-      unit: rows
-      dimension: uniqueness
-      severity: error
-      businessImpact: operational
-      description: card_id must be unique across all rows.
-  - id: card__account_id
-    name: account_id
-    logicalType: integer
-    physicalType: BIGINT
-    description: References account.account_id.
-    required: true
-    classification: internal
-    relationships:
-    - to: account.account_id
-      type: foreignKey
-  - id: card__card_number
-    name: card_number
-    logicalType: string
-    physicalType: STRING
-    description: Raw/masked card number as issued.
-    required: true
-    classification: restricted
-    quality:
-    - id: card__card_number__invalid_format
-      metric: invalidValues
-      arguments:
-        pattern: ^[0-9]{6}\*{6}[0-9]{4}$
-      mustBeLessThan: 1
-      unit: percent
-      dimension: conformity
-      severity: error
-      businessImpact: Malformed card numbers break card_transaction and log_atm reconciliation.
-      description: '~1% wrong mask length, simulating an upstream export bug (expected mask: 6 leading
-        digits + 6 asterisks + 4 trailing digits).'
-      customProperties:
-      - property: dirtyRuleType
-        value: invalid_value
-  - id: card__card_type
-    name: card_type
-    logicalType: string
-    physicalType: STRING
-    description: DEBIT / CREDIT.
-    required: true
-    classification: internal
-  - id: card__issue_date
-    name: issue_date
-    logicalType: date
-    physicalType: DATE
-    description: Card issue date.
-    required: true
-    classification: internal
-  - id: card__expiry_date
-    name: expiry_date
-    logicalType: date
-    physicalType: DATE
-    description: Card expiry date.
-    required: true
-    classification: internal
-  - id: card__status
-    name: status
-    logicalType: string
-    physicalType: STRING
-    description: ACTIVE / BLOCKED / EXPIRED.
-    required: true
-    classification: internal
-  tags:
-  - card-data
-- id: card_transaction__obj
-  name: card_transaction
-  logicalType: object
-  physicalType: table
-  businessName: Card Transaction
-  description: Card-specific transaction fact table (separate from the general transaction table, since
-    card payments have their own settlement flow).
-  physicalName: card_transaction
-  properties:
-  - id: card_transaction__card_txn_id
-    name: card_txn_id
-    logicalType: integer
-    physicalType: BIGINT
-    description: Card transaction identifier.
-    required: true
-    primaryKey: true
-    primaryKeyPosition: 1
-    classification: internal
-    quality:
-    - id: card_transaction__card_txn_id__not_null
-      metric: nullValues
-      mustBe: 0
-      unit: rows
-      dimension: completeness
-      severity: error
-      businessImpact: operational
-      description: card_txn_id is the primary key of this table and must never be null.
-    - id: card_transaction__card_txn_id__unique
-      metric: duplicateValues
-      mustBe: 0
-      unit: rows
-      dimension: uniqueness
-      severity: error
-      businessImpact: operational
-      description: card_txn_id must be unique across all rows.
-  - id: card_transaction__card_id
-    name: card_id
-    logicalType: string
-    physicalType: STRING
-    description: References card.card_id.
-    required: true
-    classification: internal
-    relationships:
-    - to: card.card_id
-      type: foreignKey
-  - id: card_transaction__merchant_id
-    name: merchant_id
-    logicalType: string
-    physicalType: STRING
-    description: References merchant.merchant_id.
-    required: true
-    classification: internal
-    relationships:
-    - to: merchant.merchant_id
-      type: foreignKey
-  - id: card_transaction__amount
-    name: amount
-    logicalType: number
-    physicalType: DECIMAL(12,2)
-    description: Transaction amount (VND).
-    required: true
-    classification: confidential
-  - id: card_transaction__txn_timestamp
-    name: txn_timestamp
-    logicalType: timestamp
-    physicalType: TIMESTAMP
-    description: Transaction date/time.
-    required: true
-    classification: internal
-  - id: card_transaction__txn_status
-    name: txn_status
-    logicalType: string
-    physicalType: STRING
-    description: APPROVED / DECLINED / REVERSED.
-    required: true
-    classification: internal
-  - id: card_transaction__is_fraud
-    name: is_fraud
-    logicalType: boolean
-    physicalType: BOOLEAN
-    description: Fraud flag, ~2% TRUE.
-    required: true
-    classification: internal
-  tags:
-  - card-data
-- id: card_fraud_flag__obj
-  name: card_fraud_flag
-  logicalType: object
-  physicalType: table
-  businessName: Card Fraud Flag
-  description: Detailed fraud investigation flags on card_transaction rows where is_fraud = TRUE (plus
-    some false positives).
-  physicalName: card_fraud_flag
-  properties:
-  - id: card_fraud_flag__flag_id
-    name: flag_id
-    logicalType: string
-    physicalType: STRING
-    description: Flag identifier.
-    required: true
-    primaryKey: true
-    primaryKeyPosition: 1
-    classification: internal
-    quality:
-    - id: card_fraud_flag__flag_id__not_null
-      metric: nullValues
-      mustBe: 0
-      unit: rows
-      dimension: completeness
-      severity: error
-      businessImpact: operational
-      description: flag_id is the primary key of this table and must never be null.
-    - id: card_fraud_flag__flag_id__unique
-      metric: duplicateValues
-      mustBe: 0
-      unit: rows
-      dimension: uniqueness
-      severity: error
-      businessImpact: operational
-      description: flag_id must be unique across all rows.
-  - id: card_fraud_flag__card_txn_id
-    name: card_txn_id
-    logicalType: integer
-    physicalType: BIGINT
-    description: References card_transaction.card_txn_id.
-    required: true
-    classification: internal
-    relationships:
-    - to: card_transaction.card_txn_id
-      type: foreignKey
-  - id: card_fraud_flag__flag_reason
-    name: flag_reason
-    logicalType: string
-    physicalType: STRING
-    description: STOLEN_CARD / CNP_FRAUD / ACCOUNT_TAKEOVER.
-    required: true
-    classification: internal
-  - id: card_fraud_flag__flag_date
-    name: flag_date
-    logicalType: date
-    physicalType: DATE
-    description: Date flagged.
-    required: true
-    classification: internal
-  - id: card_fraud_flag__resolved_status
-    name: resolved_status
-    logicalType: string
-    physicalType: STRING
-    description: OPEN / CONFIRMED_FRAUD / FALSE_POSITIVE.
-    required: true
-    classification: internal
-  tags:
-  - card-data
-- id: card_limit_history__obj
-  name: card_limit_history
-  logicalType: object
-  physicalType: table
-  businessName: Card Limit History
-  description: SCD-style history of credit limit changes over a card's lifetime - a second, independent
-    example of the snapshot/SCD pattern used for transaction_status_snapshot.
-  physicalName: card_limit_history
-  properties:
-  - id: card_limit_history__history_id
-    name: history_id
-    logicalType: string
-    physicalType: STRING
-    description: History record identifier.
-    required: true
-    primaryKey: true
-    primaryKeyPosition: 1
-    classification: internal
-    quality:
-    - id: card_limit_history__history_id__not_null
-      metric: nullValues
-      mustBe: 0
-      unit: rows
-      dimension: completeness
-      severity: error
-      businessImpact: operational
-      description: history_id is the primary key of this table and must never be null.
-    - id: card_limit_history__history_id__unique
-      metric: duplicateValues
-      mustBe: 0
-      unit: rows
-      dimension: uniqueness
-      severity: error
-      businessImpact: operational
-      description: history_id must be unique across all rows.
-  - id: card_limit_history__card_id
-    name: card_id
-    logicalType: string
-    physicalType: STRING
-    description: References card.card_id.
-    required: true
-    classification: internal
-    relationships:
-    - to: card.card_id
-      type: foreignKey
-  - id: card_limit_history__limit_amount
-    name: limit_amount
-    logicalType: number
-    physicalType: DECIMAL(12,2)
-    description: Credit limit as of effective_date.
-    required: true
-    classification: confidential
-    logicalTypeOptions:
-      minimum: 0
-  - id: card_limit_history__effective_date
-    name: effective_date
-    logicalType: date
-    physicalType: DATE
-    description: Date this limit took effect.
-    required: true
-    classification: internal
-  tags:
-  - card-data
+apiVersion: v3.1.0
+kind: DataContract
+id: urn:datacontract:banking:bronze-card
+name: banking_bronze_card
+version: 1.0.0
+status: active
+domain: banking.card
+description:
+  purpose: Bronze-layer source contract for issued cards, card transactions, fraud flags, and card-limit history.
+  limitations: Source event streams and cross-domain reference reconciliation are documented separately.
+team:
+  name: Banking Data Engineering
+servers:
+- server: bronze
+  type: databricks
+  catalog: ${pipeline.catalog}
+  schema: ${pipeline.bronze_schema}
+schema:
+  - id: card__obj
+    name: card
+    logicalType: object
+    physicalType: table
+    businessName: Card
+    description: Issued physical/virtual cards linked to accounts.
+    physicalName: card
+    properties:
+    - id: card__card_id
+      name: card_id
+      logicalType: string
+      physicalType: STRING
+      description: Card identifier.
+      required: true
+      primaryKey: true
+      primaryKeyPosition: 1
+      classification: internal
+      quality:
+      - id: card__card_id__not_null
+        metric: nullValues
+        mustBe: 0
+        unit: rows
+        dimension: completeness
+        severity: error
+        businessImpact: operational
+        description: card_id is the primary key of this table and must never be null.
+      - id: card__card_id__unique
+        metric: duplicateValues
+        mustBe: 0
+        unit: rows
+        dimension: uniqueness
+        severity: error
+        businessImpact: operational
+        description: card_id must be unique across all rows.
+    - id: card__account_id
+      name: account_id
+      logicalType: integer
+      physicalType: BIGINT
+      description: References account.account_id.
+      required: true
+      classification: internal
+      relationships:
+      - to: account.account_id
+        type: foreignKey
+    - id: card__card_number
+      name: card_number
+      logicalType: string
+      physicalType: STRING
+      description: Raw/masked card number as issued.
+      required: true
+      classification: restricted
+      quality:
+      - id: card__card_number__invalid_format
+        metric: invalidValues
+        arguments:
+          pattern: ^[0-9]{6}\*{6}[0-9]{4}$
+        mustBeLessThan: 1
+        unit: percent
+        dimension: conformity
+        severity: error
+        businessImpact: Malformed card numbers break card_transaction and log_atm reconciliation.
+        description: '~1% wrong mask length, simulating an upstream export bug (expected mask: 6 leading
+          digits + 6 asterisks + 4 trailing digits).'
+        customProperties:
+        - property: dirtyRuleType
+          value: invalid_value
+    - id: card__card_type
+      name: card_type
+      logicalType: string
+      physicalType: STRING
+      description: DEBIT / CREDIT.
+      required: true
+      classification: internal
+    - id: card__issue_date
+      name: issue_date
+      logicalType: date
+      physicalType: DATE
+      description: Card issue date.
+      required: true
+      classification: internal
+    - id: card__expiry_date
+      name: expiry_date
+      logicalType: date
+      physicalType: DATE
+      description: Card expiry date.
+      required: true
+      classification: internal
+    - id: card__status
+      name: status
+      logicalType: string
+      physicalType: STRING
+      description: ACTIVE / BLOCKED / EXPIRED.
+      required: true
+      classification: internal
+    tags:
+    - card-data
+  - id: card_transaction__obj
+    name: card_transaction
+    logicalType: object
+    physicalType: table
+    businessName: Card Transaction
+    description: Card-specific transaction fact table (separate from the general transaction table, since
+      card payments have their own settlement flow).
+    physicalName: card_transaction
+    properties:
+    - id: card_transaction__card_txn_id
+      name: card_txn_id
+      logicalType: integer
+      physicalType: BIGINT
+      description: Card transaction identifier.
+      required: true
+      primaryKey: true
+      primaryKeyPosition: 1
+      classification: internal
+      quality:
+      - id: card_transaction__card_txn_id__not_null
+        metric: nullValues
+        mustBe: 0
+        unit: rows
+        dimension: completeness
+        severity: error
+        businessImpact: operational
+        description: card_txn_id is the primary key of this table and must never be null.
+      - id: card_transaction__card_txn_id__unique
+        metric: duplicateValues
+        mustBe: 0
+        unit: rows
+        dimension: uniqueness
+        severity: error
+        businessImpact: operational
+        description: card_txn_id must be unique across all rows.
+    - id: card_transaction__card_id
+      name: card_id
+      logicalType: string
+      physicalType: STRING
+      description: References card.card_id.
+      required: true
+      classification: internal
+      relationships:
+      - to: card.card_id
+        type: foreignKey
+    - id: card_transaction__merchant_id
+      name: merchant_id
+      logicalType: string
+      physicalType: STRING
+      description: References merchant.merchant_id.
+      required: true
+      classification: internal
+      relationships:
+      - to: merchant.merchant_id
+        type: foreignKey
+    - id: card_transaction__amount
+      name: amount
+      logicalType: number
+      physicalType: DECIMAL(12,2)
+      description: Transaction amount (VND).
+      required: true
+      classification: confidential
+    - id: card_transaction__txn_timestamp
+      name: txn_timestamp
+      logicalType: timestamp
+      physicalType: TIMESTAMP
+      description: Transaction date/time.
+      required: true
+      classification: internal
+    - id: card_transaction__txn_status
+      name: txn_status
+      logicalType: string
+      physicalType: STRING
+      description: APPROVED / DECLINED / REVERSED.
+      required: true
+      classification: internal
+    - id: card_transaction__is_fraud
+      name: is_fraud
+      logicalType: boolean
+      physicalType: BOOLEAN
+      description: Fraud flag, ~2% TRUE.
+      required: true
+      classification: internal
+    tags:
+    - card-data
+  - id: card_fraud_flag__obj
+    name: card_fraud_flag
+    logicalType: object
+    physicalType: table
+    businessName: Card Fraud Flag
+    description: Detailed fraud investigation flags on card_transaction rows where is_fraud = TRUE (plus
+      some false positives).
+    physicalName: card_fraud_flag
+    properties:
+    - id: card_fraud_flag__flag_id
+      name: flag_id
+      logicalType: string
+      physicalType: STRING
+      description: Flag identifier.
+      required: true
+      primaryKey: true
+      primaryKeyPosition: 1
+      classification: internal
+      quality:
+      - id: card_fraud_flag__flag_id__not_null
+        metric: nullValues
+        mustBe: 0
+        unit: rows
+        dimension: completeness
+        severity: error
+        businessImpact: operational
+        description: flag_id is the primary key of this table and must never be null.
+      - id: card_fraud_flag__flag_id__unique
+        metric: duplicateValues
+        mustBe: 0
+        unit: rows
+        dimension: uniqueness
+        severity: error
+        businessImpact: operational
+        description: flag_id must be unique across all rows.
+    - id: card_fraud_flag__card_txn_id
+      name: card_txn_id
+      logicalType: integer
+      physicalType: BIGINT
+      description: References card_transaction.card_txn_id.
+      required: true
+      classification: internal
+      relationships:
+      - to: card_transaction.card_txn_id
+        type: foreignKey
+    - id: card_fraud_flag__flag_reason
+      name: flag_reason
+      logicalType: string
+      physicalType: STRING
+      description: STOLEN_CARD / CNP_FRAUD / ACCOUNT_TAKEOVER.
+      required: true
+      classification: internal
+    - id: card_fraud_flag__flag_date
+      name: flag_date
+      logicalType: date
+      physicalType: DATE
+      description: Date flagged.
+      required: true
+      classification: internal
+    - id: card_fraud_flag__resolved_status
+      name: resolved_status
+      logicalType: string
+      physicalType: STRING
+      description: OPEN / CONFIRMED_FRAUD / FALSE_POSITIVE.
+      required: true
+      classification: internal
+    tags:
+    - card-data
+  - id: card_limit_history__obj
+    name: card_limit_history
+    logicalType: object
+    physicalType: table
+    businessName: Card Limit History
+    description: SCD-style history of credit limit changes over a card's lifetime - a second, independent
+      example of the snapshot/SCD pattern used for transaction_status_snapshot.
+    physicalName: card_limit_history
+    properties:
+    - id: card_limit_history__history_id
+      name: history_id
+      logicalType: string
+      physicalType: STRING
+      description: History record identifier.
+      required: true
+      primaryKey: true
+      primaryKeyPosition: 1
+      classification: internal
+      quality:
+      - id: card_limit_history__history_id__not_null
+        metric: nullValues
+        mustBe: 0
+        unit: rows
+        dimension: completeness
+        severity: error
+        businessImpact: operational
+        description: history_id is the primary key of this table and must never be null.
+      - id: card_limit_history__history_id__unique
+        metric: duplicateValues
+        mustBe: 0
+        unit: rows
+        dimension: uniqueness
+        severity: error
+        businessImpact: operational
+        description: history_id must be unique across all rows.
+    - id: card_limit_history__card_id
+      name: card_id
+      logicalType: string
+      physicalType: STRING
+      description: References card.card_id.
+      required: true
+      classification: internal
+      relationships:
+      - to: card.card_id
+        type: foreignKey
+    - id: card_limit_history__limit_amount
+      name: limit_amount
+      logicalType: number
+      physicalType: DECIMAL(12,2)
+      description: Credit limit as of effective_date.
+      required: true
+      classification: confidential
+      logicalTypeOptions:
+        minimum: 0
+    - id: card_limit_history__effective_date
+      name: effective_date
+      logicalType: date
+      physicalType: DATE
+      description: Date this limit took effect.
+      required: true
+      classification: internal
+    tags:
+    - card-data

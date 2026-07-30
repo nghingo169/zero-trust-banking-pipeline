@@ -2,8 +2,10 @@
 # Banking Bronze Mock Data Contract - ODCS v3.1.0
 # ------------------------------------------------------------------------------
 
+apiVersion: v3.1.0
 kind: DataContract
-name: banking_bronze_mock_data_contract
+id: urn:datacontract:banking:bronze-customer
+name: banking_bronze_customer
 version: 1.0.0
 status: active
 domain: banking
