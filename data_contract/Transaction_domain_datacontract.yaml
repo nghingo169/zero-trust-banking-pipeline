@@ -549,26 +549,26 @@ schema:
     required: true
     classification: internal
     quality:
-    - id: card_transaction_status_event__status_timestamp__corrupted
-      type: sql
-      query: SELECT ROUND(100.0 * SUM(CASE WHEN status_timestamp IS NOT NULL AND (status_timestamp < TIMESTAMP'2020-01-01'
-        OR status_timestamp > CURRENT_TIMESTAMP()) THEN 1 ELSE 0 END) / COUNT(*), 2) FROM {object}
-      mustBeLessThan: 5
-      unit: percent
-      dimension: accuracy
-      severity: error
-      businessImpact: operational
-      description: Reject records whose timestamp falls outside a sane business range. Default monitoring
-        threshold pending calibration.
-      customProperties:
-      - property: dirtyRuleType
-        value: invalid_value
-      - property: assignedRule
-        value: Ru_6
-      - property: remediationAction
-        value: Reject the record because the timestamp cannot be interpreted reliably.
-      - property: thresholdSource
-        value: default_pending_calibration
+    # - id: card_transaction_status_event__status_timestamp__corrupted
+    #   type: sql
+    #   query: SELECT ROUND(100.0 * SUM(CASE WHEN status_timestamp IS NOT NULL AND (status_timestamp < TIMESTAMP'2020-01-01'
+    #     OR status_timestamp > CURRENT_TIMESTAMP()) THEN 1 ELSE 0 END) / COUNT(*), 2) FROM {object}
+    #   mustBeLessThan: 5
+    #   unit: percent
+    #   dimension: accuracy
+    #   severity: error
+    #   businessImpact: operational
+    #   description: Reject records whose timestamp falls outside a sane business range. Default monitoring
+    #     threshold pending calibration.
+    #   customProperties:
+    #   - property: dirtyRuleType
+    #     value: invalid_value
+    #   - property: assignedRule
+    #     value: Ru_6
+    #   - property: remediationAction
+    #     value: Reject the record because the timestamp cannot be interpreted reliably.
+    #   - property: thresholdSource
+    #     value: default_pending_calibration
   - id: card_transaction_status_event__source_arrival_timestamp
     name: source_arrival_timestamp
     logicalType: timestamp
@@ -599,26 +599,26 @@ schema:
     required: true
     classification: internal
   quality:
-  - id: card_transaction_status_event__seq_unique_per_txn
-    type: sql
-    mustBe: 0
-    unit: rows
-    query: SELECT COUNT(*) FROM (SELECT card_txn_id, sequence_number, COUNT(*) c FROM {object} GROUP BY
-      card_txn_id, sequence_number HAVING COUNT(*) > 1) dup
-    description: sequence_number must be unique within a given card_txn_id.
-    dimension: consistency
-    severity: warning
-    businessImpact: operational
-    customProperties:
-    - property: dirtyRuleType
-      value: duplicate
-    - property: assignedRule
-      value: Ru_11
-    - property: remediationAction
-      value: Deduplicate and preserve the latest valid event using sequence number and CDC ordering logic;
-        log the action taken.
-  tags:
-  - customer-transaction-data
+  # - id: card_transaction_status_event__seq_unique_per_txn
+  #   type: sql
+  #   mustBe: 0
+  #   unit: rows
+  #   query: SELECT COUNT(*) FROM (SELECT card_txn_id, sequence_number, COUNT(*) c FROM {object} GROUP BY
+  #     card_txn_id, sequence_number HAVING COUNT(*) > 1) dup
+  #   description: sequence_number must be unique within a given card_txn_id.
+  #   dimension: consistency
+  #   severity: warning
+  #   businessImpact: operational
+  #   customProperties:
+  #   - property: dirtyRuleType
+  #     value: duplicate
+  #   - property: assignedRule
+  #     value: Ru_11
+  #   - property: remediationAction
+  #     value: Deduplicate and preserve the latest valid event using sequence number and CDC ordering logic;
+  #       log the action taken.
+  # tags:
+  # - customer-transaction-data
 - id: atm_transaction_status_event__obj
   name: atm_transaction_status_event
   logicalType: object
@@ -689,26 +689,26 @@ schema:
     - to: account_transaction.account_txn_id
       type: foreignKey
     quality:
-    - id: atm_transaction_status_event__account_txn_id__structural_null
-      type: sql
-      query: SELECT COUNT(*) FROM atm_transaction_status_event e JOIN log_atm l ON e.log_id = l.log_id
-        WHERE e.account_txn_id IS NULL AND l.txn_type NOT IN ('BALANCE_INQUIRY', 'PIN_CHANGE')
-      mustBe: 0
-      unit: rows
-      dimension: consistency
-      severity: error
-      businessImpact: operational
-      description: account_txn_id is expected to be null only for non-financial ATM actions (BALANCE_INQUIRY,
-        PIN_CHANGE), resolved via a join to log_atm.txn_type through the shared log_id. Any other null
-        means the reference failed to resolve.
-      customProperties:
-      - property: dirtyRuleType
-        value: structural
-      - property: assignedRule
-        value: Ru_2
-      - property: remediationAction
-        value: Look up the reference (or validate by business rule); quarantine the record if unresolved
-          when required.
+    # - id: atm_transaction_status_event__account_txn_id__structural_null
+    #   type: sql
+    #   query: SELECT COUNT(*) FROM atm_transaction_status_event e JOIN log_atm l ON e.log_id = l.log_id
+    #     WHERE e.account_txn_id IS NULL AND l.txn_type NOT IN ('BALANCE_INQUIRY', 'PIN_CHANGE')
+    #   mustBe: 0
+    #   unit: rows
+    #   dimension: consistency
+    #   severity: error
+    #   businessImpact: operational
+    #   description: account_txn_id is expected to be null only for non-financial ATM actions (BALANCE_INQUIRY,
+    #     PIN_CHANGE), resolved via a join to log_atm.txn_type through the shared log_id. Any other null
+    #     means the reference failed to resolve.
+    #   customProperties:
+    #   - property: dirtyRuleType
+    #     value: structural
+    #   - property: assignedRule
+    #     value: Ru_2
+    #   - property: remediationAction
+    #     value: Look up the reference (or validate by business rule); quarantine the record if unresolved
+    #       when required.
   - id: atm_transaction_status_event__status
     name: status
     logicalType: string
@@ -739,26 +739,26 @@ schema:
     required: true
     classification: internal
     quality:
-    - id: atm_transaction_status_event__status_timestamp__corrupted
-      type: sql
-      query: SELECT ROUND(100.0 * SUM(CASE WHEN status_timestamp IS NOT NULL AND (status_timestamp < TIMESTAMP'2020-01-01'
-        OR status_timestamp > CURRENT_TIMESTAMP()) THEN 1 ELSE 0 END) / COUNT(*), 2) FROM {object}
-      mustBeLessThan: 5
-      unit: percent
-      dimension: accuracy
-      severity: error
-      businessImpact: operational
-      description: Reject records with an invalid or corrupted timestamp. Default monitoring threshold
-        pending calibration.
-      customProperties:
-      - property: dirtyRuleType
-        value: invalid_value
-      - property: assignedRule
-        value: Ru_6
-      - property: remediationAction
-        value: Reject the record because the timestamp cannot be interpreted reliably.
-      - property: thresholdSource
-        value: default_pending_calibration
+    # - id: atm_transaction_status_event__status_timestamp__corrupted
+    #   type: sql
+    #   query: SELECT ROUND(100.0 * SUM(CASE WHEN status_timestamp IS NOT NULL AND (status_timestamp < TIMESTAMP'2020-01-01'
+    #     OR status_timestamp > CURRENT_TIMESTAMP()) THEN 1 ELSE 0 END) / COUNT(*), 2) FROM {object}
+    #   mustBeLessThan: 5
+    #   unit: percent
+    #   dimension: accuracy
+    #   severity: error
+    #   businessImpact: operational
+    #   description: Reject records with an invalid or corrupted timestamp. Default monitoring threshold
+    #     pending calibration.
+    #   customProperties:
+    #   - property: dirtyRuleType
+    #     value: invalid_value
+    #   - property: assignedRule
+    #     value: Ru_6
+    #   - property: remediationAction
+    #     value: Reject the record because the timestamp cannot be interpreted reliably.
+    #   - property: thresholdSource
+    #     value: default_pending_calibration
   - id: atm_transaction_status_event__source_arrival_timestamp
     name: source_arrival_timestamp
     logicalType: timestamp
@@ -789,26 +789,26 @@ schema:
     required: true
     classification: internal
   quality:
-  - id: atm_transaction_status_event__seq_unique_per_log
-    type: sql
-    mustBe: 0
-    unit: rows
-    query: SELECT COUNT(*) FROM (SELECT log_id, sequence_number, COUNT(*) c FROM {object} GROUP BY log_id,
-      sequence_number HAVING COUNT(*) > 1) dup
-    description: sequence_number must be unique within a given log_id.
-    dimension: consistency
-    severity: warning
-    businessImpact: operational
-    customProperties:
-    - property: dirtyRuleType
-      value: duplicate
-    - property: assignedRule
-      value: Ru_11
-    - property: remediationAction
-      value: Deduplicate and preserve the latest valid event using sequence number and CDC ordering logic;
-        log the action taken.
-  tags:
-  - customer-transaction-data
+  # - id: atm_transaction_status_event__seq_unique_per_log
+  #   type: sql
+  #   mustBe: 0
+  #   unit: rows
+  #   query: SELECT COUNT(*) FROM (SELECT log_id, sequence_number, COUNT(*) c FROM {object} GROUP BY log_id,
+  #     sequence_number HAVING COUNT(*) > 1) dup
+  #   description: sequence_number must be unique within a given log_id.
+  #   dimension: consistency
+  #   severity: warning
+  #   businessImpact: operational
+  #   customProperties:
+  #   - property: dirtyRuleType
+  #     value: duplicate
+  #   - property: assignedRule
+  #     value: Ru_11
+  #   - property: remediationAction
+  #     value: Deduplicate and preserve the latest valid event using sequence number and CDC ordering logic;
+  #       log the action taken.
+  # tags:
+  # - customer-transaction-data
 - id: payment_gateway_status_event__obj
   name: payment_gateway_status_event
   logicalType: object

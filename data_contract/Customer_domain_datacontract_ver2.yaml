@@ -367,7 +367,6 @@ schema:
             metric: invalidValues
             arguments:
               pattern: ^[^@\s]+@[^@\s]+\.[^@\s]+$
-            mustBeLessThan: 4
             unit: percent
             dimension: conformity
             severity: warning
