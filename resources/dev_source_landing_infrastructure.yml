@@ -1,0 +1,7 @@
+resources:
+  volumes:
+    dev_source_landing_snapshot_files:
+      name: ${var.source_landing_volume}
+      catalog_name: ${var.catalog}
+      schema_name: ${var.source_landing_schema}
+      volume_type: MANAGED

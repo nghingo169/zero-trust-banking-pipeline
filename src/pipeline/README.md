@@ -50,9 +50,8 @@ You need:
 1. A local clone of this repository.
 2. The Databricks CLI installed on your computer.
 3. Permission to use a Databricks workspace with Unity Catalog.
-4. Permission to use schemas, Volumes, pipelines, jobs, and tables in that
-   workspace. A workspace administrator performs the one-time infrastructure
-   bootstrap.
+4. Permission to create or use schemas, managed Volumes, pipelines, jobs, and
+   tables in that workspace.
 5. Local source snapshots, or an approved production external Volume.
 
 ## 3. Authenticate to your Databricks workspace
@@ -72,9 +71,7 @@ computer. They must never be added to Git.
 
 ## 4. Create the required Unity Catalog schemas
 
-Open Databricks SQL Editor in your workspace and run
-[`sql/infrastructure/01_workspace_bootstrap.sql`](../../sql/infrastructure/01_workspace_bootstrap.sql)
-once. It creates:
+Open Databricks SQL Editor in your workspace and run this once:
 
 ```sql
 CREATE SCHEMA IF NOT EXISTS workspace.source_landing;
@@ -84,12 +81,8 @@ CREATE SCHEMA IF NOT EXISTS workspace.governance;
 ```
 
 `workspace` is the catalog used by the default Bundle configuration. If your
-workspace uses another catalog, replace it consistently in the bootstrap SQL
-and your local Bundle override file.
-
-For local-file development (`source_mode: volume`), also run the final
-`CREATE VOLUME` statement in the bootstrap file. The team S3 target does not
-need the managed landing Volume.
+workspace uses another catalog, replace it consistently in this SQL and your
+local Bundle override file.
 
 ## 5. Configure your local Bundle values
 
@@ -167,8 +160,7 @@ databricks bundle deploy --target dev --profile <your-profile>
 ```
 
 `validate` checks the Bundle YAML and resource references. `deploy` uploads the
-code and creates or updates the configured pipeline and job resources. It does
-not create, replace, or delete schemas and Volumes.
+code and creates or updates the configured Bundle resources.
 
 If validation fails, fix the reported YAML, file path, profile, or variable
 before deploying.
@@ -278,6 +270,4 @@ and external Volume instead of long-lived access keys.
 - `silver/*_validation.py` — shared domain-specific validation helpers.
 - `monitoring/bronze_ingestion_audit.py` — audit after Bronze ingestion.
 - `monitoring/validated_quality_audit.py` — audit after validated Silver.
-- `../../resources/` — Bundle definitions for the pipelines and job.
-- `../../sql/infrastructure/01_workspace_bootstrap.sql` — one-time schema and
-  local-dev Volume bootstrap.
+- `../../resources/` — Bundle definitions for the Volume, pipelines, and job.
