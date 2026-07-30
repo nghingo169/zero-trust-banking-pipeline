@@ -38,6 +38,9 @@ variables:
   governance_schema:
     description: Production-style schema for shared pipeline operations, audit, and quarantine tables.
     default: governance
+  silver_schema:
+    description: Production-style schema for Silver atomic model tables.
+    default: silver
 
 targets:
   dev:
@@ -50,12 +53,11 @@ targets:
     mode: development
     variables:
       source_mode: s3
+      source_root: "s3://nab-src-dataset/banking/snapshots/simulation_id=banking-20260705-20260710/snapshot_type=full"
     resources:
       pipelines:
         source_to_bronze:
           configuration:
-            # Free Edition workaround: credentials are stored in a Databricks
-            # secret scope, never in this Bundle or source code.
             spark.hadoop.fs.s3a.aws.credentials.provider: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
             spark.hadoop.fs.s3a.access.key: "{{secrets/banking-s3-ingestion/access-key-id}}"
             spark.hadoop.fs.s3a.secret.key: "{{secrets/banking-s3-ingestion/secret-access-key}}"

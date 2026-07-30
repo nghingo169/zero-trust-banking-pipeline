@@ -1,0 +1,26 @@
+resources:
+  pipelines:
+    silver_atomic_pipeline:
+      name: validated-to-transform-silver
+      catalog: ${var.catalog}
+      schema: silver
+      serverless: true
+      continuous: false
+      libraries:
+        # Include tất cả các file transformation của tầng Silver
+        - file:
+            path: ../src/pipeline/silver/customer_transformation.py
+        - file:
+            path: ../src/pipeline/silver/card_transformation.py
+        - file:
+            path: ../src/pipeline/silver/transaction_transformation.py
+        - file:
+            path: ../src/pipeline/silver/fincrime_transformation.py
+        - file:
+            path: ../src/pipeline/silver/nab_tdm_masking.py
+      configuration:
+        pipeline.catalog: ${var.catalog}
+        pipeline.silver_validated_schema: ${var.silver_validated_schema}
+        pipeline.silver_schema: silver
+        pipeline.bronze_schema: ${var.bronze_schema}
+        pipeline.governance_schema: ${var.governance_schema}

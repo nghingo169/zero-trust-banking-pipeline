@@ -36,3 +36,8 @@ resources:
               business_date: "{{job.parameters.audit_business_date}}"
               run_id: "{{job.run_id}}"
               quality_rules_path: ${workspace.file_path}/src
+        - task_key: transform_silver_atomic
+          depends_on:
+            - task_key: silver_validation_audit  
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.validated_to_transform_silver.id}
