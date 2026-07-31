@@ -36,8 +36,18 @@ resources:
               business_date: "{{job.parameters.audit_business_date}}"
               run_id: "{{job.run_id}}"
               quality_rules_path: ${workspace.file_path}/src
+        - task_key: pre_transform_setup
+          depends_on:
+            - task_key: silver_validation_audit
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/pre_transform_setup.py
+            base_parameters:
+              business_date: "{{job.parameters.audit_business_date}}"
+              run_id: "{{job.run_id}}"
+              catalog: ${var.catalog}
+
         - task_key: transform_silver_atomic
           depends_on:
-            - task_key: silver_validation_audit  
+            - task_key: pre_transform_setup  
           pipeline_task:
             pipeline_id: ${resources.pipelines.validated_to_transform_silver.id}

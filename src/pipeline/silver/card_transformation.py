@@ -55,51 +55,23 @@ def tokenize_pii(col: str | F.Column) -> F.Column:
         256,
     )
 
-
 FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 def get_pipeline_run_id(df) -> F.Column:
     """
-    Lấy Job Run ID chuẩn xác trên Databricks Compute (Serverless & Classic)
-    sử dụng dbruntime.databricks_repl_context.
+    Lấy Job Run ID chuẩn xác từ bảng State Table bằng Scalar Subquery.
+    Hoàn toàn tương thích với Lakeflow Declarative Pipelines (Không dùng .collect()).
     """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
-    job_run_id = None
+    # Dùng Scalar Subquery: Spark sẽ tự query bảng này ở Worker level khi Materialize data
+    subquery_expr = f"(SELECT active_run_id FROM {CATALOG}.governance.active_run_context LIMIT 1)"
 
-    # 1. Sử dụng dbruntime.databricks_repl_context (Giải pháp từ Databricks Community)
-    try:
-        from dbruntime.databricks_repl_context import get_context
-        ctx = get_context()
-        if ctx:
-            # idInJob chính là Job Run ID thực tế
-            job_run_id = getattr(ctx, "idInJob", None) or getattr(ctx, "jobId", None)
-    except Exception:
-        pass
-
-    # 2. Fallback sang DLT Update ID nếu chạy trong DLT Pipeline Engine
-    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
-        try:
-            job_run_id = spark.conf.get("spark.databricks.pipeline.update.id", None)
-        except Exception:
-            pass
-
-    # 3. Fallback sang Spark Conf truyền thống (nếu chạy Classic Compute)
-    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
-        try:
-            job_run_id = (
-                spark.conf.get("spark.databricks.job.runId", None) or 
-                spark.conf.get("spark.databricks.job.run_id", None)
-            )
-        except Exception:
-            pass
-
-    # 4. Fallback ngẫu nhiên nếu chạy Manual / Local Test
-    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}", "MANUAL_UI_RUN"]:
-        job_run_id = FALLBACK_MODULE_UUID
-
-    return F.lit(str(job_run_id)).alias("pipeline_run_id")
+    return F.coalesce(
+        F.expr(subquery_expr),
+        F.lit(FALLBACK_MODULE_UUID)
+    ).cast("string").alias("pipeline_run_id")
 # ---------------------------------------------------------------------------
 # Table Builders
 # ---------------------------------------------------------------------------
