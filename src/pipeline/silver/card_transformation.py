@@ -59,8 +59,7 @@ FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 def get_pipeline_run_id(df) -> F.Column:
     """
-    Lấy Job Run ID chuẩn xác từ bảng State Table bằng Scalar Subquery.
-    Hoàn toàn tương thích với Lakeflow Declarative Pipelines (Không dùng .collect()).
+    Lấy Job Run ID từ bảng State Table bằng Scalar Subquery.
     """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
