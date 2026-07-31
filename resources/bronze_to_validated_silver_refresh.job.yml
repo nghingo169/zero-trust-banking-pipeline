@@ -2,15 +2,18 @@ resources:
   jobs:
     full_source_to_validated_silver:
       name: full-source-to-validated-silver
-      description: Load source snapshots to Bronze, validate every source table, then publish the governance audit.
+      description: Load source snapshots to Bronze, validate source tables, transform to Silver Atomic, and publish governance audit.
       max_concurrent_runs: 1
       parameters:
         - name: audit_business_date
           default: "2026-07-10"
       tasks:
+        # 1. Ingest Data từ Landing vào Bronze
         - task_key: ingest_bronze
           pipeline_task:
             pipeline_id: ${resources.pipelines.source_to_bronze.id}
+
+        # 2. Audit chất lượng dữ liệu tầng Bronze
         - task_key: audit_bronze_ingestion
           depends_on:
             - task_key: ingest_bronze
@@ -22,11 +25,15 @@ resources:
               quality_rules_path: ${workspace.file_path}/src
               catalog: ${var.catalog}
               bronze_schema: ${var.bronze_schema}
+
+        # 3. Validate & Route dữ liệu từ Bronze sang Validated Silver / Quarantine
         - task_key: validate_and_route
           depends_on:
             - task_key: audit_bronze_ingestion
           pipeline_task:
             pipeline_id: ${resources.pipelines.dev_centralized_quarantine.id}
+
+        # 4. Audit chất lượng tầng Validated Silver
         - task_key: silver_validation_audit
           depends_on:
             - task_key: validate_and_route
@@ -36,6 +43,8 @@ resources:
               business_date: "{{job.parameters.audit_business_date}}"
               run_id: "{{job.run_id}}"
               quality_rules_path: ${workspace.file_path}/src
+
+        # 5. Pre-Transform Setup: Ghi active_run_context table & log RUNNING
         - task_key: pre_transform_setup
           depends_on:
             - task_key: silver_validation_audit
@@ -46,8 +55,22 @@ resources:
               run_id: "{{job.run_id}}"
               catalog: ${var.catalog}
 
+        # 6. DLT Pipeline: Transform Silver Validated sang Silver Atomic
         - task_key: transform_silver_atomic
           depends_on:
             - task_key: pre_transform_setup  
           pipeline_task:
             pipeline_id: ${resources.pipelines.validated_to_transform_silver.id}
+
+        # 7. Audit & Nghiệm thu chất lượng tầng Silver Atomic
+        - task_key: silver_atomic_audit
+          depends_on:
+            - task_key: transform_silver_atomic
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/silver_atomic_audit.py
+            base_parameters:
+              business_date: "{{job.parameters.audit_business_date}}"
+              run_id: "{{job.run_id}}"
+              quality_rules_path: ${workspace.file_path}/src
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
