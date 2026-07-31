@@ -7,6 +7,7 @@ Domain        : Financial Events (Transactions, ATM, Gateway, Associations)
 import sys
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
+import uuid
 
 CATALOG = spark.conf.get("pipeline.catalog", "workspace")
 SILVER_VALIDATED_SCHEMA = spark.conf.get("pipeline.silver_validated_schema", "silver_validated")
@@ -31,11 +32,50 @@ def get_currency_col(df):
         return F.coalesce(F.col("currency"), F.lit("VND")).alias("currency")
     return F.lit("VND").alias("currency")
 
+FALLBACK_MODULE_UUID = str(uuid.uuid4())
+
 def get_pipeline_run_id(df) -> F.Column:
+    """
+    Lấy Job Run ID chuẩn xác trên Databricks Compute (Serverless & Classic)
+    sử dụng dbruntime.databricks_repl_context.
+    """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
-    return F.lit(spark.conf.get("pipeline.run_id", None)).cast("string")
 
+    job_run_id = None
+
+    # 1. Sử dụng dbruntime.databricks_repl_context (Giải pháp từ Databricks Community)
+    try:
+        from dbruntime.databricks_repl_context import get_context
+        ctx = get_context()
+        if ctx:
+            # idInJob chính là Job Run ID thực tế
+            job_run_id = getattr(ctx, "idInJob", None) or getattr(ctx, "jobId", None)
+    except Exception:
+        pass
+
+    # 2. Fallback sang DLT Update ID nếu chạy trong DLT Pipeline Engine
+    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
+        try:
+            job_run_id = spark.conf.get("spark.databricks.pipeline.update.id", None)
+        except Exception:
+            pass
+
+    # 3. Fallback sang Spark Conf truyền thống (nếu chạy Classic Compute)
+    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
+        try:
+            job_run_id = (
+                spark.conf.get("spark.databricks.job.runId", None) or 
+                spark.conf.get("spark.databricks.job.run_id", None)
+            )
+        except Exception:
+            pass
+
+    # 4. Fallback ngẫu nhiên nếu chạy Manual / Local Test
+    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}", "MANUAL_UI_RUN"]:
+        job_run_id = FALLBACK_MODULE_UUID
+
+    return F.lit(str(job_run_id)).alias("pipeline_run_id")
 
 # ==============================================================================
 # 3.1 FINANCIAL EVENT (HEADER)

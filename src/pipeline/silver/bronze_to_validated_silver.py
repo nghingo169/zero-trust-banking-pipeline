@@ -278,7 +278,7 @@ def quarantine_events(domain: str, table_name: str, business_key: str) -> DataFr
         # Python Lakeflow code cannot read a job-run pipeline parameter.
         # The dependent audit task stamps its own RUN_ID immediately after
         # this successful pipeline update.
-        F.lit(None).cast("string").alias("pipeline_run_id"),
+        F.lit(spark.conf.get("pipeline.run_id", None)).cast("string").alias("pipeline_run_id"),
         F.lit(table_name).alias("source_table_name"),
         source_business_key.alias("source_business_key"),
         bronze_record_ref.alias("bronze_record_ref"),

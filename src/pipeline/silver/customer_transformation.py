@@ -6,6 +6,7 @@ Domain        : Customer / Enterprise Party Domain
 
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
+import uuid
 from nab_tdm_masking import mask_national_id, mask_phone, mask_name, mask_address
 
 CATALOG = spark.conf.get("pipeline.catalog", "workspace")
@@ -59,10 +60,52 @@ def get_source_system(ref_col) -> F.Column:
         resolved = F.when(prefix == F.lit(code), F.lit(label)).otherwise(resolved)
     return F.coalesce(resolved, F.lit("UNKNOWN"))
 
+
+FALLBACK_MODULE_UUID = str(uuid.uuid4())
+
 def get_pipeline_run_id(df) -> F.Column:
+    """
+    Lấy Job Run ID chuẩn xác trên Databricks Compute (Serverless & Classic)
+    sử dụng dbruntime.databricks_repl_context.
+    """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
-    return F.lit(spark.conf.get("pipeline.run_id", None)).cast("string")
+
+    job_run_id = None
+
+    # 1. Sử dụng dbruntime.databricks_repl_context (Giải pháp từ Databricks Community)
+    try:
+        from dbruntime.databricks_repl_context import get_context
+        ctx = get_context()
+        if ctx:
+            # idInJob chính là Job Run ID thực tế
+            job_run_id = getattr(ctx, "idInJob", None) or getattr(ctx, "jobId", None)
+    except Exception:
+        pass
+
+    # 2. Fallback sang DLT Update ID nếu chạy trong DLT Pipeline Engine
+    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
+        try:
+            job_run_id = spark.conf.get("spark.databricks.pipeline.update.id", None)
+        except Exception:
+            pass
+
+    # 3. Fallback sang Spark Conf truyền thống (nếu chạy Classic Compute)
+    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
+        try:
+            job_run_id = (
+                spark.conf.get("spark.databricks.job.runId", None) or 
+                spark.conf.get("spark.databricks.job.run_id", None)
+            )
+        except Exception:
+            pass
+
+    # 4. Fallback ngẫu nhiên nếu chạy Manual / Local Test
+    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}", "MANUAL_UI_RUN"]:
+        job_run_id = FALLBACK_MODULE_UUID
+
+    return F.lit(str(job_run_id)).alias("pipeline_run_id")
+
 
 def _latest_transaction_by_customer():
     txn = spark.read.table(clean_bronze_src("account_transaction"))
