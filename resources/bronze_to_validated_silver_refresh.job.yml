@@ -51,3 +51,8 @@ resources:
             - task_key: pre_transform_setup  
           pipeline_task:
             pipeline_id: ${resources.pipelines.validated_to_transform_silver.id}
+        - task_key: transform_gold
+          depends_on:
+            - task_key: transform_silver_atomic
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.silver_to_gold.id}
