@@ -59,8 +59,8 @@ resources:
         - task_key: run_silver_unit_tests
           depends_on:
             - task_key: pre_transform_setup
-          spark_python_task:
-            python_file: ../tests/silver/run_remote_tests.py
+          notebook_task:
+            notebook_path: ../src/pipeline/silver/unit_tests.py
           environment_key: Default
 
         # 6. DLT Pipeline: Transform Silver Validated sang Silver Atomic
