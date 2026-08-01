@@ -49,6 +49,20 @@ def get_pipeline_run_id(df) -> F.Column:
         F.lit(FALLBACK_MODULE_UUID)
     ).cast("string").alias("pipeline_run_id")
 
+SOURCE_SYSTEM_PREFIX_MAP = {"CB": "CORE_BANKING", "CRM": "CRM"}
+
+def get_source_system(ref_col) -> F.Column:
+    """customer_ref is polymorphic (CB-xxxx / CRM-xxx); derive the party_key
+    source-system literal the same way customer_transformation.py does,
+    otherwise the hash never matches silver.party.party_key."""
+    if isinstance(ref_col, str):
+        ref_col = F.col(ref_col)
+    prefix = F.upper(F.split(F.trim(ref_col), "-").getItem(0))
+    resolved = F.lit(None).cast("string")
+    for code, label in SOURCE_SYSTEM_PREFIX_MAP.items():
+        resolved = F.when(prefix == F.lit(code), F.lit(label)).otherwise(resolved)
+    return F.coalesce(resolved, F.lit("UNKNOWN"))
+
 @dp.table(name=atomic_tgt("financial_event_risk_score"))
 def silver_financial_event_risk_score():
     df = spark.read.table(validated_src("account_transaction_risk_score"))
@@ -103,7 +117,7 @@ def silver_transaction_monitoring_alert():
     df = spark.read.table(validated_src("transaction_monitoring_alert"))
     return df.select(
         hash_key(F.lit("fincrime"), F.lit("transaction_monitoring_alert"), "alert_id").alias("monitoring_alert_key"),
-        hash_key(F.lit("core_banking"), "customer_ref").alias("party_key"),
+        hash_key(get_source_system(F.col("customer_ref")), "customer_ref").alias("party_key"),
         F.col("alert_type"),
         F.col("alert_score").cast("decimal(5,2)").alias("alert_score"),
         F.col("alert_status"),
@@ -274,7 +288,7 @@ def silver_aml_case():
     return df.select(
         hash_key(F.lit("fincrime"), F.lit("aml_case"), "case_id").alias("aml_case_key"),
         hash_key(F.lit("fincrime"), F.lit("investigation_case"), "investigation_case_id").alias("investigation_case_key"),
-        hash_key(F.lit("core_banking"), "customer_ref").alias("party_key"),
+        hash_key(get_source_system(F.col("customer_ref")), "customer_ref").alias("party_key"),
         F.col("case_type"),
         F.col("risk_level"),
         F.col("opened_date").cast("date").alias("opened_date"),
@@ -310,7 +324,7 @@ def silver_sanctions_screening():
     df = spark.read.table(validated_src("sanction_screening"))
     return df.select(
         hash_key(F.lit("fincrime"), F.lit("sanction_screening"), "screening_id").alias("sanctions_screening_key"),
-        hash_key(F.lit("core_banking"), "customer_ref").alias("party_key"),
+        hash_key(get_source_system(F.col("customer_ref")), "customer_ref").alias("party_key"),
         hash_key(F.lit("fincrime"), F.lit("watchlist"), "watchlist_id").alias("watchlist_entry_key"),
         F.col("screened_name"),
         F.col("match_score").cast("decimal(5,2)").alias("match_score"),
@@ -412,7 +426,7 @@ def silver_call_center_contact():
     df = spark.read.table(validated_src("call_center_log"))
     return df.select(
         hash_key(F.lit("fincrime"), F.lit("call_center_log"), "call_id").alias("call_center_contact_key"),
-        hash_key(F.lit("core_banking"), "customer_ref").alias("party_key"),
+        hash_key(get_source_system(F.col("customer_ref")), "customer_ref").alias("party_key"),
         hash_key(F.lit("fincrime"), F.lit("investigation_case"), "case_id").alias("investigation_case_key"),
         
         # Format-Preserving Masked Phone (NAB TDM Rule 1.13)

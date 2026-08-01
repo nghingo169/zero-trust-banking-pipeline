@@ -53,9 +53,40 @@ def get_pipeline_run_id(df) -> F.Column:
 # ==============================================================================
 # 3.1 FINANCIAL EVENT (HEADER)
 # ==============================================================================
+SOURCE_SYSTEM_PREFIX_MAP = {"CB": "CORE_BANKING", "CRM": "CRM"}
+
+def get_source_system(ref_col) -> F.Column:
+    """Same logic as customer_transformation.py -- customer_ref/cust_no/party_id
+    are polymorphic (CB-xxxx vs CRM-xxx), so the party_key literal prefix must
+    be derived the same way everywhere, not hardcoded per file."""
+    if isinstance(ref_col, str):
+        ref_col = F.col(ref_col)
+    prefix = F.upper(F.split(F.trim(ref_col), "-").getItem(0))
+    resolved = F.lit(None).cast("string")
+    for code, label in SOURCE_SYSTEM_PREFIX_MAP.items():
+        resolved = F.when(prefix == F.lit(code), F.lit(label)).otherwise(resolved)
+    return F.coalesce(resolved, F.lit("UNKNOWN"))
+
 
 @dp.table(name=atomic_tgt("financial_event"), comment="Canonical Silver Header Table for All Financial Events")
 def silver_financial_event():
+    # account_key -> party_key bridge (from the now-fixed party_account_role),
+    # used to resolve party_key for event types that don't carry customer_ref
+    # directly (card/atm/gateway). dropDuplicates: an account can have more
+    # than one linked party (joint account); this picks one arbitrarily as a
+    # simplification -- flag if you need every co-holder represented instead
+    # of just one.
+    account_party = (
+        spark.read.table(atomic_tgt("party_account_role"))
+        .select("account_key", "party_key")
+        .dropDuplicates(["account_key"])
+    )
+
+    # card_id -> account_key, used to resolve card/atm events back to an account
+    card_account = spark.read.table(validated_src("card")).select(
+        "card_id", hash_key(F.lit("core_banking"), "account_id").alias("_card_account_key")
+    )
+
     # 1. Account Transactions
     df_acc = spark.read.table(validated_src("account_transaction"))
     acc_tx = df_acc.select(
@@ -63,7 +94,7 @@ def silver_financial_event():
         F.lit("ACCOUNT_POSTING").alias("event_type"),
         hash_key(F.lit("core_banking"), "account_id").alias("account_key"),
         F.lit(None).cast("string").alias("payment_card_key"),
-        hash_key(F.lit("core_banking"), "customer_ref").alias("party_key"),
+        hash_key(get_source_system(F.col("customer_ref")), "customer_ref").alias("party_key"),
         F.lit(None).cast("string").alias("merchant_location_key"),
         get_currency_col(df_acc),
         F.col("txn_timestamp").cast("timestamp").alias("occurred_at"),
@@ -76,14 +107,16 @@ def silver_financial_event():
     )
 
     # 2. Card Transactions
-    df_card = spark.read.table(validated_src("card_transaction"))
-    card_tx = df_card.select(
+    df_card = spark.read.table(validated_src("card_transaction")).join(card_account, "card_id", "left")
+    card_tx = df_card.join(
+        account_party, df_card["_card_account_key"] == account_party["account_key"], "left"
+    ).select(
         hash_key(F.lit("card_system"), F.lit("CARD_PAYMENT"), "card_txn_id").alias("financial_event_key"),
         F.lit("CARD_PAYMENT").alias("event_type"),
-        F.lit(None).cast("string").alias("account_key"),
+        F.col("_card_account_key").alias("account_key"),
         hash_key(F.lit("card_system"), "card_id").alias("payment_card_key"),
-        F.lit(None).cast("string").alias("party_key"),
-        hash_key(F.lit("merchant_system"), "merchant_id").alias("merchant_location_key"),
+        account_party["party_key"],
+        F.lit(None).cast("string").alias("merchant_location_key"),
         get_currency_col(df_card),
         F.col("txn_timestamp").cast("timestamp").alias("occurred_at"),
         F.lit("card_system").alias("source_system"),
@@ -94,14 +127,18 @@ def silver_financial_event():
         F.lit("VALID").alias("data_quality_status")
     )
 
-    # 3. ATM Activity
-    df_atm = spark.read.table(validated_src("log_atm"))
-    atm_tx = df_atm.select(
+    # 3. ATM Activity -- resolved via card_id -> card -> account (log_atm has no
+    # direct account_id; the old code wrongly hashed account_txn_id as if it
+    # were an account_id)
+    df_atm = spark.read.table(validated_src("log_atm")).join(card_account, "card_id", "left")
+    atm_tx = df_atm.join(
+        account_party, df_atm["_card_account_key"] == account_party["account_key"], "left"
+    ).select(
         hash_key(F.lit("atm_system"), F.lit("ATM_ACTIVITY"), "log_id").alias("financial_event_key"),
         F.lit("ATM_ACTIVITY").alias("event_type"),
-        hash_key(F.lit("core_banking"), "account_txn_id").alias("account_key"),
+        F.col("_card_account_key").alias("account_key"),
         hash_key(F.lit("card_system"), "card_id").alias("payment_card_key"),
-        F.lit(None).cast("string").alias("party_key"),
+        account_party["party_key"],
         F.lit(None).cast("string").alias("merchant_location_key"),
         get_currency_col(df_atm),
         F.col("log_timestamp").cast("timestamp").alias("occurred_at"),
@@ -113,15 +150,33 @@ def silver_financial_event():
         F.lit("VALID").alias("data_quality_status")
     )
 
-    # 4. Gateway Payments
+    # 4. Gateway Payments -- account_txn_id/card_txn_id are polymorphic (only
+    # one populated per row); resolve account_key/party_key via whichever leg
+    # is present, account_transaction taking priority.
     df_gw = spark.read.table(validated_src("payment_gateway_log"))
-    gw_log = df_gw.select(
+    df_acc_txn_lookup = spark.read.table(validated_src("account_transaction")).select(
+        "account_txn_id", hash_key(F.lit("core_banking"), "account_id").alias("_via_acct_account_key")
+    )
+
+    # simpler: resolve via card_txn_id -> card_transaction -> card_id -> account
+    df_card_txn_lookup = spark.read.table(validated_src("card_transaction")).select(
+        "card_txn_id", "card_id"
+    ).join(card_account, "card_id", "left").select(
+        "card_txn_id", F.col("_card_account_key").alias("_via_card_account_key")
+    )
+    gw_resolved = (
+        df_gw.join(df_acc_txn_lookup, "account_txn_id", "left")
+        .join(df_card_txn_lookup, "card_txn_id", "left")
+        .withColumn("_resolved_account_key", F.coalesce("_via_acct_account_key", "_via_card_account_key"))
+        .join(account_party, F.col("_resolved_account_key") == account_party["account_key"], "left")
+    )
+    gw_log = gw_resolved.select(
         hash_key(F.lit("payment_gateway"), F.lit("GATEWAY_PAYMENT"), "gateway_txn_id").alias("financial_event_key"),
         F.lit("GATEWAY_PAYMENT").alias("event_type"),
-        hash_key(F.lit("core_banking"), "account_txn_id").alias("account_key"),
-        hash_key(F.lit("card_system"), "card_txn_id").alias("payment_card_key"),
-        F.lit(None).cast("string").alias("party_key"),
-        hash_key(F.lit("merchant_system"), "merchant_id").alias("merchant_location_key"),
+        F.col("_resolved_account_key").alias("account_key"),
+        F.when(F.col("card_txn_id").isNotNull(), hash_key(F.lit("card_system"), "card_txn_id")).alias("payment_card_key"),
+        account_party["party_key"],
+        F.lit(None).cast("string").alias("merchant_location_key"),
         get_currency_col(df_gw),
         F.col("gateway_timestamp").cast("timestamp").alias("occurred_at"),
         F.lit("payment_gateway").alias("source_system"),
@@ -133,7 +188,6 @@ def silver_financial_event():
     )
 
     return acc_tx.unionByName(card_tx).unionByName(atm_tx).unionByName(gw_log)
-
 
 # ==============================================================================
 # 3.2 ACCOUNT POSTING
