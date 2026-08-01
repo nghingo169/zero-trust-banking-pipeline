@@ -55,10 +55,18 @@ resources:
               run_id: "{{job.run_id}}"
               catalog: ${var.catalog}
 
+        # 5.5. Unit Test Tầng Silver: Kiểm tra logic transformation/validation trước khi ghi dữ liệu
+        - task_key: run_silver_unit_tests
+          depends_on:
+            - task_key: pre_transform_setup
+          spark_python_task:
+            python_file: ../tests/silver/run_remote_tests.py
+          environment_key: default
+          
         # 6. DLT Pipeline: Transform Silver Validated sang Silver Atomic
         - task_key: transform_silver_atomic
           depends_on:
-            - task_key: pre_transform_setup  
+            - task_key: run_silver_unit_tests
           pipeline_task:
             pipeline_id: ${resources.pipelines.validated_to_transform_silver.id}
 

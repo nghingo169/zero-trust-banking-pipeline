@@ -12,6 +12,12 @@ experimental:
 
 include:
   - resources/*.yml
+  - resources/**/*.yml
+
+sync:
+  paths:
+    - src/
+    - tests/
 
 variables:
   catalog:
@@ -48,6 +54,8 @@ targets:
     default: true
     variables:
       source_mode: volume
+    workspace:
+      file_path: /Workspace/Users/chmfuong@gmail.com/.bundle/zero-trust-banking-pipeline/dev/files
 
   team:
     mode: development
