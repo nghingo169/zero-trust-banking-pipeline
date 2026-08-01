@@ -3,7 +3,7 @@ Target Schema : Silver Atomic Model (`silver`)
 Source Schema : Bronze / Validated Datasets (`silver_validated`)
 Domain        : Customer / Enterprise Party Domain
 """
-
+from pyspark.sql.window import Window
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 import uuid
@@ -100,7 +100,15 @@ def _build_party():
 
     sim_id_core = F.col("simulation_id") if "simulation_id" in df_core.columns else F.lit(None)
     core_system = get_source_system(F.col("cust_no"))
-    
+
+    # Dedup: source tables carry one snapshot row per business_date per customer,
+    # but party_key is hashed from (system, id) only -- without this, the same
+    # party appears once per snapshot date and every downstream aggregate fans out.
+    w_core = Window.partitionBy("cust_no").orderBy(F.col("business_date").desc())
+    df_core = df_core.withColumn("_rn", F.row_number().over(w_core)).filter("_rn = 1").drop("_rn")
+
+    w_crm = Window.partitionBy("party_id").orderBy(F.col("business_date").desc())
+    df_crm = df_crm.withColumn("_rn", F.row_number().over(w_crm)).filter("_rn = 1").drop("_rn")
     party_core = (
         df_core.join(last_txn, df_core["cust_no"] == last_txn["customer_ref"], "left")
         .select(
@@ -195,8 +203,9 @@ def _build_party_identity_resolution(df):
     )
 
 def _build_party_profile_version(df):
+    # ---- Branch 1: core_banking (unchanged; source has no preferred_contact_method) ----
     source_system = get_source_system(F.col("cust_no"))
-    return df.select(
+    cb = df.select(
         hash_key(F.lit("core_banking"), F.lit("profile_version"), "cust_no", "business_date").alias("party_profile_version_key"),
         hash_key(source_system, "cust_no").alias("party_key"),
         source_system.alias("source_system"),
@@ -217,6 +226,33 @@ def _build_party_profile_version(df):
         get_pipeline_run_id(df).alias("pipeline_run_id"),
         F.current_timestamp().alias("ingested_at"),
     )
+
+    # ---- Branch 2: CRM (the only source carrying preferred_contact_method) ----
+    crm_df = spark.read.table(clean_customer_src("crm_customer"))
+    crm_source_system = get_source_system(F.col("party_id"))   # party_id assumed CRM-xxx prefixed -> "CRM"
+    crm = crm_df.select(
+        hash_key(F.lit("crm"), F.lit("profile_version"), "party_id", "business_date").alias("party_profile_version_key"),
+        hash_key(crm_source_system, "party_id").alias("party_key"),   # MUST match _build_party's CRM formula
+        crm_source_system.alias("source_system"),
+        crm_source_system.alias("profile_source"),
+        mask_name(F.col("customer_name")).alias("full_name_masked"),
+        F.base64(F.aes_encrypt(F.col("customer_name"), F.lit(AES_KEY))).alias("full_name_encrypted"),
+        tokenize_pii(F.col("customer_name")).alias("full_name_token"),
+        F.lit(None).cast("date").alias("date_of_birth"),          # CRM source has no DOB
+        F.lit(None).cast("string").alias("address_masked"),       # CRM source has no address
+        F.lit(None).cast("string").alias("address_encrypted"),
+        F.lit(None).cast("string").alias("address_token"),
+        F.col("preferred_contact_method"),
+        F.col("business_date").cast("timestamp").alias("effective_from"),
+        F.col("__END_AT").cast("timestamp").alias("effective_to"),
+        F.when(F.col("__END_AT").isNull(), F.lit(True)).otherwise(F.lit(False)).alias("is_current"),
+        F.col("party_id").cast("string").alias("source_business_key"),
+        bronze_ref("crm_customer", "party_id").alias("bronze_record_ref"),
+        get_pipeline_run_id(crm_df).alias("pipeline_run_id"),
+        F.current_timestamp().alias("ingested_at"),
+    )
+
+    return cb.unionByName(crm)
 
 def _build_party_kyc_assessment(df):
     source_system = get_source_system(F.col("customer_ref"))
