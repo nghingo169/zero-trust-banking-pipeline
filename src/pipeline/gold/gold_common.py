@@ -1,23 +1,30 @@
 """Shared config and path helpers for the Gold (AI-Ready Context Layer) pipeline.
 
-Imported by fraud_transaction_context.py / customer_360_context.py /
-aml_investigation_context.py -- keeps CATALOG/schema resolution and the
-silver_ref()/gold_target_name() helpers in one place instead of duplicated
-per file (unlike the Silver layer's per-domain get_pipeline_run_id()
-duplication, which was a deliberate tradeoff there -- this is small, static
-config with no reason to diverge across the 3 Gold views).
+silver_ref()/gold_target_name() take `spark` explicitly instead of reading it
+as a module-level global -- gold_common.py is imported (not directly exec'd
+by the Lakeflow graph loader) by the 3 view files, so it does NOT get `spark`
+injected into its own module namespace the way a top-level library file does.
 """
 
-CATALOG = spark.conf.get("pipeline.catalog", "workspace")
-SILVER_SCHEMA = spark.conf.get("pipeline.silver_schema", "silver")
-GOLD_SCHEMA = spark.conf.get("pipeline.gold_schema", "gold")
+
+def get_catalog(spark) -> str:
+    return spark.conf.get("pipeline.catalog", "workspace")
 
 
-def silver_ref(table_name: str) -> str:
+def get_silver_schema(spark) -> str:
+    return spark.conf.get("pipeline.silver_schema", "silver")
+
+
+def get_gold_schema(spark) -> str:
+    return spark.conf.get("pipeline.gold_schema", "gold")
+
+
+def silver_ref(spark, table_name: str) -> str:
     """Fully-qualified Silver source table."""
-    return f"{CATALOG}.{SILVER_SCHEMA}.{table_name}"
+    return f"{get_catalog(spark)}.{get_silver_schema(spark)}.{table_name}"
 
 
-def gold_target_name(table_name: str) -> str:
+def gold_target_name(spark, table_name: str) -> str:
     """Target name for a Gold view/table (schema-qualified if GOLD_SCHEMA is set)."""
-    return f"{GOLD_SCHEMA}.{table_name}" if GOLD_SCHEMA else table_name
+    gold_schema = get_gold_schema(spark)
+    return f"{gold_schema}.{table_name}" if gold_schema else table_name

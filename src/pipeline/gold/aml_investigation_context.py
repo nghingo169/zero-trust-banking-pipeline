@@ -12,33 +12,27 @@ from gold_common import silver_ref, gold_target_name
 
 
 @dp.table(
-    name=gold_target_name("ai_aml_investigation_context"),
+    name=gold_target_name(spark, "ai_aml_investigation_context"),
     comment="AI-Ready AML/Fraud investigation context: one row per investigation case, flattened with AML detail, SAR filing status, etc.",
     table_properties={
         "quality": "gold",
         "pipelines.autoOptimize.managed": "true",
-        "delta.clusterBy": "case_status, opened_at",
     },
+    cluster_by=["case_status", "opened_at"],
 )
 @dp.expect_or_drop("valid_investigation_case_key", "investigation_case_key IS NOT NULL")
 def ai_aml_investigation_context():
-    ic = spark.read.table(silver_ref("investigation_case"))
-    ac = spark.read.table(silver_ref("aml_case"))
-    sar = spark.read.table(silver_ref("suspicious_activity_report"))
-    icss = spark.read.table(silver_ref("investigation_case_sanctions_screening"))
-    ss = spark.read.table(silver_ref("sanctions_screening"))
-    we = spark.read.table(silver_ref("watchlist_entry"))
-    icfa = spark.read.table(silver_ref("investigation_case_fraud_alert"))
-    icma = spark.read.table(silver_ref("investigation_case_monitoring_alert"))
-    icfe = spark.read.table(silver_ref("investigation_case_financial_event"))
-    in_note = spark.read.table(silver_ref("investigation_note"))
+    ic = spark.read.table(silver_ref(spark, "investigation_case"))
+    ac = spark.read.table(silver_ref(spark, "aml_case"))
+    sar = spark.read.table(silver_ref(spark, "suspicious_activity_report"))
+    icss = spark.read.table(silver_ref(spark, "investigation_case_sanctions_screening"))
+    ss = spark.read.table(silver_ref(spark, "sanctions_screening"))
+    we = spark.read.table(silver_ref(spark, "watchlist_entry"))
+    icfa = spark.read.table(silver_ref(spark, "investigation_case_fraud_alert"))
+    icma = spark.read.table(silver_ref(spark, "investigation_case_monitoring_alert"))
+    icfe = spark.read.table(silver_ref(spark, "investigation_case_financial_event"))
+    in_note = spark.read.table(silver_ref(spark, "investigation_note"))
 
-    # Guard against investigation_case:aml_case being 1-N -- dedupe to one
-    # aml_case per investigation_case_key BEFORE joining (same pattern as
-    # customer_360_context's account_overview), so this view's grain (1 row
-    # per investigation case) can't fan out. Picks the most recently opened
-    # linked aml_case; if a case genuinely has multiple aml_cases, the
-    # others' detail won't surface here.
     aml_case_window = Window.partitionBy("investigation_case_key").orderBy(F.col("opened_date").desc())
     aml_case_dedup = (
         ac.withColumn("rn", F.row_number().over(aml_case_window))

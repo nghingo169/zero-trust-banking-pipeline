@@ -12,47 +12,45 @@ from gold_common import silver_ref, gold_target_name
 
 
 @dp.table(
-    name=gold_target_name("ai_customer_360_context"),
+    name=gold_target_name(spark, "ai_customer_360_context"),
     comment="AI-Ready Customer 360 context: current profile + KYC + account/card/servicing overview, PII tokenized/banded.",
     table_properties={
         "quality": "gold",
         "pipelines.autoOptimize.managed": "true",
-        "delta.clusterBy": "party_key",
     },
+    cluster_by=["party_key"],
 )
 @dp.expect_or_drop("valid_party_key", "party_key IS NOT NULL")
 def ai_customer_360_context():
-    p = spark.read.table(silver_ref("party"))
-    ppv = spark.read.table(silver_ref("party_profile_version"))
-    pka = spark.read.table(silver_ref("party_kyc_assessment"))
-    pe = spark.read.table(silver_ref("party_employment"))
-    par = spark.read.table(silver_ref("party_account_role"))
-    a = spark.read.table(silver_ref("account"))
-    abs_df = spark.read.table(silver_ref("account_balance_snapshot"))
-    pc = spark.read.table(silver_ref("payment_card"))
-    psr = spark.read.table(silver_ref("party_service_request"))
-    ccc = spark.read.table(silver_ref("call_center_contact"))
-    ac = spark.read.table(silver_ref("aml_case"))
-    ic = spark.read.table(silver_ref("investigation_case"))
+    p = spark.read.table(silver_ref(spark, "party"))
+    ppv = spark.read.table(silver_ref(spark, "party_profile_version"))
+    pka = spark.read.table(silver_ref(spark, "party_kyc_assessment"))
+    pe = spark.read.table(silver_ref(spark, "party_employment"))
+    par = spark.read.table(silver_ref(spark, "party_account_role"))
+    a = spark.read.table(silver_ref(spark, "account"))
+    abs_df = spark.read.table(silver_ref(spark, "account_balance_snapshot"))
+    pc = spark.read.table(silver_ref(spark, "payment_card"))
+    psr = spark.read.table(silver_ref(spark, "party_service_request"))
+    ccc = spark.read.table(silver_ref(spark, "call_center_contact"))
+    ac = spark.read.table(silver_ref(spark, "aml_case"))
+    ic = spark.read.table(silver_ref(spark, "investigation_case"))
 
     current_profile = ppv.filter(F.col("is_current") == True)
 
     kyc_window = Window.partitionBy("party_key").orderBy(F.col("verified_date").desc())
     latest_kyc = pka.withColumn("rn", F.row_number().over(kyc_window)).filter("rn = 1")
 
-    current_employment = pe.filter(F.col("effective_to").isNull())
+    emp_window = Window.partitionBy("party_key").orderBy(F.col("effective_from").desc())
+    current_employment = (
+        pe.filter(F.col("effective_to").isNull())
+        .withColumn("rn", F.row_number().over(emp_window))
+        .filter("rn = 1")
+    )
 
-    # account_balance_snapshot is very large (millions of accounts x daily
-    # snapshots) -- filter to a recent window BEFORE the row_number ranking,
-    # instead of ranking over the full history. Trade-off: an account whose
-    # most recent snapshot is older than 30 days shows a NULL balance below.
     abs_recent = abs_df.filter(F.col("balance_date") >= F.date_sub(F.current_date(), 30))
     bal_window = Window.partitionBy("account_key").orderBy(F.col("balance_date").desc())
     latest_bal = abs_recent.withColumn("rn", F.row_number().over(bal_window)).filter("rn = 1")
 
-    # Pre-aggregate card counts PER ACCOUNT first, so joining into the
-    # per-account grain below can't fan out account_key (and therefore can't
-    # multiply closing_balance when summed at party level).
     card_count_per_account = (
         pc.groupBy("account_key")
         .agg(F.countDistinct(F.when(F.col("card_status") == "ACTIVE", F.col("payment_card_key"))).alias("active_card_count"))

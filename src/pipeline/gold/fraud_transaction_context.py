@@ -12,29 +12,29 @@ from gold_common import silver_ref, gold_target_name
 
 
 @dp.table(
-    name=gold_target_name("ai_fraud_transaction_context"),
+    name=gold_target_name(spark, "ai_fraud_transaction_context"),
     comment="AI-Ready fraud context: one row per financial event, flattened with merchant/channel/risk/alert context. PII-free.",
     table_properties={
         "quality": "gold",
         "pipelines.autoOptimize.managed": "true",
-        "delta.clusterBy": "occurred_at, party_key",
     },
+    cluster_by=["occurred_at", "party_key"],
 )
+
 @dp.expect_or_drop("valid_financial_event_key", "financial_event_key IS NOT NULL")
 def ai_fraud_transaction_context():
-    fe = spark.read.table(silver_ref("financial_event"))
+    fe = spark.read.table(silver_ref(spark, "financial_event"))
 
-    ap = spark.read.table(silver_ref("account_posting"))
-    cp = spark.read.table(silver_ref("card_payment"))
-    atm = spark.read.table(silver_ref("atm_activity"))
-    gp = spark.read.table(silver_ref("gateway_payment"))
-    tc = spark.read.table(silver_ref("transaction_channel"))
-    m = spark.read.table(silver_ref("merchant"))
-    ml = spark.read.table(silver_ref("merchant_location"))
-    fers = spark.read.table(silver_ref("financial_event_risk_score"))
-    fefa = spark.read.table(silver_ref("financial_event_fraud_alert"))
-    fa = spark.read.table(silver_ref("fraud_alert"))
-    cfa_src = spark.read.table(silver_ref("financial_event_card_fraud_flag"))
+    ap = spark.read.table(silver_ref(spark, "account_posting"))
+    cp = spark.read.table(silver_ref(spark, "card_payment"))
+    atm = spark.read.table(silver_ref(spark, "atm_activity"))
+    gp = spark.read.table(silver_ref(spark, "gateway_payment"))
+    tc = spark.read.table(silver_ref(spark, "transaction_channel"))
+    m = spark.read.table(silver_ref(spark, "merchant"))
+    fers = spark.read.table(silver_ref(spark, "financial_event_risk_score"))
+    fefa = spark.read.table(silver_ref(spark, "financial_event_fraud_alert"))
+    fa = spark.read.table(silver_ref(spark, "fraud_alert"))
+    cfa_src = spark.read.table(silver_ref(spark, "financial_event_card_fraud_flag"))
 
     risk_window = Window.partitionBy("financial_event_key").orderBy(F.col("scored_date").desc())
     latest_risk = fers.withColumn("rn", F.row_number().over(risk_window)).filter("rn = 1")
@@ -48,7 +48,30 @@ def ai_fraud_transaction_context():
             F.max(F.col("alert_status") != "CLOSED").alias("open_fraud_alert_flag"),
         )
     )
-
+    # Merchant-level store risk (events carry merchant_id only, never store_id --
+    # store-grain context is unresolvable, so aggregate risk across the merchant's stores)
+    ml = spark.read.table(silver_ref(spark, "merchant_location"))
+    merchant_store_risk = (
+        ml.withColumn(
+            "_risk_rank",
+            F.when(F.col("risk_rating") == "HIGH", 3)
+            .when(F.col("risk_rating") == "MEDIUM", 2)
+            .when(F.col("risk_rating") == "LOW", 1)
+            .otherwise(0),
+        )
+        .groupBy("merchant_key")
+        .agg(
+            F.count("*").alias("merchant_store_count"),
+            F.max("_risk_rank").alias("_max_rank"),
+        )
+        .withColumn(
+            "merchant_max_store_risk",
+            F.when(F.col("_max_rank") == 3, "HIGH")
+            .when(F.col("_max_rank") == 2, "MEDIUM")
+            .when(F.col("_max_rank") == 1, "LOW"),
+        )
+        .drop("_max_rank")
+    )
     card_flag_agg = (
         cfa_src.groupBy("financial_event_key")
         .agg(F.countDistinct("card_fraud_flag_key").alias("card_fraud_flag_count"))
@@ -61,8 +84,10 @@ def ai_fraud_transaction_context():
         .join(atm.alias("atm"), (F.col("atm.financial_event_key") == F.col("fe.financial_event_key")) & (F.col("fe.event_type") == "ATM_ACTIVITY"), "left")
         .join(gp.alias("gp"), (F.col("gp.financial_event_key") == F.col("fe.financial_event_key")) & (F.col("fe.event_type") == "GATEWAY_PAYMENT"), "left")
         .join(tc.alias("tc"), F.col("tc.channel_key") == F.col("ap.channel_key"), "left")
+        .join(merchant_store_risk.alias("msr"),
+            F.col("msr.merchant_key") == F.coalesce(F.col("ap.merchant_key"), F.col("cp.merchant_key"), F.col("gp.merchant_key")),
+            "left")
         .join(m.alias("m"), F.col("m.merchant_key") == F.coalesce(F.col("ap.merchant_key"), F.col("cp.merchant_key"), F.col("gp.merchant_key")), "left")
-        .join(ml.alias("ml"), F.col("ml.merchant_location_key") == F.col("fe.merchant_location_key"), "left")
         .join(latest_risk.alias("lr"), F.col("lr.financial_event_key") == F.col("fe.financial_event_key"), "left")
         .join(fraud_alert_agg.alias("faa"), F.col("faa.financial_event_key") == F.col("fe.financial_event_key"), "left")
         .join(card_flag_agg.alias("cfa"), F.col("cfa.financial_event_key") == F.col("fe.financial_event_key"), "left")
@@ -84,9 +109,8 @@ def ai_fraud_transaction_context():
             F.col("m.merchant_name"),
             F.col("m.mcc_code"),
             F.col("m.country").alias("merchant_country"),
-            F.col("fe.merchant_location_key"),
-            F.col("ml.store_name"),
-            F.col("ml.risk_rating").alias("store_risk_rating"),
+            F.coalesce(F.col("msr.merchant_store_count"), F.lit(0)).alias("merchant_store_count"),
+            F.col("msr.merchant_max_store_risk"),
             F.col("lr.model_score").alias("latest_risk_score"),
             F.col("lr.risk_band").alias("latest_risk_band"),
             F.coalesce(F.col("faa.fraud_alert_count"), F.lit(0)).alias("fraud_alert_count"),

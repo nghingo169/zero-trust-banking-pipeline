@@ -31,7 +31,7 @@
 | `amount`, `transaction_type_detail`, `posting_direction`, `channel_key` | `COALESCE` across `account_posting` / `card_payment` / `atm_activity` / `gateway_payment` |
 | `channel_name`, `channel_type` | `transaction_channel` |
 | `merchant_name`, `mcc_code`, `merchant_country` | `merchant` |
-| `store_name`, `store_risk_rating` | `merchant_location` |
+| `merchant_store_count`, `merchant_max_store_risk` | `merchant_location` aggregated per `merchant_key` (max of LOW<MEDIUM<HIGH). Store-grain columns (`store_name`, `store_risk_rating`) were dropped: no transaction source carries `store_id` (events only know `merchant_id`, and a merchant has many stores), so store-level context is unresolvable at event grain -- `financial_event.merchant_location_key` is now NULL by design. |
 | `latest_risk_score`, `latest_risk_band` | `financial_event_risk_score` (most recent by `scored_date`, via `row_number` dedup) |
 | `fraud_alert_count`, `max_fraud_alert_score`, `open_fraud_alert_flag` | `financial_event_fraud_alert` ⋈ `fraud_alert` — `open_fraud_alert_flag` = `F.max(alert_status != 'CLOSED')` (real values: `CLOSED` / `OPEN` / `ESCALATED` — no `RESOLVED` state exists) |
 | `card_fraud_flag_count` | `financial_event_card_fraud_flag` |
@@ -60,7 +60,7 @@
 | Gold Column | Silver Source |
 |---|---|
 | `investigation_case_key` … `assigned_analyst_id` | `investigation_case` |
-| `aml_case_key`, `party_key`, `aml_risk_level` | `aml_case` — **deduped to one row per `investigation_case_key`** (most recently opened, by `opened_date`) before joining, guarding against a possible 1-N `investigation_case`:`aml_case` relationship fanning out the view's grain. If a case genuinely has multiple linked `aml_case` rows, only the latest one's detail surfaces here. |
+| `aml_case_key`, `party_key`, `aml_risk_level` | `aml_case` — **deduped to one row per `investigation_case_key`** (most recently opened, by `opened_date`) before joining, guarding against a possible 1-N `investigation_case`:`aml_case` relationship fanning out the view's grain. If a case genuinely has multiple linked `aml_case` rows, only the latest one's detail surfaces here. **Known data limitation**: `party_key` on AML-originated rows is always NULL — the `aml_case` source references customers via its own `AML-CUST-nnnnnn` namespace, whose numeric ranges are fully disjoint from both `CB-` (core banking `cust_no`) and `CRM-` (`party_id`) identifiers (verified 0/5,289 distinct refs match either system numerically). No crosswalk exists in the synthetic dataset, so these cases cannot be resolved to a party by any key formula. |
 | `sar_filed_flag` / `date` / `regulatory_reference` / `report_status` | `suspicious_activity_report` (most recent by `filed_date`, joined via the deduped `aml_case`) |
 | `sanctions_screening_count`, `sanctions_hit_flag`, `max_sanctions_match_score`, `linked_watchlist_types` | `investigation_case_sanctions_screening` ⋈ `sanctions_screening` ⋈ `watchlist_entry` — `sanctions_hit_flag` = any linked screening with `screening_result = 'HIT'` (real values: `CLEAR` / `FALSE_POSITIVE` / `HIT` — `FALSE_POSITIVE` must NOT be counted as a hit) |
 | `linked_fraud_alert_count` | `investigation_case_fraud_alert` |
@@ -111,5 +111,5 @@
    - **View 3 fan-out risk fixed**: `investigation_case` ⋈ `aml_case` could fan out if that relationship is 1-N. `aml_case` is now deduped to one row per `investigation_case_key` (most recently opened) before joining, same pattern as View 2's account aggregation.
    - **View 2 performance**: `account_balance_snapshot` is filtered to the trailing 30 days *before* the `row_number()` ranking, instead of ranking over the table's full history — this table is very large (daily snapshots × millions of accounts). Trade-off: dormant accounts with no snapshot in the last 30 days will show a `NULL` balance.
    - **View 1 simplified**: `open_fraud_alert_flag` now uses a direct boolean aggregation (`F.max(alert_status != 'CLOSED')`) instead of a `when/otherwise/cast` chain.
-   - **Liquid Clustering added** to all 3 views' `table_properties` (`delta.clusterBy`), matching what Part 3 already recommended.
+   - **Liquid Clustering added** via the `cluster_by` parameter on each `@dp.table(...)` decorator (not a `table_properties` key -- `delta.clusterBy` isn't a valid arbitrary property and Delta rejects it with `DELTA_UNKNOWN_CONFIGURATION` if set that way), matching what Part 3 already recommended.
    - These fixes are applied in the PySpark file, which is the single source of truth for these views (see Part 4).
