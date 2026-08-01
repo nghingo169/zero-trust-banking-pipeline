@@ -19,6 +19,31 @@ from gold_common import silver_ref, gold_target_name
         "pipelines.autoOptimize.managed": "true",
     },
     cluster_by=["party_key"],
+    schema="""
+        party_key STRING COMMENT 'Surrogate key of the customer. Grain of this view: exactly 1 row per party.',
+        party_type STRING COMMENT 'Party classification, e.g. PERSON.',
+        party_status STRING COMMENT 'Lifecycle status derived from latest transaction activity: ACTIVE / DEACTIVE / PENDING.',
+        preferred_contact_method STRING COMMENT 'Preferred contact channel. Sourced from CRM only; NULL for CORE_BANKING-sourced customers by design (core source does not carry this field).',
+        profile_effective_from TIMESTAMP COMMENT 'Effective date of the current profile version (SCD2).',
+        kyc_verification_status STRING COMMENT 'Latest KYC status: VERIFIED / PENDING / REJECTED. NULL when the customer has no KYC assessment.',
+        kyc_id_type STRING COMMENT 'ID document type of the latest KYC, e.g. NATIONAL_ID / PASSPORT.',
+        kyc_id_number_token STRING COMMENT 'SHA-256 token of the KYC ID number. PII-safe; never the raw value.',
+        employer_name STRING COMMENT 'Employer from the latest open employment record.',
+        job_title STRING COMMENT 'Job title from the latest open employment record.',
+        monthly_income_band STRING COMMENT 'Monthly income in VND, banded for PII minimization: <10M, 10-30M, 30-100M, 100M+.',
+        active_account_count BIGINT COMMENT 'Number of currently ACTIVE accounts with an open party-account role.',
+        total_current_balance DECIMAL(24,2) COMMENT 'Sum of the latest closing balances (within last 30 days) across the customer accounts. NULL when no recent balance snapshot exists.',
+        active_card_count BIGINT COMMENT 'Number of ACTIVE payment cards across the customer accounts.',
+        open_service_request_count BIGINT COMMENT 'Service requests not yet RESOLVED or REJECTED.',
+        call_center_contact_count_90d BIGINT COMMENT 'Call center contacts in the last 90 days.',
+        last_call_reason STRING COMMENT 'Reason of the most recent call center contact, any time. NULL when the customer never called.',
+        open_investigation_flag BOOLEAN COMMENT 'TRUE if the customer has an AML/fraud investigation case not CLOSED/RESOLVED.',
+        source_system STRING COMMENT 'Source system that mastered this party: CORE_BANKING or CRM.',
+        source_business_key STRING COMMENT 'Natural customer id in the source system (cust_no or party_id).',
+        ingested_at TIMESTAMP COMMENT 'Timestamp this row was produced by the pipeline.',
+        pipeline_run_id STRING COMMENT 'Pipeline run that produced this row, for lineage/audit.',
+        dq_status STRING COMMENT 'Data quality verdict: PASSED_CLEAN, WARNING_UNRESOLVED_PARTY (KYC missing or not VERIFIED), or REJECTED_QUALITY (source row quarantined).'
+    """,
 )
 @dp.expect_or_drop("valid_party_key", "party_key IS NOT NULL")
 def ai_customer_360_context():
