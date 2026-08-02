@@ -58,9 +58,6 @@ def tokenize_pii(col: str | F.Column) -> F.Column:
 FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 def get_pipeline_run_id(df) -> F.Column:
-    """
-    Lấy Job Run ID chuẩn xác trên Databricks Compute (Serverless & Classic).
-    """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
