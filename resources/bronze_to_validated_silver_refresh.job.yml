@@ -61,11 +61,6 @@ resources:
             - task_key: pre_transform_setup  
           pipeline_task:
             pipeline_id: ${resources.pipelines.validated_to_transform_silver.id}
-        - task_key: transform_gold
-          depends_on:
-            - task_key: transform_silver_atomic
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.silver_to_gold.id}
 
         # 7. Audit & Nghiệm thu chất lượng tầng Silver Atomic
         - task_key: silver_atomic_audit
@@ -79,3 +74,9 @@ resources:
               quality_rules_path: ${workspace.file_path}/src
               catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}
+
+        - task_key: transform_gold
+          depends_on:
+            - task_key: silver_atomic_audit
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.silver_to_gold.id}

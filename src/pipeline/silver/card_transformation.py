@@ -12,10 +12,32 @@ import uuid
 # Add library path for NAB TDM masking functions
 from nab_tdm_masking import mask_card_number as nab_mask_card
 
-CATALOG = spark.conf.get("pipeline.catalog", "workspace")
-BRONZE_SCHEMA = spark.conf.get("pipeline.bronze_schema", "bronze")
-SRC__SCHEMA = spark.conf.get("pipeline.silver_validated", "silver_validated")
-SILVER_ATOMIC_SCHEMA = spark.conf.get("pipeline.silver_schema", "silver")
+import time
+def get_catalog():
+    try:
+        return spark.conf.get("pipeline.catalog", "workspace")
+    except Exception:
+        # In Spark Connect (serverless), some configs are restricted
+        return "workspace"
+
+def get_bronze_schema():
+    try:
+        return spark.conf.get("pipeline.bronze_schema", "bronze")
+    except Exception:
+        return "bronze"
+
+def get_src_schema():
+    try:
+        return spark.conf.get("pipeline.silver_validated", "silver_validated")
+    except Exception:
+        return "silver_validated"
+
+def get_silver_atomic_schema():
+    try:
+        return spark.conf.get("pipeline.silver_schema", "silver")
+    except Exception:
+        return "silver"
+
 TOKEN_SALT = "NAB_assignment_3"
 AES_KEY = "NAB_SECRET_AES256_KEY_32BYTES!!!"  # Chuẩn 32 bytes cho AES-256
 
@@ -23,13 +45,13 @@ AES_KEY = "NAB_SECRET_AES256_KEY_32BYTES!!!"  # Chuẩn 32 bytes cho AES-256
 # Helper Functions
 # ---------------------------------------------------------------------------
 def clean_src(table_name: str) -> str:
-    return f"{CATALOG}.{BRONZE_SCHEMA}.{table_name}"
+    return f"{get_catalog()}.{get_bronze_schema()}.{table_name}"
 
 def clean_card_src(table_name: str) -> str:
-    return f"{CATALOG}.{SRC__SCHEMA}.{table_name}"
+    return f"{get_catalog()}.{get_src_schema()}.{table_name}"
 
 def atomic_tgt(table_name: str) -> str:
-    return f"{CATALOG}.{SILVER_ATOMIC_SCHEMA}.{table_name}"
+    return f"{get_catalog()}.{get_silver_atomic_schema()}.{table_name}"
 
 def bronze_ref(bronze_table: str, business_key_col) -> F.Column:
     if isinstance(business_key_col, str):
@@ -58,38 +80,25 @@ def tokenize_pii(col: str | F.Column) -> F.Column:
 FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 def get_pipeline_run_id(df) -> F.Column:
+    """
+    Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery.
+    """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
-    job_run_id = None
+    # Scalar Subquery: Query trực tiếp cột pipeline_run_id theo dòng có start_time mới nhất
+    subquery_expr = f"""
+        (SELECT CAST(pipeline_run_id AS STRING) 
+         FROM {get_catalog()}.governance.pipeline_run 
+         WHERE pipeline_name = 'full-source-to-validated-silver' 
+         ORDER BY start_time DESC 
+         LIMIT 1)
+    """
 
-    try:
-        from dbruntime.databricks_repl_context import get_context
-        ctx = get_context()
-        if ctx:
-            job_run_id = getattr(ctx, "idInJob", None) or getattr(ctx, "jobId", None)
-    except Exception:
-        pass
-
-    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
-        try:
-            job_run_id = spark.conf.get("spark.databricks.pipeline.update.id", None)
-        except Exception:
-            pass
-
-    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
-        try:
-            job_run_id = (
-                spark.conf.get("spark.databricks.job.runId", None) or
-                spark.conf.get("spark.databricks.job.run_id", None)
-            )
-        except Exception:
-            pass
-
-    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}", "MANUAL_UI_RUN"]:
-        job_run_id = FALLBACK_MODULE_UUID
-
-    return F.lit(str(job_run_id)).alias("pipeline_run_id")
+    return F.coalesce(
+        F.expr(subquery_expr),
+        F.lit(FALLBACK_MODULE_UUID)
+    ).cast("string").alias("pipeline_run_id")
 
 # ---------------------------------------------------------------------------
 # Table Builders
@@ -236,16 +245,17 @@ def _build_merchant_location(df):
         F.current_timestamp().alias("ingested_at"),
     )
 
-TABLE_SPECS = [
-    {"target": "account", "source": clean_src("account"), "comment": "Canonical Silver Account Table", "builder": _build_account, "unique_keys": ["source_system", "source_account_id"]},
-    {"target": "party_account_role", "source": clean_src("customer_account"), "comment": "Bridge Table linking Party to Account Roles", "builder": _build_party_account_role, "unique_keys": ["party_key", "account_key", "relationship_type", "valid_from"]},
-    {"target": "payment_card", "source": clean_card_src("card"), "comment": "Canonical Silver Payment Card Table", "builder": _build_payment_card, "unique_keys": ["source_system", "source_card_id"]},
-    {"target": "payment_card_limit_history", "source": clean_card_src("card_limit_history"), "comment": "Canonical Silver Payment Card Limit History Table", "builder": _build_payment_card_limit_history, "unique_keys": None},
-    {"target": "account_balance_snapshot", "source": clean_src("balance_snapshot"), "comment": "Canonical Silver Account Balance Snapshot Table", "builder": _build_account_balance_snapshot, "unique_keys": ["account_key", "balance_date", "source_system"]},
-    {"target": "transaction_channel", "source": clean_src("transaction_channel"), "comment": "Canonical Silver Transaction Channel Table", "builder": _build_transaction_channel, "unique_keys": ["source_system", "source_channel_id"]},
-    {"target": "merchant", "source": clean_src("merchant"), "comment": "Canonical Silver Merchant Table", "builder": _build_merchant, "unique_keys": ["source_system", "source_merchant_id"]},
-    {"target": "merchant_location", "source": clean_src("merchant_store"), "comment": "Canonical Silver Merchant Location Table", "builder": _build_merchant_location, "unique_keys": ["source_system", "source_store_id"]},
-]
+def get_table_specs():
+    return [
+        {"target": "account", "source": clean_src("account"), "comment": "Canonical Silver Account Table", "builder": _build_account, "unique_keys": ["source_system", "source_account_id"]},
+        {"target": "party_account_role", "source": clean_src("customer_account"), "comment": "Bridge Table linking Party to Account Roles", "builder": _build_party_account_role, "unique_keys": ["party_key", "account_key", "relationship_type", "valid_from"]},
+        {"target": "payment_card", "source": clean_card_src("card"), "comment": "Canonical Silver Payment Card Table", "builder": _build_payment_card, "unique_keys": ["source_system", "source_card_id"]},
+        {"target": "payment_card_limit_history", "source": clean_card_src("card_limit_history"), "comment": "Canonical Silver Payment Card Limit History Table", "builder": _build_payment_card_limit_history, "unique_keys": None},
+        {"target": "account_balance_snapshot", "source": clean_src("balance_snapshot"), "comment": "Canonical Silver Account Balance Snapshot Table", "builder": _build_account_balance_snapshot, "unique_keys": ["account_key", "balance_date", "source_system"]},
+        {"target": "transaction_channel", "source": clean_src("transaction_channel"), "comment": "Canonical Silver Transaction Channel Table", "builder": _build_transaction_channel, "unique_keys": ["source_system", "source_channel_id"]},
+        {"target": "merchant", "source": clean_src("merchant"), "comment": "Canonical Silver Merchant Table", "builder": _build_merchant, "unique_keys": ["source_system", "source_merchant_id"]},
+        {"target": "merchant_location", "source": clean_src("merchant_store"), "comment": "Canonical Silver Merchant Location Table", "builder": _build_merchant_location, "unique_keys": ["source_system", "source_store_id"]},
+    ]
 
 def _register_table(spec: dict) -> None:
     table_kwargs = {"name": atomic_tgt(spec["target"]), "comment": spec["comment"]}
@@ -263,7 +273,8 @@ def _register_table(spec: dict) -> None:
     dp.table(**table_kwargs)(_transform)
 
 def main() -> None:
-    for spec in TABLE_SPECS:
+    for spec in get_table_specs():
         _register_table(spec)
 
-main()
+if __name__ == "__main__":
+    main()

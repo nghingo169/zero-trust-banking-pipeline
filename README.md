@@ -41,8 +41,7 @@ Read the full local setup, deployment, run, and troubleshooting guide:
 For a new engineer, the normal workflow is:
 
 1. Authenticate the Databricks CLI to your own workspace.
-2. Bootstrap the required Unity Catalog schemas (and the local-dev landing
-   Volume when needed).
+2. Create the required Unity Catalog schemas and source landing Volume.
 3. Upload source snapshots to the Volume.
 4. Validate and deploy the Bundle.
 5. Run the `full_source_to_validated_silver` job.
@@ -52,8 +51,9 @@ For a new engineer, the normal workflow is:
 ## Repository structure
 
 ```text
+.github/workflows/          CI/CD pipeline configuration
 databricks.yml              Bundle settings and portable variables
-resources/                  Deployable pipeline and job resource definitions
+resources/                  Pipeline, job, and Volume resource definitions
 src/pipeline/               Active ingestion, validation, and audit code
 src/data_contracts/         Schemas, table keys, normalization, and quality rules
 docs/                       Architecture and data-model documentation
@@ -71,18 +71,9 @@ path, token, AWS access key, or secret. Each engineer uses:
 - an ignored `.databricks/bundle/<target>/variable-overrides.json` file for
   local Bundle values; and
 - Unity Catalog storage credentials/external locations for production S3
-  access. The Free Edition team target uses Databricks secret references as a
-  temporary learning-only S3 workaround; see the [pipeline runbook](src/pipeline/README.md).
+  access.
 
 Never commit credentials, access tokens, or personal workspace paths.
-
-## Infrastructure lifecycle
-
-Unity Catalog schemas and Volumes are persistent infrastructure. Create them
-once with [the bootstrap SQL](sql/infrastructure/01_workspace_bootstrap.sql),
-then deploy the application Bundle as often as needed. The application Bundle
-owns only pipelines, jobs, and their source code, so a normal code deployment
-does not request schema or Volume deletion.
 
 ## Engineering workflow
 
@@ -90,15 +81,69 @@ does not request schema or Volume deletion.
 2. Make and test the change locally.
 3. Run `databricks bundle validate --target dev --profile <your-profile>`.
 4. Open a pull request into `dev`.
-5. Promote reviewed, production-ready changes from `dev` to `main`.
+5. **CI/CD pipeline automatically runs** (on push/PR to `main`):
+   - Code quality checks (flake8, black, isort)
+   - Unit tests across Python 3.10, 3.11, 3.12
+   - Bundle validation
+   - Deploy to dev environment (on merge to `main`)
+   - Integration tests on Databricks
+   - Deploy to production (team environment)
+6. Promote reviewed, production-ready changes from `dev` to `main`.
 
 ## Verification
 
-The repository includes unit tests for the shared quality-rule registry:
+The repository includes unit tests for the shared quality-rule registry.
+
+### Local Testing
+
+Run unit tests locally before committing:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py'
 ```
 
+### Automated Testing via Bundle Jobs
+
+The project includes automated test jobs that can be executed via bundle commands:
+
+**Run all integration tests:**
+```bash
+databricks bundle run run_integration_tests -t team --profile <your-profile>
+```
+
+This job executes all tests in the `tests/` folder, providing comprehensive validation of pipeline components including quality rules, data contracts, and transformation logic.
+
+**Run the full pipeline end-to-end:**
+```bash
+databricks bundle run full_source_to_validated_silver -t team --profile <your-profile>
+```
+
+This job runs the complete pipeline from source landing through validated Silver tables, serving as an executable validation of the entire data flow.
+
+### Bundle Validation
+
 Before deployment, also run Bundle validation as described in the
-[pipeline runbook](src/pipeline/README.md).
+[pipeline runbook](src/pipeline/README.md):
+
+```bash
+databricks bundle validate --target dev --profile <your-profile>
+```
+
+### CI/CD Automation
+
+The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) that automatically:
+
+**On every push/PR to `main`:**
+1. **Code quality checks** - Linting (flake8), formatting (black), import sorting (isort)
+2. **Parallel unit tests** - Run tests across Python 3.10, 3.11, 3.12
+3. **Bundle validation** - Verify bundle configuration
+
+**On merge to `main` branch:**
+4. **Deploy to Dev** - Automatic deployment to dev environment
+5. **Integration Tests** - Run `run_integration_tests` job on Databricks
+6. **Deploy to Team (Production)** - Automatic deployment to team environment
+
+**Setup:**
+- Configure GitHub Secrets: `DATABRICKS_HOST` and `DATABRICKS_TOKEN`
+- Pipeline runs automatically on push/PR - no manual intervention needed
+- View workflow results in GitHub **Actions** tab

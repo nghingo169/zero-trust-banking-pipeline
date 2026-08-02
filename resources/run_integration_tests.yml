@@ -1,0 +1,13 @@
+# Integration Test Job
+# Runs automated tests on Databricks cluster to validate pipeline functionality
+resources:
+  jobs:
+    run_integration_tests:
+      name: "[${bundle.target}] run-integration-tests"
+      description: "Automated integration tests for pipeline validation"
+      max_concurrent_runs: 1
+      
+      tasks:
+        - task_key: run_pytest_suite
+          notebook_task:
+            notebook_path: ../tests/run_unit_tests.py

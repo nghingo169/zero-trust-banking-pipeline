@@ -9,15 +9,33 @@ from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 import uuid
 
-CATALOG = spark.conf.get("pipeline.catalog", "workspace")
-SILVER_VALIDATED_SCHEMA = spark.conf.get("pipeline.silver_validated_schema", "silver_validated")
-SILVER_ATOMIC_SCHEMA = spark.conf.get("pipeline.silver_schema", "silver")
+import time
+def get_catalog() -> str:
+    """Returns configured catalog or default to 'workspace'."""
+    try:
+        return spark.conf.get("pipeline.catalog", "workspace")
+    except Exception:
+        return "workspace"
+def get_src_schema():
+    """Returns configured source schema or default to 'silver_validated'."""
+    try:
+        return spark.conf.get("pipeline.silver_validated", "silver_validated")
+    except Exception:
+        return "silver_validated"
+
+def get_silver_atomic_schema():
+    """Returns configured silver schema or default to 'silver'."""
+    try:
+        return spark.conf.get("pipeline.silver_schema", "silver")
+    except Exception:
+        # In Spark Connect (serverless), some configs are restricted
+        return "silver"
 
 def validated_src(table_name: str) -> str:
-    return f"{CATALOG}.{SILVER_VALIDATED_SCHEMA}.{table_name}"
+    return f"{get_catalog()}.{get_src_schema()}.{table_name}"
 
 def atomic_tgt(table_name: str) -> str:
-    return f"{CATALOG}.{SILVER_ATOMIC_SCHEMA}.{table_name}"
+    return f"{get_catalog()}.{get_silver_atomic_schema()}.{table_name}"
 
 def hash_key(*cols):
     processed_cols = [
@@ -36,13 +54,19 @@ FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 def get_pipeline_run_id(df) -> F.Column:
     """
-    Lấy Job Run ID từ bảng State Table bằng Scalar Subquery.
+    Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery.
     """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
-    # Dùng Scalar Subquery: Spark sẽ tự query bảng này ở Worker level khi Materialize data
-    subquery_expr = f"(SELECT active_run_id FROM {CATALOG}.governance.active_run_context LIMIT 1)"
+    # Scalar Subquery: Query trực tiếp cột pipeline_run_id theo dòng có start_time mới nhất
+    subquery_expr = f"""
+        (SELECT CAST(pipeline_run_id AS STRING) 
+         FROM {get_catalog()}.governance.pipeline_run 
+         WHERE pipeline_name = 'full-source-to-validated-silver' 
+         ORDER BY start_time DESC 
+         LIMIT 1)
+    """
 
     return F.coalesce(
         F.expr(subquery_expr),

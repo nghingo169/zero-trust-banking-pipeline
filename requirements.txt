@@ -1,1 +1,6 @@
-# Setup dependencies
+# Testing dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Data processing (if not already provided by Databricks Runtime)
+pyspark>=3.4.0
