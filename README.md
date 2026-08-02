@@ -36,7 +36,7 @@ Customer Transaction, and Financial Crime domains.
 
 Read the full local setup, deployment, run, and troubleshooting guide:
 
-**[Pipeline runbook](src/pipeline/README.md)**
+**[Pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md)**
 
 For a new engineer, the normal workflow is:
 
@@ -123,7 +123,7 @@ This job runs the complete pipeline from source landing through validated Silver
 ### Bundle Validation
 
 Before deployment, also run Bundle validation as described in the
-[pipeline runbook](src/pipeline/README.md):
+[pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md):
 
 ```bash
 databricks bundle validate --target dev --profile <your-profile>
