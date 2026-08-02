@@ -2,10 +2,10 @@
 """Unit tests for pipeline.silver.transaction_validation module.
 
 Tests Transaction Validation Logic:
-- Schema normalization invocation via data_contracts.normalization
-- Quality rule evaluation based on RULES_BY_TABLE dictionary registry
-- Handling of null constraint outcomes (coalesced to False)
-- Fallback array handling when no rules exist for a transaction table
+- Evaluation of quality rules returned by RULES_BY_TABLE[table_name]
+- Correct handling of null condition evaluations (coalesced to False)
+- Empty/Missing rule dictionary fallback (returns empty array<string>)
+- Invocation of schema normalization via data_contracts.normalization
 """
 
 from pathlib import Path
@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pyspark.sql import SparkSession, functions as F
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, ArrayType
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType
 
 # ------------------------------------------------------------------------------
 # 1. DYNAMIC PATH RESOLUTION & MOCKS FOR LOCAL EXECUTION
@@ -27,28 +27,28 @@ for path_str in [PROJECT_SRC, SILVER_DIR]:
     if os.path.exists(path_str) and path_str not in sys.path:
         sys.path.insert(0, path_str)
 
-# Mock DLT and pyspark.pipelines for local execution
+# Mock DLT và pyspark.pipelines nếu chưa có trong môi trường
 if "pyspark.pipelines" not in sys.modules:
     from types import ModuleType
     pipelines_mock = ModuleType("pyspark.pipelines")
-    pipelines_mock.table = lambda name=None, comment=None: (lambda func: func)
-    pipelines_mock.temporary_view = lambda name=None: (lambda func: func)
+    pipelines_mock.table = lambda *args, **kwargs: (lambda func: func)
+    pipelines_mock.temporary_view = lambda *args, **kwargs: (lambda func: func)
     sys.modules["pyspark.pipelines"] = pipelines_mock
 
 if "dlt" not in sys.modules:
     from types import ModuleType
     dlt_mock = ModuleType("dlt")
-    dlt_mock.table = lambda name=None, comment=None: (lambda func: func)
-    dlt_mock.temporary_view = lambda name=None: (lambda func: func)
+    dlt_mock.table = lambda *args, **kwargs: (lambda func: func)
+    dlt_mock.temporary_view = lambda *args, **kwargs: (lambda func: func)
     sys.modules["dlt"] = dlt_mock
 
-# Mock external data contracts if not present in the runtime environment
+# Mock data_contracts nếu chưa được nạp
 if "data_contracts.table_catalog" not in sys.modules:
     mock_catalog = MagicMock()
     mock_catalog.DOMAINS = {
         "transaction": {
-            "scd2": {"account_transaction": "account_txn_id"},
-            "append": {"payment_gateway_event": "event_id"}
+            "scd2": {},
+            "append": {"account_transaction": "account_txn_id"}
         }
     }
     sys.modules["data_contracts"] = MagicMock()
@@ -64,25 +64,32 @@ if "data_contracts.quality_rules.registry" not in sys.modules:
     mock_registry.RULES_BY_TABLE = {}
     sys.modules["data_contracts.quality_rules.registry"] = mock_registry
 
+
 # ------------------------------------------------------------------------------
-# 2. LOCAL SPARK SESSION FIXTURE
+# 2. LOCAL / DATABRICKS SPARK SESSION FIXTURE (SPARK CONF ONLY)
 # ------------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def test_spark():
-    """Provides local SparkSession or uses active Databricks Spark environment."""
+    """Provides active Databricks SparkSession or builds local fallback using spark.conf."""
     try:
-        return spark  # type: ignore # noqa: F821
+        session = spark  # type: ignore # noqa: F821
     except NameError:
-        spark_session = (
+        session = (
             SparkSession.builder
             .master("local[1]")
             .appName("TransactionValidation-UnitTest")
             .config("spark.sql.shuffle.partitions", "1")
+            .config("pipeline.quality_rules_path", ".")
+            .config("pipeline.catalog", "workspace")
+            .config("pipeline.validated_schema", "silver")
+            .config("pipeline.bronze_schema", "bronze")
             .getOrCreate()
         )
         import builtins
-        builtins.spark = spark_session
-        return spark_session
+        builtins.spark = session
+
+    return session
+
 
 # ------------------------------------------------------------------------------
 # 3. IMPORT TARGET MODULE
@@ -98,23 +105,25 @@ except ImportError:
 # ==============================================================================
 
 def test_assess_all_rules_passing(test_spark):
-    """Verify that _failed_rule_names is empty when all transaction constraints pass."""
+    """Verify that _failed_rule_names is empty when all transaction validation rules pass."""
     schema = StructType([
         StructField("account_txn_id", StringType(), True),
         StructField("amount", DoubleType(), True),
-        StructField("currency", StringType(), True)
+        StructField("direction", StringType(), True)
     ])
-    df = test_spark.createDataFrame([("TXN_1001", 150.00, "AUD")], schema)
+    df = test_spark.createDataFrame([("TXN_001", 500.0, "DEBIT")], schema)
 
     mock_rules = [
         {"name": "txn_id_not_null", "constraint": "account_txn_id IS NOT NULL"},
-        {"name": "positive_amount", "constraint": "amount > 0.0"},
-        {"name": "valid_currency", "constraint": "currency IN ('AUD', 'USD', 'NZD')"}
+        {"name": "amount_positive", "constraint": "amount > 0"},
+        {"name": "direction_valid", "constraint": "direction IN ('CREDIT', 'DEBIT')"}
     ]
 
-    with patch.dict(transaction_validation.RULES_BY_TABLE, {"account_transaction": mock_rules}, clear=True), \
-         patch.object(transaction_validation, "normalize", side_effect=lambda input_df: input_df):
-        
+    target_module = "pipeline.silver.transaction_validation" if "pipeline.silver.transaction_validation" in sys.modules else "transaction_validation"
+
+    with patch.dict(f"{target_module}.RULES_BY_TABLE", {"account_transaction": mock_rules}, clear=True), \
+         patch(f"{target_module}.normalize", side_effect=lambda input_df: input_df):
+
         res_df = transaction_validation.assess(df, "account_transaction")
         row = res_df.first()
 
@@ -122,80 +131,87 @@ def test_assess_all_rules_passing(test_spark):
         assert len(row._failed_rule_names) == 0
 
 
-def test_assess_captures_failing_rules(test_spark):
-    """Verify failed constraint rule names are appended into _failed_rule_names."""
+def test_assess_captures_rule_failures(test_spark):
+    """Verify failed rules are correctly recorded in the _failed_rule_names array."""
     schema = StructType([
         StructField("account_txn_id", StringType(), True),
         StructField("amount", DoubleType(), True),
-        StructField("currency", StringType(), True)
+        StructField("direction", StringType(), True)
     ])
     data = [
-        ("TXN_1001", 250.0, "AUD"),   # Pass all
-        (None, 100.0, "AUD"),         # Fail txn_id_not_null
-        ("TXN_1003", -50.0, "AUD"),   # Fail positive_amount
-        ("TXN_1004", 500.0, "EUR"),   # Fail valid_currency
-        (None, -10.0, "JPY")          # Fail all three
+        ("TXN_001", 100.0, "DEBIT"),   # Valid row
+        (None, 100.0, "DEBIT"),        # Fails txn_id_not_null
+        ("TXN_003", -50.0, "DEBIT"),   # Fails amount_positive
+        ("TXN_004", 100.0, "UNKNOWN"), # Fails direction_valid
+        (None, -10.0, "INVALID")       # Fails all 3 rules
     ]
     df = test_spark.createDataFrame(data, schema)
 
     mock_rules = [
         {"name": "txn_id_not_null", "constraint": "account_txn_id IS NOT NULL"},
-        {"name": "positive_amount", "constraint": "amount > 0.0"},
-        {"name": "valid_currency", "constraint": "currency IN ('AUD', 'USD', 'NZD')"}
+        {"name": "amount_positive", "constraint": "amount > 0"},
+        {"name": "direction_valid", "constraint": "direction IN ('CREDIT', 'DEBIT')"}
     ]
 
-    with patch.dict(transaction_validation.RULES_BY_TABLE, {"account_transaction": mock_rules}, clear=True), \
-         patch.object(transaction_validation, "normalize", side_effect=lambda input_df: input_df):
-        
+    target_module = "pipeline.silver.transaction_validation" if "pipeline.silver.transaction_validation" in sys.modules else "transaction_validation"
+
+    with patch.dict(f"{target_module}.RULES_BY_TABLE", {"account_transaction": mock_rules}, clear=True), \
+         patch(f"{target_module}.normalize", side_effect=lambda input_df: input_df):
+
         res_df = transaction_validation.assess(df, "account_transaction")
         rows = res_df.collect()
 
-        # Row 0: Clean
+        # Row 0: All pass
         assert len(rows[0]._failed_rule_names) == 0
 
         # Row 1: Fail txn_id_not_null
         assert rows[1]._failed_rule_names == ["txn_id_not_null"]
 
-        # Row 2: Fail positive_amount
-        assert rows[2]._failed_rule_names == ["positive_amount"]
+        # Row 2: Fail amount_positive
+        assert rows[2]._failed_rule_names == ["amount_positive"]
 
-        # Row 3: Fail valid_currency
-        assert rows[3]._failed_rule_names == ["valid_currency"]
+        # Row 3: Fail direction_valid
+        assert rows[3]._failed_rule_names == ["direction_valid"]
 
         # Row 4: Fail all three
-        assert set(rows[4]._failed_rule_names) == {"txn_id_not_null", "positive_amount", "valid_currency"}
+        assert set(rows[4]._failed_rule_names) == {"txn_id_not_null", "amount_positive", "direction_valid"}
 
 
-def test_assess_null_evaluations_handled_as_failures(test_spark):
-    """Verify constraint expressions resulting in NULL are coalesced to False."""
+def test_assess_null_expressions_handled_as_failures(test_spark):
+    """Verify constraint expressions evaluating to NULL are coalesced to False and captured."""
     schema = StructType([
         StructField("account_txn_id", StringType(), True),
-        StructField("merchant_category", StringType(), True)
+        StructField("direction", StringType(), True)
     ])
-    df = test_spark.createDataFrame([("TXN_1001", None)], schema)
+    # Evaluating "direction = 'DEBIT'" on NULL direction evaluates to SQL NULL
+    df = test_spark.createDataFrame([("TXN_001", None)], schema)
 
     mock_rules = [
-        {"name": "valid_merchant_cat", "constraint": "merchant_category = 'RETAIL'"}
+        {"name": "direction_must_be_debit", "constraint": "direction = 'DEBIT'"}
     ]
 
-    with patch.dict(transaction_validation.RULES_BY_TABLE, {"account_transaction": mock_rules}, clear=True), \
-         patch.object(transaction_validation, "normalize", side_effect=lambda input_df: input_df):
-        
+    target_module = "pipeline.silver.transaction_validation" if "pipeline.silver.transaction_validation" in sys.modules else "transaction_validation"
+
+    with patch.dict(f"{target_module}.RULES_BY_TABLE", {"account_transaction": mock_rules}, clear=True), \
+         patch(f"{target_module}.normalize", side_effect=lambda input_df: input_df):
+
         res_df = transaction_validation.assess(df, "account_transaction")
         row = res_df.first()
 
-        assert "valid_merchant_cat" in row._failed_rule_names
+        assert "direction_must_be_debit" in row._failed_rule_names
 
 
 def test_assess_empty_rules_for_table(test_spark):
-    """Verify behavior when no rules are configured for a given table name."""
+    """Verify behavior when no rules are configured for a table (returns empty array)."""
     schema = StructType([StructField("account_txn_id", StringType(), True)])
-    df = test_spark.createDataFrame([("TXN_1001",)], schema)
+    df = test_spark.createDataFrame([("TXN_001",)], schema)
 
-    with patch.dict(transaction_validation.RULES_BY_TABLE, {}, clear=True), \
-         patch.object(transaction_validation, "normalize", side_effect=lambda input_df: input_df):
-        
-        res_df = transaction_validation.assess(df, "unregistered_transaction_table")
+    target_module = "pipeline.silver.transaction_validation" if "pipeline.silver.transaction_validation" in sys.modules else "transaction_validation"
+
+    with patch.dict(f"{target_module}.RULES_BY_TABLE", {}, clear=True), \
+         patch(f"{target_module}.normalize", side_effect=lambda input_df: input_df):
+
+        res_df = transaction_validation.assess(df, "unregistered_table")
         row = res_df.first()
 
         assert "_failed_rule_names" in res_df.columns
@@ -205,19 +221,21 @@ def test_assess_empty_rules_for_table(test_spark):
 def test_assess_triggers_normalization(test_spark):
     """Verify that normalize is explicitly called on the DataFrame."""
     schema = StructType([StructField("account_txn_id", StringType(), True)])
-    df = test_spark.createDataFrame([("TXN_1001",)], schema)
+    df = test_spark.createDataFrame([("TXN_001",)], schema)
 
     mock_normalize = MagicMock(side_effect=lambda input_df: input_df.withColumn("is_normalized", F.lit(True)))
 
-    with patch.dict(transaction_validation.RULES_BY_TABLE, {}, clear=True), \
-         patch.object(transaction_validation, "normalize", mock_normalize):
-        
+    target_module = "pipeline.silver.transaction_validation" if "pipeline.silver.transaction_validation" in sys.modules else "transaction_validation"
+
+    with patch.dict(f"{target_module}.RULES_BY_TABLE", {}, clear=True), \
+         patch(f"{target_module}.normalize", mock_normalize):
+
         res_df = transaction_validation.assess(df, "account_transaction")
-        
+
         mock_normalize.assert_called_once()
         assert "is_normalized" in res_df.columns
 
 
-# Entrypoint for direct execution
+# Entrypoint trực tiếp khi thực thi file
 if __name__ == "__main__":
     pytest.main(["-v", "-s", __file__])

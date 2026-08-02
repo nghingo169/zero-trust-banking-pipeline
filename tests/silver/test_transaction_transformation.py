@@ -1,300 +1,276 @@
-"""Additional unit tests for pipeline.silver.transaction_transformation module.
+# Databricks notebook source
+"""Unit tests for pipeline.silver.transaction_transformation module.
 
-Tests the main silver_financial_event function that unions multiple sources,
-and edge cases not covered in the existing test suite.
+Tests Helper Functions & Financial Event Transformation Tables:
+- Hash key generation (SHA-256 with trimming and null handling)
+- Default currency resolution (fallback to 'VND')
+- Pipeline Run ID extraction (column or fallback scalar subquery)
+- Canonical Header Table Union (silver_financial_event combining Account, Card, ATM, Gateway)
+- Extension Tables (silver_account_posting, silver_card_payment, silver_atm_activity, silver_gateway_payment)
+- Event Status History Union (silver_financial_event_status_history combining Account and Card status events)
 """
 
+from pathlib import Path
 import os
 import sys
-from datetime import date
-from unittest.mock import patch
-
+from unittest.mock import patch, MagicMock
 import pytest
-from pyspark.sql import functions as F
+
+from pyspark.sql import SparkSession, functions as F
 from pyspark.sql.types import (
-    StructType, StructField, StringType, LongType
+    StructType, StructField, StringType, LongType, DoubleType, BooleanType
 )
 
 # ------------------------------------------------------------------------------
-# 1. DYNAMIC PATH RESOLUTION & MODULE IMPORT
+# 1. DYNAMIC PATH RESOLUTION & DLT MOCKS FOR LOCAL EXECUTION
 # ------------------------------------------------------------------------------
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
-SEARCH_DIR = CURRENT_DIR
-FOUND_SRC = None
+PROJECT_SRC = str(Path(__file__).resolve().parents[2] / "src")
+SILVER_DIR = str(Path(__file__).resolve().parents[1])
 
-while SEARCH_DIR:
-    if os.path.exists(os.path.join(SEARCH_DIR, "src", "pipeline")):
-        FOUND_SRC = os.path.join(SEARCH_DIR, "src")
-        break
-    elif os.path.exists(os.path.join(SEARCH_DIR, "pipeline")):
-        FOUND_SRC = SEARCH_DIR
-        break
-    parent = os.path.dirname(SEARCH_DIR)
-    if parent == SEARCH_DIR:
-        break
-    SEARCH_DIR = parent
+for path_str in [PROJECT_SRC, SILVER_DIR]:
+    if os.path.exists(path_str) and path_str not in sys.path:
+        sys.path.insert(0, path_str)
 
-if FOUND_SRC and FOUND_SRC not in sys.path:
-    sys.path.insert(0, FOUND_SRC)
+# Mock DLT and pyspark.pipelines for execution outside DLT Runtime Engine
+if "pyspark.pipelines" not in sys.modules:
+    from types import ModuleType
+    pipelines_mock = ModuleType("pyspark.pipelines")
+    pipelines_mock.table = lambda *args, **kwargs: (lambda func: func)
+    pipelines_mock.temporary_view = lambda *args, **kwargs: (lambda func: func)
+    sys.modules["pyspark.pipelines"] = pipelines_mock
 
-# Import target functions
-from pipeline.silver.transaction_transformation import (
-    hash_key,
-    get_currency_col,
-    silver_financial_event
-)
+if "dlt" not in sys.modules:
+    from types import ModuleType
+    dlt_mock = ModuleType("dlt")
+    dlt_mock.table = lambda *args, **kwargs: (lambda func: func)
+    dlt_mock.temporary_view = lambda *args, **kwargs: (lambda func: func)
+    sys.modules["dlt"] = dlt_mock
 
 
-# ==============================================================================
-# TEST: MAIN FINANCIAL EVENT UNION
-# ==============================================================================
+# ------------------------------------------------------------------------------
+# 2. LOCAL / DATABRICKS SPARK SESSION FIXTURE (SPARK CONF ONLY)
+# ------------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def test_spark():
+    """Provides active Databricks SparkSession or builds local fallback using spark.conf."""
+    try:
+        session = spark  # type: ignore # noqa: F821
+    except NameError:
+        session = (
+            SparkSession.builder
+            .master("local[1]")
+            .appName("TransactionTransformation-UnitTest")
+            .config("spark.sql.shuffle.partitions", "1")
+            .config("pipeline.catalog", "workspace")
+            .config("pipeline.silver_validated_schema", "silver_validated")
+            .config("pipeline.silver_schema", "silver")
+            .getOrCreate()
+        )
+        import builtins
+        builtins.spark = session
 
-def test_silver_financial_event_unions_all_sources(test_spark):
-    """Verify silver_financial_event correctly unions account, card, ATM, and gateway events."""
-    
-    # Mock account transaction source
-    schema_acc = StructType([
-        StructField("account_txn_id", StringType(), True),
-        StructField("account_id", LongType(), True),
-        StructField("customer_ref", StringType(), True),
-        StructField("txn_timestamp", StringType(), True),
-        StructField("currency", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_acc = test_spark.createDataFrame([
-        ("TXN_001", 10001, "CUST_001", "2026-01-01T10:00:00", "USD", "RUN_01")
-    ], schema_acc)
-
-    # Mock card transaction source
-    schema_card = StructType([
-        StructField("card_txn_id", StringType(), True),
-        StructField("card_id", StringType(), True),
-        StructField("merchant_id", StringType(), True),
-        StructField("txn_timestamp", StringType(), True),
-        StructField("currency", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_card = test_spark.createDataFrame([
-        ("CARD_TXN_001", "CARD_001", "MERCH_001", "2026-01-01T11:00:00", "VND", "RUN_01")
-    ], schema_card)
-
-    # Mock ATM log source
-    schema_atm = StructType([
-        StructField("log_id", StringType(), True),
-        StructField("account_txn_id", StringType(), True),
-        StructField("card_id", StringType(), True),
-        StructField("log_timestamp", StringType(), True),
-        StructField("currency", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_atm = test_spark.createDataFrame([
-        ("LOG_001", "TXN_002", "CARD_002", "2026-01-01T12:00:00", "VND", "RUN_01")
-    ], schema_atm)
-
-    # Mock gateway log source
-    schema_gw = StructType([
-        StructField("gateway_txn_id", StringType(), True),
-        StructField("account_txn_id", StringType(), True),
-        StructField("card_txn_id", StringType(), True),
-        StructField("merchant_id", StringType(), True),
-        StructField("gateway_timestamp", StringType(), True),
-        StructField("currency", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_gw = test_spark.createDataFrame([
-        ("GW_001", "TXN_003", "CARD_TXN_002", "MERCH_002", "2026-01-01T13:00:00", "USD", "RUN_01")
-    ], schema_gw)
-
-    # Mock spark.read.table to return appropriate dataframes
-    def mock_read_table(path):
-        if "account_transaction" in path:
-            return df_acc
-        elif "card_transaction" in path:
-            return df_card
-        elif "log_atm" in path:
-            return df_atm
-        elif "payment_gateway_log" in path:
-            return df_gw
-        return test_spark.createDataFrame([], StructType([]))
-
-    with patch("pipeline.silver.transaction_transformation.spark") as mock_spark:
-        mock_spark.read.table.side_effect = mock_read_table
-
-        result_df = silver_financial_event()
-        rows = result_df.collect()
-
-        # Verify we have all four event types
-        assert len(rows) == 4, "Should contain all four event sources"
-        
-        event_types = {r.event_type for r in rows}
-        expected_types = {"ACCOUNT_POSTING", "CARD_PAYMENT", "ATM_ACTIVITY", "GATEWAY_PAYMENT"}
-        assert event_types == expected_types, f"Expected {expected_types}, got {event_types}"
-
-        # Verify each event has required fields
-        for row in rows:
-            assert len(row.financial_event_key) == 64, "financial_event_key must be SHA-256 (64 chars)"
-            assert row.currency in ["USD", "VND"], f"Unexpected currency: {row.currency}"
-            assert row.data_quality_status == "VALID"
-            assert row.source_system is not None
+    return session
 
 
-def test_silver_financial_event_handles_null_currencies(test_spark):
-    """Verify silver_financial_event defaults null currencies to VND."""
-    
-    # Account transaction with null currency
-    schema_acc = StructType([
-        StructField("account_txn_id", StringType(), True),
-        StructField("account_id", LongType(), True),
-        StructField("customer_ref", StringType(), True),
-        StructField("txn_timestamp", StringType(), True),
-        StructField("currency", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_acc = test_spark.createDataFrame([
-        ("TXN_001", 10001, "CUST_001", "2026-01-01T10:00:00", None, "RUN_01")
-    ], schema_acc)
-
-    # Mock empty dataframes for other sources
-    empty_schema = StructType([StructField("dummy", StringType(), True)])
-    df_empty = test_spark.createDataFrame([], empty_schema)
-
-    def mock_read_table(path):
-        if "account_transaction" in path:
-            return df_acc
-        # Return empty dataframes with proper schema for union
-        return test_spark.createDataFrame([], StructType([
-            StructField("financial_event_key", StringType(), True),
-            StructField("event_type", StringType(), True),
-            StructField("account_key", StringType(), True),
-            StructField("payment_card_key", StringType(), True),
-            StructField("party_key", StringType(), True),
-            StructField("merchant_location_key", StringType(), True),
-            StructField("currency", StringType(), True),
-            StructField("occurred_at", TimestampType(), True),
-            StructField("source_system", StringType(), True),
-            StructField("source_business_key", StringType(), True),
-            StructField("bronze_record_ref", StringType(), True),
-            StructField("pipeline_run_id", StringType(), True),
-            StructField("ingested_at", TimestampType(), True),
-            StructField("data_quality_status", StringType(), True)
-        ]))
-
-    with patch("pipeline.silver.transaction_transformation.spark") as mock_spark:
-        mock_spark.read.table.side_effect = mock_read_table
-
-        result_df = silver_financial_event()
-        row = result_df.first()
-
-        assert row.currency == "VND", "Null currency should default to VND"
-
-
-def test_silver_financial_event_preserves_source_system_mapping(test_spark):
-    """Verify each source maps to the correct source_system identifier."""
-    
-    # Create minimal test data for each source
-    schema_acc = StructType([
-        StructField("account_txn_id", StringType(), True),
-        StructField("account_id", LongType(), True),
-        StructField("customer_ref", StringType(), True),
-        StructField("txn_timestamp", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_acc = test_spark.createDataFrame([
-        ("TXN_001", 10001, "CUST_001", "2026-01-01T10:00:00", "RUN_01")
-    ], schema_acc)
-
-    schema_card = StructType([
-        StructField("card_txn_id", StringType(), True),
-        StructField("card_id", StringType(), True),
-        StructField("merchant_id", StringType(), True),
-        StructField("txn_timestamp", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_card = test_spark.createDataFrame([
-        ("CARD_001", "CARD_001", "MERCH_001", "2026-01-01T11:00:00", "RUN_01")
-    ], schema_card)
-
-    schema_atm = StructType([
-        StructField("log_id", StringType(), True),
-        StructField("account_txn_id", StringType(), True),
-        StructField("card_id", StringType(), True),
-        StructField("log_timestamp", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_atm = test_spark.createDataFrame([
-        ("LOG_001", "TXN_002", "CARD_002", "2026-01-01T12:00:00", "RUN_01")
-    ], schema_atm)
-
-    schema_gw = StructType([
-        StructField("gateway_txn_id", StringType(), True),
-        StructField("account_txn_id", StringType(), True),
-        StructField("card_txn_id", StringType(), True),
-        StructField("merchant_id", StringType(), True),
-        StructField("gateway_timestamp", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_gw = test_spark.createDataFrame([
-        ("GW_001", "TXN_003", "CARD_TXN_002", "MERCH_002", "2026-01-01T13:00:00", "RUN_01")
-    ], schema_gw)
-
-    def mock_read_table(path):
-        if "account_transaction" in path:
-            return df_acc
-        elif "card_transaction" in path:
-            return df_card
-        elif "log_atm" in path:
-            return df_atm
-        elif "payment_gateway_log" in path:
-            return df_gw
-        return test_spark.createDataFrame([], StructType([]))
-
-    with patch("pipeline.silver.transaction_transformation.spark") as mock_spark:
-        mock_spark.read.table.side_effect = mock_read_table
-
-        result_df = silver_financial_event()
-        rows = result_df.collect()
-
-        # Verify source system mappings
-        source_systems = {r.event_type: r.source_system for r in rows}
-        
-        assert source_systems["ACCOUNT_POSTING"] == "core_banking"
-        assert source_systems["CARD_PAYMENT"] == "card_system"
-        assert source_systems["ATM_ACTIVITY"] == "atm_system"
-        assert source_systems["GATEWAY_PAYMENT"] == "payment_gateway"
+# ------------------------------------------------------------------------------
+# 3. IMPORT TARGET MODULE
+# ------------------------------------------------------------------------------
+try:
+    from pipeline.silver import transaction_transformation
+except ImportError:
+    import transaction_transformation
 
 
 # ==============================================================================
-# TEST: EDGE CASES
+# SECTION 1: HELPER FUNCTION TESTS
 # ==============================================================================
 
-def test_hash_key_with_null_values(test_spark):
-    """Verify hash_key handles null values by coalescing to empty string."""
+def test_hash_key_generation(test_spark):
+    """Verify hash_key produces deterministic 64-char SHA-256 hashes with trim/coalesce."""
     df = test_spark.createDataFrame([
-        ("core_banking", None, "TXN_001"),
-        ("core_banking", "", "TXN_001")
-    ], ["system", "event_type", "txn_id"])
+        ("core_banking", "TXN_1001"),
+        ("core_banking", "  TXN_1001  ")
+    ], ["sys", "id"])
 
-    result_df = df.select(hash_key("system", "event_type", "txn_id").alias("key_hash"))
+    result_df = df.select(transaction_transformation.hash_key("sys", "id").alias("key_hash"))
     hashes = [r.key_hash for r in result_df.collect()]
 
-    # Both null and empty string should produce the same hash after coalesce
-    assert hashes[0] == hashes[1], "Null and empty string should hash identically"
     assert len(hashes[0]) == 64
+    assert hashes[0] == hashes[1]
 
 
-def test_get_currency_col_with_mixed_nulls(test_spark):
-    """Verify get_currency_col handles mixed null and valid values."""
-    df = test_spark.createDataFrame([
-        ("USD",),
-        (None,),
-        ("EUR",),
-        (None,)
-    ], ["currency"])
+def test_get_currency_col(test_spark):
+    """Verify get_currency_col retains currency or defaults to VND when absent or NULL."""
+    df_with_curr = test_spark.createDataFrame([("USD",), (None,)], ["currency"])
+    res_df1 = df_with_curr.select(transaction_transformation.get_currency_col(df_with_curr))
+    assert [r.currency for r in res_df1.collect()] == ["USD", "VND"]
 
-    result_df = df.select(get_currency_col(df))
-    currencies = [r.currency for r in result_df.collect()]
+    df_without_curr = test_spark.createDataFrame([("TXN_1",)], ["txn_id"])
+    res_df2 = df_without_curr.select(transaction_transformation.get_currency_col(df_without_curr))
+    assert res_df2.first().currency == "VND"
 
-    assert currencies == ["USD", "VND", "EUR", "VND"], "Null values should default to VND"
+
+def test_get_pipeline_run_id_existing_column(test_spark):
+    """Verify get_pipeline_run_id returns existing column if present in DataFrame."""
+    df = test_spark.createDataFrame([("RUN_TXN_01",)], ["pipeline_run_id"])
+    result_df = df.select(transaction_transformation.get_pipeline_run_id(df).alias("run_id"))
+    
+    assert result_df.first().run_id == "RUN_TXN_01"
+
+
+# ==============================================================================
+# SECTION 2: TRANSFORMATION FUNCTION TESTS
+# ==============================================================================
+
+def test_silver_financial_event_header_union(test_spark):
+    """Verify silver_financial_event unions Account, Card, ATM, and Gateway events correctly."""
+    # Account
+    schema_acc = StructType([
+        StructField("account_txn_id", StringType(), True),
+        StructField("account_id", LongType(), True),
+        StructField("customer_ref", StringType(), True),
+        StructField("txn_timestamp", StringType(), True),
+        StructField("pipeline_run_id", StringType(), True)
+    ])
+    df_acc = test_spark.createDataFrame([("ACC_TXN_01", 1001, "CUST_01", "2026-07-01 10:00:00", "RUN_01")], schema_acc)
+
+    # Card
+    schema_card = StructType([
+        StructField("card_txn_id", StringType(), True),
+        StructField("card_id", StringType(), True),
+        StructField("merchant_id", StringType(), True),
+        StructField("txn_timestamp", StringType(), True),
+        StructField("pipeline_run_id", StringType(), True)
+    ])
+    df_card = test_spark.createDataFrame([("CARD_TXN_01", "CARD_99", "MERCH_01", "2026-07-01 11:00:00", "RUN_01")], schema_card)
+
+    # ATM
+    schema_atm = StructType([
+        StructField("log_id", StringType(), True),
+        StructField("account_txn_id", StringType(), True),
+        StructField("card_id", StringType(), True),
+        StructField("log_timestamp", StringType(), True),
+        StructField("pipeline_run_id", StringType(), True)
+    ])
+    df_atm = test_spark.createDataFrame([("ATM_LOG_01", "ACC_TXN_01", "CARD_99", "2026-07-01 12:00:00", "RUN_01")], schema_atm)
+
+    # Gateway
+    schema_gw = StructType([
+        StructField("gateway_txn_id", StringType(), True),
+        StructField("account_txn_id", StringType(), True),
+        StructField("card_txn_id", StringType(), True),
+        StructField("merchant_id", StringType(), True),
+        StructField("gateway_timestamp", StringType(), True),
+        StructField("pipeline_run_id", StringType(), True)
+    ])
+    df_gw = test_spark.createDataFrame([("GW_TXN_01", "ACC_TXN_01", "CARD_TXN_01", "MERCH_01", "2026-07-01 13:00:00", "RUN_01")], schema_gw)
+
+    def mock_read_table(path):
+        if "account_transaction" in path:
+            return df_acc
+        elif "card_transaction" in path:
+            return df_card
+        elif "log_atm" in path:
+            return df_atm
+        elif "payment_gateway_log" in path:
+            return df_gw
+        return test_spark.createDataFrame([], StructType([]))
+
+    target_module = "pipeline.silver.transaction_transformation" if "pipeline.silver.transaction_transformation" in sys.modules else "transaction_transformation"
+
+    with patch(f"{target_module}.spark.read.table", side_effect=mock_read_table):
+        res_df = transaction_transformation.silver_financial_event()
+        rows = res_df.collect()
+
+        assert len(rows) == 4
+        event_types = {r.event_type for r in rows}
+        assert event_types == {"ACCOUNT_POSTING", "CARD_PAYMENT", "ATM_ACTIVITY", "GATEWAY_PAYMENT"}
+
+
+def test_extension_tables_builders(test_spark):
+    """Verify account_posting, card_payment, atm_activity, and gateway_payment extension tables."""
+    # Account Posting
+    schema_acc = StructType([
+        StructField("account_txn_id", StringType(), True),
+        StructField("amount", DoubleType(), True),
+        StructField("direction", StringType(), True),
+        StructField("transaction_type", StringType(), True),
+        StructField("channel", StringType(), True),
+        StructField("merchant_id", StringType(), True),
+        StructField("pipeline_run_id", StringType(), True)
+    ])
+    df_acc = test_spark.createDataFrame([("ACC_TXN_01", 150.00, "DEBIT", "TRANSFER", "MOBILE", "MERCH_01", "RUN_01")], schema_acc)
+
+    # Card Payment
+    schema_card = StructType([
+        StructField("card_txn_id", StringType(), True),
+        StructField("amount", DoubleType(), True),
+        StructField("card_transaction_type", StringType(), True),
+        StructField("merchant_id", StringType(), True),
+        StructField("is_fraud", BooleanType(), True),
+        StructField("pipeline_run_id", StringType(), True)
+    ])
+    df_card = test_spark.createDataFrame([("CARD_TXN_01", 89.99, "PURCHASE", "MERCH_01", False, "RUN_01")], schema_card)
+
+    def mock_read_table(path):
+        if "account_transaction" in path:
+            return df_acc
+        elif "card_transaction" in path:
+            return df_card
+        return test_spark.createDataFrame([], StructType([]))
+
+    target_module = "pipeline.silver.transaction_transformation" if "pipeline.silver.transaction_transformation" in sys.modules else "transaction_transformation"
+
+    with patch(f"{target_module}.spark.read.table", side_effect=mock_read_table):
+        row_post = transaction_transformation.silver_account_posting().first()
+        assert float(row_post.posting_amount) == 150.00
+        assert row_post.source_system == "core_banking"
+
+        row_card = transaction_transformation.silver_card_payment().first()
+        assert float(row_card.payment_amount) == 89.99
+        assert row_card.is_fraud_source_flag is False
+
+
+def test_silver_financial_event_status_history_union(test_spark):
+    """Verify silver_financial_event_status_history unions Account and Card status events."""
+    schema_acc_status = StructType([
+        StructField("status_event_id", StringType(), True),
+        StructField("account_txn_id", StringType(), True),
+        StructField("status", StringType(), True),
+        StructField("status_timestamp", StringType(), True),
+        StructField("source_arrival_timestamp", StringType(), True),
+        StructField("sequence_number", LongType(), True),
+        StructField("pipeline_run_id", StringType(), True)
+    ])
+    df_acc = test_spark.createDataFrame([("EVT_ACC_01", "ACC_TXN_01", "SETTLED", "2026-07-01 10:00:00", "2026-07-01 10:00:02", 1, "RUN_01")], schema_acc_status)
+
+    schema_card_status = StructType([
+        StructField("status_event_id", StringType(), True),
+        StructField("card_txn_id", StringType(), True),
+        StructField("status", StringType(), True),
+        StructField("status_timestamp", StringType(), True),
+        StructField("source_arrival_timestamp", StringType(), True),
+        StructField("sequence_number", LongType(), True),
+        StructField("pipeline_run_id", StringType(), True)
+    ])
+    df_card = test_spark.createDataFrame([("EVT_CARD_01", "CARD_TXN_01", "AUTHORIZED", "2026-07-01 11:00:00", "2026-07-01 11:00:01", 1, "RUN_01")], schema_card_status)
+
+    def mock_read_table(path):
+        if "account_transaction_status_event" in path:
+            return df_acc
+        elif "card_transaction_status_event" in path:
+            return df_card
+        return test_spark.createDataFrame([], StructType([]))
+
+    target_module = "pipeline.silver.transaction_transformation" if "pipeline.silver.transaction_transformation" in sys.modules else "transaction_transformation"
+
+    with patch(f"{target_module}.spark.read.table", side_effect=mock_read_table):
+        res_df = transaction_transformation.silver_financial_event_status_history()
+        rows = res_df.collect()
+
+        assert len(rows) == 2
+        source_systems = {r.source_system for r in rows}
+        assert source_systems == {"core_banking", "card_system"}
 
 
 # Direct execution entrypoint

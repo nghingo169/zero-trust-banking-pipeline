@@ -55,13 +55,15 @@ resources:
               run_id: "{{job.run_id}}"
               catalog: ${var.catalog}
 
-        # 5.5. Unit Test Tầng Silver: Kiểm tra logic transformation/validation trước khi ghi dữ liệu
+        # 5.5. Unit Test Tầng Silver
         - task_key: run_silver_unit_tests
           depends_on:
             - task_key: pre_transform_setup
           notebook_task:
             notebook_path: ../src/pipeline/silver/unit_tests.py
-          environment_key: Default
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
 
         # 6. DLT Pipeline: Transform Silver Validated sang Silver Atomic
         - task_key: transform_silver_atomic
@@ -82,10 +84,3 @@ resources:
               quality_rules_path: ${workspace.file_path}/src
               catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}
-
-      environments:
-              - environment_key: Default
-                spec:
-                  environment_version: "1"
-                  dependencies:
-                    - "pytest"

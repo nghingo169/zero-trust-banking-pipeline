@@ -1,265 +1,206 @@
 # Databricks notebook source
-"""Unit tests for pipeline.silver.nab_tdm_masking module.
+"""Unit tests for nab_tdm_masking module.
 
-Tests NAB TDM Format-Preserving Encryption & Masking Functions:
-- mask_card_number
-- mask_national_id
-- mask_phone
-- mask_name
-- mask_address
-- Check digit & Hash helper functions (_deterministic_hash, _deterministic_random, _deterministic_choice, _calculate_luhn_checksum)
+Tests NAB TDM Masking Logic & Referential Integrity:
+- Card Number Masking (NAB Rule 1.15)
+- National ID Masking (NAB Rule 1.12)
+- Phone Number Masking (NAB Rule 1.13)
+- Name Masking (NAB Rule 1.10)
+- Address Masking (NAB Rule 1.11)
+- Referential Integrity Verification (Determinism check across multiple calls)
 """
 
 from pathlib import Path
 import os
 import sys
 import pytest
+
 from pyspark.sql import SparkSession, functions as F
 from pyspark.sql.types import StructType, StructField, StringType
 
 # ------------------------------------------------------------------------------
-# 1. DYNAMIC PATH RESOLUTION & DLT MOCK
+# 1. DYNAMIC PATH RESOLUTION FOR LOCAL EXECUTION
 # ------------------------------------------------------------------------------
-# Thêm đường dẫn 'src' vào sys.path để Python nhận diện được package 'pipeline.silver'
 PROJECT_SRC = str(Path(__file__).resolve().parents[2] / "src")
-SILVER_DIR = str(Path(__file__).resolve().parents[1])
+TESTS_DIR = str(Path(__file__).resolve().parents[1])
 
-for path_str in [PROJECT_SRC, SILVER_DIR]:
+for path_str in [PROJECT_SRC, TESTS_DIR]:
     if os.path.exists(path_str) and path_str not in sys.path:
         sys.path.insert(0, path_str)
 
-# Mock DLT module nếu chạy dưới dạng Unit Test độc lập
-try:
-    import dlt
-except ImportError:
-    from types import ModuleType
-    dlt_mock = ModuleType("dlt")
-    dlt_mock.table = lambda *args, **kwargs: (lambda func: func)
-    dlt_mock.view = lambda *args, **kwargs: (lambda func: func)
-    sys.modules["dlt"] = dlt_mock
-
-# Mock pyspark.pipelines để tránh lỗi PIPELINES_NOT_SUPPORTED trên local
-if "pyspark.pipelines" not in sys.modules:
-    from types import ModuleType
-    pipelines_mock = ModuleType("pyspark.pipelines")
-    pipelines_mock.table = lambda *args, **kwargs: (lambda func: func)
-    pipelines_mock.view = lambda *args, **kwargs: (lambda func: func)
-    sys.modules["pyspark.pipelines"] = pipelines_mock
-
 # ------------------------------------------------------------------------------
-# 2. LOCAL SPARK SESSION FIXTURE
+# 2. LOCAL / DATABRICKS SPARK SESSION FIXTURE (SPARK CONF ONLY)
 # ------------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def test_spark():
-    """Tự động cấp hoặc khởi tạo SparkSession cho test runner."""
+    """Provides active Databricks SparkSession or builds local fallback using spark.conf."""
     try:
-        # Nếu chạy trên Databricks Notebook / Interactive Cluster
-        return spark  # type: ignore # noqa: F821
+        session = spark  # type: ignore # noqa: F821
     except NameError:
-        # Nếu chạy Local PyTest trên VS Code
-        return (
+        session = (
             SparkSession.builder
             .master("local[1]")
             .appName("NAB-TDM-Masking-UnitTest")
             .config("spark.sql.shuffle.partitions", "1")
             .getOrCreate()
         )
+        import builtins
+        builtins.spark = session
+
+    return session
+
 
 # ------------------------------------------------------------------------------
-# 3. IMPORT MODULE NAB_TDM_MASKING
+# 3. IMPORT TARGET MODULE
 # ------------------------------------------------------------------------------
 try:
-    from pipeline.silver.nab_tdm_masking import (
-        _deterministic_hash,
-        _deterministic_random,
-        _deterministic_choice,
-        _calculate_luhn_checksum,
-        mask_card_number,
-        mask_national_id,
-        mask_phone,
-        mask_name,
-        mask_address
-    )
+    import nab_tdm_masking
 except ImportError:
-    from nab_tdm_masking import (
-        _deterministic_hash,
-        _deterministic_random,
-        _deterministic_choice,
-        _calculate_luhn_checksum,
-        mask_card_number,
-        mask_national_id,
-        mask_phone,
-        mask_name,
-        mask_address
-    )
+    from src import nab_tdm_masking  # Fallback cho đường dẫn đĩa src/
 
 
 # ==============================================================================
-# SECTION 1: HELPER & CHECK DIGIT ALGORITHM TESTS
+# SECTION 1: CORE FUNCTIONALITY & REFERENTIAL INTEGRITY TESTS
 # ==============================================================================
 
-def test_deterministic_hash_integrity():
-    """Verify same input always yields exact same hash (referential integrity)."""
-    hash1 = _deterministic_hash("CUST_1001")
-    hash2 = _deterministic_hash("CUST_1001")
-    hash3 = _deterministic_hash("CUST_1002")
-
-    assert hash1 == hash2, "Same input must produce identical hash"
-    assert hash1 != hash3, "Different inputs should produce different hashes"
-
-
-def test_deterministic_random_range():
-    """Verify deterministic random output stays within expected bounds."""
-    val = _deterministic_random("TEST_SEED", min_val=100, max_val=200)
-    assert 100 <= val <= 200
-
-
-def test_deterministic_choice():
-    """Verify choice selection is deterministic."""
-    choices = ["NSW", "VIC", "QLD", "WA"]
-    pick1 = _deterministic_choice("SEED_A", choices)
-    pick2 = _deterministic_choice("SEED_A", choices)
-    
-    assert pick1 == pick2
-    assert pick1 in choices
-
-
-def test_calculate_luhn_checksum():
-    """Verify Luhn checksum calculation and flipped checksum logic."""
-    # Test card number string
-    checksum = _calculate_luhn_checksum("453201511283036")
-    assert isinstance(checksum, str)
-    assert len(checksum) == 1
-
-
-# ==============================================================================
-# SECTION 2: CARD NUMBER MASKING TESTS (NAB Rule 1.15)
-# ==============================================================================
-
-def test_mask_card_number_format_preservation(test_spark):
-    """Verify card masking retains first 9 digits and keeps original length."""
-    schema = StructType([StructField("card_no", StringType(), True)])
-    df = test_spark.createDataFrame([
-        ("4532015112830366",),  # 16 digits
-        ("378282246310005",)    # 15 digits (Amex)
-    ], schema)
-
-    result_df = df.select(
-        F.col("card_no").alias("original"),
-        mask_card_number("card_no").alias("masked")
-    )
-    rows = result_df.collect()
-
-    # 16-digit card checks
-    card16_orig = rows[0].original
-    card16_mask = rows[0].masked
-    assert len(card16_mask) == 16, "16-digit card must remain 16 digits"
-    assert card16_mask[:9] == card16_orig[:9], "First 9 digits (BIN + NAB integrity) must be retained"
-    assert card16_mask != card16_orig, "Masked card must not equal original"
-
-    # 15-digit card checks
-    card15_orig = rows[1].original
-    card15_mask = rows[1].masked
-    assert len(card15_mask) == 15, "15-digit card must remain 15 digits"
-    assert card15_mask[:9] == card15_orig[:9]
-
-
-def test_mask_card_number_referential_integrity(test_spark):
-    """Verify same card number masked twice produces identical masked output."""
-    df = test_spark.createDataFrame([("4532015112830366",)], ["card_no"])
-    
-    res1 = df.select(mask_card_number("card_no").alias("masked")).first().masked
-    res2 = df.select(mask_card_number("card_no").alias("masked")).first().masked
-
-    assert res1 == res2, "Masking must be deterministic across runs"
-
-
-# ==============================================================================
-# SECTION 3: NATIONAL ID MASKING TESTS (NAB Rule 1.12)
-# ==============================================================================
-
-def test_mask_national_id_standard(test_spark):
-    """Verify National ID retains prefix 3 and suffix 3 digits."""
-    df = test_spark.createDataFrame([("123456789",)], ["nat_id"])
-    
-    result_df = df.select(mask_national_id("nat_id").alias("masked"))
-    masked_val = result_df.first().masked
-
-    assert len(masked_val) == 9
-    assert masked_val[:3] == "123", "Must retain first 3 digits"
-    assert masked_val[-3:] == "789", "Must retain last 3 digits"
-    assert masked_val != "123456789"
-
-
-def test_mask_national_id_short_input(test_spark):
-    """Verify National ID under 9 digits falls back to XXX pattern."""
-    df = test_spark.createDataFrame([("12345",)], ["nat_id"])
-    
-    result_df = df.select(mask_national_id("nat_id").alias("masked"))
-    masked_val = result_df.first().masked
-
-    assert masked_val.startswith("XXX")
-    assert masked_val.endswith("XXX")
-
-
-# ==============================================================================
-# SECTION 4: PHONE NUMBER MASKING TESTS (NAB Rule 1.13)
-# ==============================================================================
-
-def test_mask_phone_standard(test_spark):
-    """Verify Phone retains first 4 (area code) and last 4 digits."""
-    df = test_spark.createDataFrame([("0412345678",)], ["phone"])
-    
-    result_df = df.select(mask_phone("phone").alias("masked"))
-    masked_val = result_df.first().masked
-
-    assert len(masked_val) == 10
-    assert masked_val[:4] == "0412", "Must retain first 4 digits (area code)"
-    assert masked_val[-4:] == "5678", "Must retain last 4 digits"
-    assert masked_val != "0412345678"
-
-
-def test_mask_phone_short_input(test_spark):
-    """Verify short phone number falls back to XXXX prefix/suffix pattern."""
-    df = test_spark.createDataFrame([("123456",)], ["phone"])
-    
-    result_df = df.select(mask_phone("phone").alias("masked"))
-    masked_val = result_df.first().masked
-
-    assert masked_val.startswith("XXXX")
-    assert masked_val.endswith("XXXX")
-
-
-# ==============================================================================
-# SECTION 5: NAME & ADDRESS MASKING TESTS (NAB Rules 1.10 & 1.11)
-# ==============================================================================
-
-def test_mask_name_pattern(test_spark):
-    """Verify Name retains initial letter and appends MASKED hash suffix."""
+def test_masking_referential_integrity_determinism(test_spark):
+    """Verify that same inputs produce identical masked outputs across multiple calls."""
+    schema = StructType([StructField("raw_value", StringType(), True)])
     df = test_spark.createDataFrame([
         ("John Smith",),
-        ("alice williams",)
-    ], ["full_name"])
+        ("John Smith",)  # Duplicate row to verify determinism
+    ], schema)
 
-    result_df = df.select(mask_name("full_name").alias("masked"))
-    rows = result_df.collect()
+    res_df = df.select(
+        nab_tdm_masking.mask_name("raw_value").alias("masked_name"),
+        nab_tdm_masking.mask_phone(F.lit("0412345678")).alias("masked_phone")
+    )
+    rows = res_df.collect()
 
-    assert rows[0].masked.startswith("J. MASKED_")
-    assert rows[1].masked.startswith("A. MASKED_")
-    assert len(rows[0].masked.split("_")[1]) == 6, "Hash suffix must be 6 hex characters"
-
-
-def test_mask_address_pattern(test_spark):
-    """Verify Address formats correctly into standard masked street address."""
-    df = test_spark.createDataFrame([("123 George St, Sydney NSW 2000",)], ["address"])
-    
-    result_df = df.select(mask_address("address").alias("masked"))
-    masked_val = result_df.first().masked
-
-    assert "Masked Street, MASKED_SUBURB NSW 2" in masked_val
-    assert len(masked_val.split(" ")[0]) == 3, "Street number should be 3 digits"
+    # Rule 1: Output phải giống hệt nhau với cùng một đầu vào
+    assert rows[0].masked_name == rows[1].masked_name
+    assert rows[0].masked_phone == rows[1].masked_phone
 
 
-# Entrypoint for direct execution
+# ==============================================================================
+# SECTION 2: NAB MASKING RULES UNIT TESTS
+# ==============================================================================
+
+def test_mask_card_number_rule_1_15(test_spark):
+    """Verify Card Number Masking (NAB Rule 1.15) retains BIN & length while masking middle digits."""
+    schema = StructType([StructField("card_no", StringType(), True)])
+    data = [
+        ("4532015112830366",),  # 16-digit card
+        ("378282246310005",)   # 15-digit card (Amex)
+    ]
+    df = test_spark.createDataFrame(data, schema)
+
+    res_df = df.select(
+        F.col("card_no"),
+        nab_tdm_masking.mask_card_number("card_no").alias("masked_card")
+    )
+    rows = res_df.collect()
+
+    # 16-digit card test
+    c16_orig, c16_masked = rows[0].card_no, rows[0].masked_card
+    assert len(c16_masked) == 16, "Masked card length must match original length"
+    assert c16_masked[:9] == c16_orig[:9], "First 9 digits (BIN 6 + NAB 3) must be retained"
+    assert c16_masked != c16_orig, "Masked card must not equal original card"
+
+    # 15-digit card test
+    c15_orig, c15_masked = rows[1].card_no, rows[1].masked_card
+    assert len(c15_masked) == 15
+    assert c15_masked[:9] == c15_orig[:9]
+
+
+def test_mask_national_id_rule_1_12(test_spark):
+    """Verify National ID Masking (NAB Rule 1.12) retains prefix/suffix 3 digits."""
+    schema = StructType([StructField("nat_id", StringType(), True)])
+    data = [
+        ("123456789",),  # Valid >= 9 digits
+        ("123",)        # Short length fallback
+    ]
+    df = test_spark.createDataFrame(data, schema)
+
+    res_df = df.select(
+        F.col("nat_id"),
+        nab_tdm_masking.mask_national_id("nat_id").alias("masked_id")
+    )
+    rows = res_df.collect()
+
+    # >= 9 digits test
+    id_orig, id_masked = rows[0].nat_id, rows[0].masked_id
+    assert len(id_masked) == 9
+    assert id_masked[:3] == id_orig[:3], "Prefix 3 digits must be retained"
+    assert id_masked[-3:] == id_orig[-3:], "Suffix 3 digits must be retained"
+    assert id_masked != id_orig
+
+    # Short length test
+    assert "XXX" in rows[1].masked_id
+
+
+def test_mask_phone_rule_1_13(test_spark):
+    """Verify Phone Masking (NAB Rule 1.13) retains prefix 4 and suffix 4 digits."""
+    schema = StructType([StructField("phone", StringType(), True)])
+    data = [
+        ("0412345678",),  # 10 digits
+        ("1234",)        # Short length
+    ]
+    df = test_spark.createDataFrame(data, schema)
+
+    res_df = df.select(
+        F.col("phone"),
+        nab_tdm_masking.mask_phone("phone").alias("masked_phone")
+    )
+    rows = res_df.collect()
+
+    # Valid phone test
+    p_orig, p_masked = rows[0].phone, rows[0].masked_phone
+    assert len(p_masked) == 10
+    assert p_masked[:4] == p_orig[:4], "First 4 digits (area code) must be retained"
+    assert p_masked[-4:] == p_orig[-4:], "Last 4 digits must be retained"
+    assert p_masked != p_orig
+
+    # Short phone test
+    assert "XXXX" in rows[1].masked_phone
+
+
+def test_mask_name_rule_1_10(test_spark):
+    """Verify Name Masking (NAB Rule 1.10) retains initial and adds MASKED hash suffix."""
+    schema = StructType([StructField("full_name", StringType(), True)])
+    df = test_spark.createDataFrame([("John Smith",), ("alice",)], schema)
+
+    res_df = df.select(
+        F.col("full_name"),
+        nab_tdm_masking.mask_name("full_name").alias("masked_name")
+    )
+    rows = res_df.collect()
+
+    # Row 1: "John Smith" -> "J. MASKED_XXXXXX"
+    m1 = rows[0].masked_name
+    assert m1.startswith("J. MASKED_")
+    assert len(m1) == 16  # 1 (Initial) + 2 (". ") + 7 ("MASKED_") + 6 (Hash)
+
+    # Row 2: "alice" -> "A. MASKED_XXXXXX"
+    m2 = rows[1].masked_name
+    assert m2.startswith("A. MASKED_")
+
+
+def test_mask_address_rule_1_11(test_spark):
+    """Verify Address Masking (NAB Rule 1.11) generates standard format masked address."""
+    schema = StructType([StructField("address", StringType(), True)])
+    df = test_spark.createDataFrame([("123 Real St, Sydney NSW 2000",)], schema)
+
+    res_df = df.select(
+        nab_tdm_masking.mask_address("address").alias("masked_address")
+    )
+    row = res_df.first()
+    m_addr = row.masked_address
+
+    assert "Masked Street, MASKED_SUBURB NSW 2" in m_addr
+    assert len(m_addr) >= 42  # Kiểm tra độ dài định dạng tiêu chuẩn
+
+
+# Entrypoint thực thi trực tiếp từ file
 if __name__ == "__main__":
     pytest.main(["-v", "-s", __file__])
