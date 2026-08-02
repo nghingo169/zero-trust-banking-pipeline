@@ -15,12 +15,14 @@ from pyspark.sql import Row, functions as F
 
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
+dbutils.widgets.text("pipeline_name", "full-source-to-validated-silver")
 dbutils.widgets.text("quality_rules_path", "")
 dbutils.widgets.text("catalog", "workspace")
 dbutils.widgets.text("bronze_schema", "bronze")
 
 BUSINESS_DATE = dbutils.widgets.get("business_date")
 RUN_ID = dbutils.widgets.get("run_id")
+PIPELINE_NAME = dbutils.widgets.get("pipeline_name")
 RULE_PATH = dbutils.widgets.get("quality_rules_path")
 CATALOG = dbutils.widgets.get("catalog")
 BRONZE_SCHEMA = dbutils.widgets.get("bronze_schema")
@@ -186,7 +188,7 @@ for domain in DOMAINS:
         catalog=CATALOG,
         domain=domain,
         pipeline_run_id=RUN_ID,
-        pipeline_name="full-source-to-validated-silver",
+        pipeline_name=PIPELINE_NAME,
         business_date=BUSINESS_DATE,
         execution_status="SUCCEEDED",
         table_metrics=[metric.asDict() for metric in metrics],

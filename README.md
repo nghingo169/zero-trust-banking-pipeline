@@ -36,18 +36,17 @@ Customer Transaction, and Financial Crime domains.
 
 Read the full local setup, deployment, run, and troubleshooting guide:
 
-**[Pipeline runbook](src/pipeline/README.md)**
+**[Pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md)**
 
 For a new engineer, the normal workflow is:
 
-1. Authenticate the Databricks CLI to your own workspace.
-2. Bootstrap the required Unity Catalog schemas (and the local-dev landing
-   Volume when needed).
-3. Upload source snapshots to the Volume.
-4. Validate and deploy the Bundle.
-5. Run the `full_source_to_validated_silver` job.
-6. Review job results, validated Silver tables, quarantine records, and audit
-   logs.
+1. Authenticate the Databricks CLI to the team workspace.
+2. Preload the required Unity Catalog schemas and governance tables.
+3. Confirm the team S3 credential scope is available.
+4. Validate and deploy the `team` Bundle target.
+5. Run the `full_source_to_gold` job.
+6. Review Bronze, validated Silver, quarantine, Silver Atomic, Gold, and audit
+   outputs.
 
 ## Repository structure
 
@@ -56,6 +55,7 @@ databricks.yml              Bundle settings and portable variables
 resources/                  Deployable pipeline and job resource definitions
 src/pipeline/               Active ingestion, validation, and audit code
 src/data_contracts/         Schemas, table keys, normalization, and quality rules
+deliverables/               Delivery-ready implementation, evidence, and runbook documents
 docs/                       Architecture and data-model documentation
 sql/customer_360/           Customer 360 exploration and validation SQL
 scripts/source_landing/     Local snapshot upload helper
@@ -72,17 +72,17 @@ path, token, AWS access key, or secret. Each engineer uses:
   local Bundle values; and
 - Unity Catalog storage credentials/external locations for production S3
   access. The Free Edition team target uses Databricks secret references as a
-  temporary learning-only S3 workaround; see the [pipeline runbook](src/pipeline/README.md).
+  temporary learning-only S3 workaround; see the [pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md).
 
 Never commit credentials, access tokens, or personal workspace paths.
 
 ## Infrastructure lifecycle
 
-Unity Catalog schemas and Volumes are persistent infrastructure. Create them
-once with [the bootstrap SQL](sql/infrastructure/01_workspace_bootstrap.sql),
+Unity Catalog schemas and governance state tables are persistent infrastructure.
+Create them once with the preload SQL in the [pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md),
 then deploy the application Bundle as often as needed. The application Bundle
-owns only pipelines, jobs, and their source code, so a normal code deployment
-does not request schema or Volume deletion.
+owns pipelines, jobs, and their source code; normal deployment does not request
+catalog or schema deletion.
 
 ## Engineering workflow
 
@@ -101,4 +101,4 @@ PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py'
 ```
 
 Before deployment, also run Bundle validation as described in the
-[pipeline runbook](src/pipeline/README.md).
+[pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md).
