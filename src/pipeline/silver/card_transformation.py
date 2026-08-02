@@ -58,19 +58,39 @@ def tokenize_pii(col: str | F.Column) -> F.Column:
 FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 def get_pipeline_run_id(df) -> F.Column:
-    """
-    Lấy Job Run ID từ bảng State Table bằng Scalar Subquery.
-    """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
-    # Dùng Scalar Subquery: Spark sẽ tự query bảng này ở Worker level khi Materialize data
-    subquery_expr = f"(SELECT active_run_id FROM {CATALOG}.governance.active_run_context LIMIT 1)"
+    job_run_id = None
 
-    return F.coalesce(
-        F.expr(subquery_expr),
-        F.lit(FALLBACK_MODULE_UUID)
-    ).cast("string").alias("pipeline_run_id")
+    try:
+        from dbruntime.databricks_repl_context import get_context
+        ctx = get_context()
+        if ctx:
+            job_run_id = getattr(ctx, "idInJob", None) or getattr(ctx, "jobId", None)
+    except Exception:
+        pass
+
+    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
+        try:
+            job_run_id = spark.conf.get("spark.databricks.pipeline.update.id", None)
+        except Exception:
+            pass
+
+    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}"]:
+        try:
+            job_run_id = (
+                spark.conf.get("spark.databricks.job.runId", None) or
+                spark.conf.get("spark.databricks.job.run_id", None)
+            )
+        except Exception:
+            pass
+
+    if not job_run_id or str(job_run_id) in ["None", "", "{{job.run_id}}", "MANUAL_UI_RUN"]:
+        job_run_id = FALLBACK_MODULE_UUID
+
+    return F.lit(str(job_run_id)).alias("pipeline_run_id")
+
 # ---------------------------------------------------------------------------
 # Table Builders
 # ---------------------------------------------------------------------------
@@ -90,9 +110,18 @@ def _build_account(df):
     )
 
 def _build_party_account_role(df):
-    return df.select(
+    # customer_account only carries cif_number, but party.party_key is hashed
+    # from cust_no (see customer_transformation.py) -- bridge via
+    # core_banking_customer to fetch cust_no, and use the same UPPERCASE
+    # source-system literal, otherwise the hashes can never match.
+    core = spark.read.table(clean_card_src("core_banking_customer"))
+    cif_to_cust = core.select("cif_number", "cust_no")
+
+    df2 = df.join(cif_to_cust, on="cif_number", how="left")
+
+    return df2.select(
         hash_key(F.lit("core_banking"), F.lit("party_account_role"), "link_id").alias("party_account_role_key"),
-        hash_key(F.lit("core_banking"), "cif_number").alias("party_key"),
+        hash_key(F.lit("CORE_BANKING"), "cust_no").alias("party_key"),
         hash_key(F.lit("core_banking"), "account_id").alias("account_key"),
         F.col("relationship_type"),
         F.col("linked_date").cast("date").alias("valid_from"),
