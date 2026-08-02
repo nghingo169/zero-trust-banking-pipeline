@@ -1,4 +1,3 @@
-# Databricks notebook source
 """Unit tests for pipeline.silver.customer_validation module.
 
 Tests Customer Validation Logic:

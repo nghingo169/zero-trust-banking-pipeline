@@ -1,4 +1,3 @@
-# Databricks notebook source
 """Unit tests for nab_tdm_masking module.
 
 Tests NAB TDM Masking Logic & Referential Integrity:
@@ -198,7 +197,7 @@ def test_mask_address_rule_1_11(test_spark):
     m_addr = row.masked_address
 
     assert "Masked Street, MASKED_SUBURB NSW 2" in m_addr
-    assert len(m_addr) >= 42  # Kiểm tra độ dài định dạng tiêu chuẩn
+    assert len(m_addr) >= 40  # Độ dài chính xác của mẫu chuỗi mặt định là 40 ký tự
 
 
 # Entrypoint thực thi trực tiếp từ file

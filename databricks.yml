@@ -12,12 +12,10 @@ experimental:
 
 include:
   - resources/*.yml
-  - resources/**/*.yml
 
 sync:
   paths:
     - src/
-    - tests/
 
 variables:
   catalog:

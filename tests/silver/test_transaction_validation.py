@@ -1,4 +1,3 @@
-# Databricks notebook source
 """Unit tests for pipeline.silver.transaction_validation module.
 
 Tests Transaction Validation Logic:

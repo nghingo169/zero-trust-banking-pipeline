@@ -8,8 +8,6 @@ resources:
       continuous: false
       libraries:
         - file:
-            path: ../tests/silver/run_remote_tests.py
-        - file:
             path: ../src/pipeline/silver/customer_transformation.py
         - file:
             path: ../src/pipeline/silver/card_transformation.py

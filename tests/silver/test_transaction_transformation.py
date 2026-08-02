@@ -1,4 +1,3 @@
-# Databricks notebook source
 """Unit tests for pipeline.silver.transaction_transformation module.
 
 Tests Helper Functions & Financial Event Transformation Tables:
@@ -116,79 +115,83 @@ def test_get_pipeline_run_id_existing_column(test_spark):
     result_df = df.select(transaction_transformation.get_pipeline_run_id(df).alias("run_id"))
     
     assert result_df.first().run_id == "RUN_TXN_01"
-
-
 # ==============================================================================
 # SECTION 2: TRANSFORMATION FUNCTION TESTS
 # ==============================================================================
 
 def test_silver_financial_event_header_union(test_spark):
     """Verify silver_financial_event unions Account, Card, ATM, and Gateway events correctly."""
-    # Account
+    transaction_transformation.spark = test_spark
+
+    # 1. Account Transaction Mock
     schema_acc = StructType([
         StructField("account_txn_id", StringType(), True),
         StructField("account_id", LongType(), True),
         StructField("customer_ref", StringType(), True),
+        StructField("currency", StringType(), True),
         StructField("txn_timestamp", StringType(), True),
         StructField("pipeline_run_id", StringType(), True)
     ])
-    df_acc = test_spark.createDataFrame([("ACC_TXN_01", 1001, "CUST_01", "2026-07-01 10:00:00", "RUN_01")], schema_acc)
+    df_acc = test_spark.createDataFrame([("ACC_TXN_01", 1001, "CUST_01", "VND", "2026-07-01 10:00:00", "RUN_01")], schema_acc)
 
-    # Card
+    # 2. Card Transaction Mock
     schema_card = StructType([
         StructField("card_txn_id", StringType(), True),
         StructField("card_id", StringType(), True),
         StructField("merchant_id", StringType(), True),
+        StructField("currency", StringType(), True),
         StructField("txn_timestamp", StringType(), True),
         StructField("pipeline_run_id", StringType(), True)
     ])
-    df_card = test_spark.createDataFrame([("CARD_TXN_01", "CARD_99", "MERCH_01", "2026-07-01 11:00:00", "RUN_01")], schema_card)
+    df_card = test_spark.createDataFrame([("CARD_TXN_01", "CARD_99", "MERCH_01", "USD", "2026-07-01 11:00:00", "RUN_01")], schema_card)
 
-    # ATM
+    # 3. ATM Activity Mock
     schema_atm = StructType([
         StructField("log_id", StringType(), True),
         StructField("account_txn_id", StringType(), True),
         StructField("card_id", StringType(), True),
+        StructField("currency", StringType(), True),
         StructField("log_timestamp", StringType(), True),
         StructField("pipeline_run_id", StringType(), True)
     ])
-    df_atm = test_spark.createDataFrame([("ATM_LOG_01", "ACC_TXN_01", "CARD_99", "2026-07-01 12:00:00", "RUN_01")], schema_atm)
+    df_atm = test_spark.createDataFrame([("ATM_LOG_01", "ACC_TXN_01", "CARD_99", "VND", "2026-07-01 12:00:00", "RUN_01")], schema_atm)
 
-    # Gateway
+    # 4. Gateway Payment Mock
     schema_gw = StructType([
         StructField("gateway_txn_id", StringType(), True),
         StructField("account_txn_id", StringType(), True),
         StructField("card_txn_id", StringType(), True),
         StructField("merchant_id", StringType(), True),
+        StructField("currency", StringType(), True),
         StructField("gateway_timestamp", StringType(), True),
         StructField("pipeline_run_id", StringType(), True)
     ])
-    df_gw = test_spark.createDataFrame([("GW_TXN_01", "ACC_TXN_01", "CARD_TXN_01", "MERCH_01", "2026-07-01 13:00:00", "RUN_01")], schema_gw)
+    df_gw = test_spark.createDataFrame([("GW_TXN_01", "ACC_TXN_01", "CARD_TXN_01", "MERCH_01", "USD", "2026-07-01 13:00:00", "RUN_01")], schema_gw)
 
     def mock_read_table(path):
-        if "account_transaction" in path:
+        if path.endswith("account_transaction"):
             return df_acc
-        elif "card_transaction" in path:
+        elif path.endswith("card_transaction"):
             return df_card
-        elif "log_atm" in path:
+        elif path.endswith("log_atm"):
             return df_atm
-        elif "payment_gateway_log" in path:
+        elif path.endswith("payment_gateway_log"):
             return df_gw
         return test_spark.createDataFrame([], StructType([]))
 
-    target_module = "pipeline.silver.transaction_transformation" if "pipeline.silver.transaction_transformation" in sys.modules else "transaction_transformation"
-
-    with patch(f"{target_module}.spark.read.table", side_effect=mock_read_table):
+    with patch("pyspark.sql.readwriter.DataFrameReader.table", side_effect=mock_read_table):
         res_df = transaction_transformation.silver_financial_event()
         rows = res_df.collect()
 
-        assert len(rows) == 4
+        assert len(rows) == 4, f"Expected 4 rows across all event types, got {len(rows)}"
         event_types = {r.event_type for r in rows}
         assert event_types == {"ACCOUNT_POSTING", "CARD_PAYMENT", "ATM_ACTIVITY", "GATEWAY_PAYMENT"}
 
 
 def test_extension_tables_builders(test_spark):
     """Verify account_posting, card_payment, atm_activity, and gateway_payment extension tables."""
+    transaction_transformation.spark = test_spark
+
     # Account Posting
     schema_acc = StructType([
         StructField("account_txn_id", StringType(), True),
@@ -213,26 +216,28 @@ def test_extension_tables_builders(test_spark):
     df_card = test_spark.createDataFrame([("CARD_TXN_01", 89.99, "PURCHASE", "MERCH_01", False, "RUN_01")], schema_card)
 
     def mock_read_table(path):
-        if "account_transaction" in path:
+        if path.endswith("account_transaction"):
             return df_acc
-        elif "card_transaction" in path:
+        elif path.endswith("card_transaction"):
             return df_card
         return test_spark.createDataFrame([], StructType([]))
 
-    target_module = "pipeline.silver.transaction_transformation" if "pipeline.silver.transaction_transformation" in sys.modules else "transaction_transformation"
-
-    with patch(f"{target_module}.spark.read.table", side_effect=mock_read_table):
+    with patch("pyspark.sql.readwriter.DataFrameReader.table", side_effect=mock_read_table):
         row_post = transaction_transformation.silver_account_posting().first()
+        assert row_post is not None
         assert float(row_post.posting_amount) == 150.00
         assert row_post.source_system == "core_banking"
 
         row_card = transaction_transformation.silver_card_payment().first()
+        assert row_card is not None
         assert float(row_card.payment_amount) == 89.99
         assert row_card.is_fraud_source_flag is False
 
 
 def test_silver_financial_event_status_history_union(test_spark):
     """Verify silver_financial_event_status_history unions Account and Card status events."""
+    transaction_transformation.spark = test_spark
+
     schema_acc_status = StructType([
         StructField("status_event_id", StringType(), True),
         StructField("account_txn_id", StringType(), True),
@@ -256,19 +261,17 @@ def test_silver_financial_event_status_history_union(test_spark):
     df_card = test_spark.createDataFrame([("EVT_CARD_01", "CARD_TXN_01", "AUTHORIZED", "2026-07-01 11:00:00", "2026-07-01 11:00:01", 1, "RUN_01")], schema_card_status)
 
     def mock_read_table(path):
-        if "account_transaction_status_event" in path:
+        if path.endswith("account_transaction_status_event"):
             return df_acc
-        elif "card_transaction_status_event" in path:
+        elif path.endswith("card_transaction_status_event"):
             return df_card
         return test_spark.createDataFrame([], StructType([]))
 
-    target_module = "pipeline.silver.transaction_transformation" if "pipeline.silver.transaction_transformation" in sys.modules else "transaction_transformation"
-
-    with patch(f"{target_module}.spark.read.table", side_effect=mock_read_table):
+    with patch("pyspark.sql.readwriter.DataFrameReader.table", side_effect=mock_read_table):
         res_df = transaction_transformation.silver_financial_event_status_history()
         rows = res_df.collect()
 
-        assert len(rows) == 2
+        assert len(rows) == 2, f"Expected 2 rows after Union, got {len(rows)}"
         source_systems = {r.source_system for r in rows}
         assert source_systems == {"core_banking", "card_system"}
 

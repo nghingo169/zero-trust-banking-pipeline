@@ -1,4 +1,3 @@
-# Databricks notebook source
 """Unit tests for pipeline.silver.card_validation module.
 
 Tests Card Validation Logic:

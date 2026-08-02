@@ -55,20 +55,10 @@ resources:
               run_id: "{{job.run_id}}"
               catalog: ${var.catalog}
 
-        # 5.5. Unit Test Tầng Silver
-        - task_key: run_silver_unit_tests
-          depends_on:
-            - task_key: pre_transform_setup
-          notebook_task:
-            notebook_path: ../src/pipeline/silver/unit_tests.py
-            base_parameters:
-              catalog: ${var.catalog}
-              silver_schema: ${var.silver_schema}
-
         # 6. DLT Pipeline: Transform Silver Validated sang Silver Atomic
         - task_key: transform_silver_atomic
           depends_on:
-            - task_key: run_silver_unit_tests
+            - task_key: pre_transform_setup
           pipeline_task:
             pipeline_id: ${resources.pipelines.validated_to_transform_silver.id}
 

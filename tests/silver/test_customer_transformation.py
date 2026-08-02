@@ -155,47 +155,86 @@ def test_resolve_party_status(test_spark):
 # ==============================================================================
 # SECTION 2: TABLE BUILDERS TESTS
 # ==============================================================================
-
 def test_build_party(test_spark):
-    """Verify _build_party unions Core Banking and CRM customer sources."""
+    """Verify _build_party unions Core Banking and CRM customer sources accurately."""
+    customer_transformation.spark = test_spark
+
     schema_core = StructType([
         StructField("cust_no", StringType(), True),
+        StructField("simulation_id", StringType(), True),
         StructField("pipeline_run_id", StringType(), True)
     ])
-    df_core = test_spark.createDataFrame([("CB-101", "RUN_01")], schema_core)
+    df_core = test_spark.createDataFrame([("CB-101", "SIM_01", "RUN_01")], schema_core)
 
     schema_crm = StructType([
         StructField("party_id", StringType(), True),
+        StructField("simulation_id", StringType(), True),
         StructField("pipeline_run_id", StringType(), True)
     ])
-    df_crm = test_spark.createDataFrame([("CRM-202", "RUN_01")], schema_crm)
+    df_crm = test_spark.createDataFrame([("CRM-202", "SIM_01", "RUN_01")], schema_crm)
 
     schema_txn = StructType([
         StructField("customer_ref", StringType(), True),
         StructField("txn_timestamp", StringType(), True)
     ])
-    df_txn = test_spark.createDataFrame([("CB-101", "2026-07-01 12:00:00")], schema_txn)
+    df_txn = test_spark.createDataFrame([
+        ("CB-101", "2026-07-01 12:00:00"),
+        ("CRM-202", "2026-07-02 10:00:00")
+    ], schema_txn)
 
-    def mock_read_table(path):
-        if "core_banking_customer" in path:
+    def mock_read_table(table_name):
+        if "core_banking_customer" in table_name:
             return df_core
-        elif "crm_customer" in path:
+        elif "crm_customer" in table_name:
             return df_crm
-        elif "account_transaction" in path:
+        elif "account_transaction" in table_name:
             return df_txn
         return test_spark.createDataFrame([], StructType([]))
 
-    target_module = "pipeline.silver.customer_transformation" if "pipeline.silver.customer_transformation" in sys.modules else "customer_transformation"
-
-    with patch(f"{target_module}.spark.read.table", side_effect=mock_read_table):
+    # PATCH TRỰC TIẾP LÊN DATAFRAME READER CLASS ĐỂ SPARK KHÔNG ĐỌC TABLE THẬT
+    with patch("pyspark.sql.readwriter.DataFrameReader.table", side_effect=mock_read_table):
         res_df = customer_transformation._build_party()
         rows = res_df.collect()
 
-        assert len(rows) == 2
+        # Kiểm tra kết quả
+        assert len(rows) == 2, f"Expected 2 rows after Union, but got {len(rows)}"
+        
         source_keys = {r.source_business_key for r in rows}
         assert source_keys == {"CB-101", "CRM-202"}
-        assert rows[0].party_type == "PERSON"
+        
+        party_types = {r.party_type for r in rows}
+        assert party_types == {"PERSON"}
+        
+        party_statuses = {r.party_status for r in rows}
+        assert "ACTIVE" in party_statuses
 
+
+def test_build_party_identifier(test_spark):
+    """Verify _build_party_identifier extracts national_id and phone into separate rows."""
+    customer_transformation.spark = test_spark
+
+    schema = StructType([
+        StructField("cust_no", StringType(), True),
+        StructField("national_id", StringType(), True),
+        StructField("phone", StringType(), True),
+        StructField("created_date", StringType(), True),
+        StructField("pipeline_run_id", StringType(), True)
+    ])
+    df_input = test_spark.createDataFrame([
+        ("CB-101", "987654321", "0901234567", "2026-01-01", "RUN_01")
+    ], schema)
+
+    res_df = customer_transformation._build_party_identifier(df_input)
+    rows = res_df.collect()
+
+    assert len(rows) == 2, f"Expected 2 identifier rows (NATIONAL_ID & PHONE), got {len(rows)}"
+    
+    types = {r.identifier_type for r in rows}
+    assert types == {"NATIONAL_ID", "PHONE"}
+    
+    nat_row = next(r for r in rows if r.identifier_type == "NATIONAL_ID")
+    assert nat_row.is_primary is True
+    assert len(nat_row.identifier_value_token) == 64
 
 def test_build_party_identifier(test_spark):
     """Verify _build_party_identifier extracts both national_id and phone into separate rows."""

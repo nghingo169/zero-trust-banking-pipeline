@@ -1,4 +1,3 @@
-# Databricks notebook source
 """Unit tests for pipeline.silver.fincrime_transformation module.
 
 Tests Helper Functions & Financial Crime Transformation Tables:
@@ -113,13 +112,14 @@ def test_get_pipeline_run_id_existing_column(test_spark):
     
     assert result_df.first().run_id == "RUN_FINCRIME_01"
 
-
 # ==============================================================================
 # SECTION 2: FINCRIME TRANSFORMATION FUNCTION TESTS
 # ==============================================================================
 
 def test_silver_financial_event_risk_score(test_spark):
     """Verify silver_financial_event_risk_score projects score keys and decimal fields correctly."""
+    fincrime_transformation.spark = test_spark
+
     schema = StructType([
         StructField("score_id", StringType(), True),
         StructField("account_txn_id", StringType(), True),
@@ -132,12 +132,11 @@ def test_silver_financial_event_risk_score(test_spark):
         ("SCORE_01", "TXN_001", 0.8542, "HIGH", "2026-07-01", "RUN_01")
     ], schema)
 
-    target_module = "pipeline.silver.fincrime_transformation" if "pipeline.silver.fincrime_transformation" in sys.modules else "fincrime_transformation"
-
-    with patch(f"{target_module}.spark.read.table", return_value=df):
+    with patch("pyspark.sql.readwriter.DataFrameReader.table", return_value=df):
         res_df = fincrime_transformation.silver_financial_event_risk_score()
         row = res_df.first()
 
+        assert row is not None
         assert len(row.financial_event_risk_score_key) == 64
         assert len(row.financial_event_key) == 64
         assert float(row.model_score) == 0.8542
@@ -147,9 +146,11 @@ def test_silver_financial_event_risk_score(test_spark):
 
 def test_silver_fraud_alert_and_link(test_spark):
     """Verify silver_fraud_alert and silver_financial_event_fraud_alert filter invalid account_txn_ids."""
+    fincrime_transformation.spark = test_spark
+
     schema = StructType([
         StructField("alert_id", StringType(), True),
-        StructField("account_txn_id", StringType(), True),
+        StructField("account_txn_id", LongType(), True),  # LongType để khớp với phép so sánh <> -1
         StructField("alert_type", StringType(), True),
         StructField("alert_score", DoubleType(), True),
         StructField("alert_status", StringType(), True),
@@ -157,67 +158,66 @@ def test_silver_fraud_alert_and_link(test_spark):
         StructField("pipeline_run_id", StringType(), True)
     ])
     data = [
-        ("ALERT_01", "TXN_001", "ACCOUNT_TAKEOVER", 95.5, "OPEN", "2026-07-01 10:00:00", "RUN_01"),
-        ("ALERT_02", "-1", "CARD_CLONING", 88.0, "CLOSED", "2026-07-01 11:00:00", "RUN_01")  # Lọc bỏ ở bảng link
+        ("ALERT_01", 1001, "ACCOUNT_TAKEOVER", 95.5, "OPEN", "2026-07-01 10:00:00", "RUN_01"),
+        ("ALERT_02", -1, "CARD_CLONING", 88.0, "CLOSED", "2026-07-01 11:00:00", "RUN_01")  # Filtered out in link table
     ]
     df = test_spark.createDataFrame(data, schema)
 
-    target_module = "pipeline.silver.fincrime_transformation" if "pipeline.silver.fincrime_transformation" in sys.modules else "fincrime_transformation"
-
-    with patch(f"{target_module}.spark.read.table", return_value=df):
+    with patch("pyspark.sql.readwriter.DataFrameReader.table", return_value=df):
         res_alert = fincrime_transformation.silver_fraud_alert().collect()
-        assert len(res_alert) == 2  # Bảng alert chính giữ nguyên cả 2 dòng
+        assert len(res_alert) == 2, f"Expected 2 rows in fraud_alert, got {len(res_alert)}"
 
         res_link = fincrime_transformation.silver_financial_event_fraud_alert().collect()
-        assert len(res_link) == 1   # Bảng link đã lọc bỏ account_txn_id == -1
-        assert res_link[0].source_business_key == "ALERT_01:TXN_001"
+        assert len(res_link) == 1, f"Expected 1 row in financial_event_fraud_alert, got {len(res_link)}"
+        assert res_link[0].source_business_key == "ALERT_01:1001"
 
 
 def test_silver_monitoring_alert_financial_event_union(test_spark):
     """Verify silver_monitoring_alert_financial_event unions account and card alert links correctly."""
+    fincrime_transformation.spark = test_spark
+
     schema_acc = StructType([
         StructField("alert_account_txn_link_id", StringType(), True),
         StructField("alert_id", StringType(), True),
-        StructField("account_txn_id", StringType(), True),
+        StructField("account_txn_id", LongType(), True),
         StructField("is_primary", BooleanType(), True),
         StructField("pipeline_run_id", StringType(), True)
     ])
     df_acc = test_spark.createDataFrame([
-        ("LINK_ACC_01", "ALERT_01", "TXN_ACC_100", True, "RUN_01")
+        ("LINK_ACC_01", "ALERT_01", 100, True, "RUN_01")
     ], schema_acc)
 
     schema_card = StructType([
         StructField("alert_card_txn_link_id", StringType(), True),
         StructField("alert_id", StringType(), True),
-        StructField("card_txn_id", StringType(), True),
+        StructField("card_txn_id", LongType(), True),
         StructField("is_primary", BooleanType(), True),
         StructField("pipeline_run_id", StringType(), True)
     ])
     df_card = test_spark.createDataFrame([
-        ("LINK_CARD_01", "ALERT_01", "TXN_CARD_200", False, "RUN_01")
+        ("LINK_CARD_01", "ALERT_01", 200, False, "RUN_01")
     ], schema_card)
 
     def mock_read_table(path):
-        if "account_transaction" in path:
+        if "transaction_monitoring_alert_account_transaction" in path:
             return df_acc
-        elif "card_transaction" in path:
+        elif "transaction_monitoring_alert_card_transaction" in path:
             return df_card
         return test_spark.createDataFrame([], StructType([]))
 
-    target_module = "pipeline.silver.fincrime_transformation" if "pipeline.silver.fincrime_transformation" in sys.modules else "fincrime_transformation"
-
-    with patch(f"{target_module}.spark.read.table", side_effect=mock_read_table):
+    with patch("pyspark.sql.readwriter.DataFrameReader.table", side_effect=mock_read_table):
         res_df = fincrime_transformation.silver_monitoring_alert_financial_event()
         rows = res_df.collect()
 
-        assert len(rows) == 2
+        assert len(rows) == 2, f"Expected 2 rows after Union, got {len(rows)}"
         link_keys = {r.source_business_key for r in rows}
         assert link_keys == {"LINK_ACC_01", "LINK_CARD_01"}
 
 
 def test_silver_investigation_case_and_note(test_spark):
     """Verify silver_investigation_case and silver_investigation_note field mappings."""
-    # Case
+    fincrime_transformation.spark = test_spark
+
     schema_case = StructType([
         StructField("case_id", StringType(), True),
         StructField("investigation_type", StringType(), True),
@@ -233,7 +233,6 @@ def test_silver_investigation_case_and_note(test_spark):
         ("CASE_001", "AML", "ALERT", "IN_PROGRESS", "HIGH", "2026-07-01 09:00:00", None, "ANALYST_99", "RUN_01")
     ], schema_case)
 
-    # Note
     schema_note = StructType([
         StructField("note_id", StringType(), True),
         StructField("case_id", StringType(), True),
@@ -249,26 +248,28 @@ def test_silver_investigation_case_and_note(test_spark):
     ], schema_note)
 
     def mock_read_table(path):
-        if "investigation_case" in path:
+        if "investigation_case" in path and "note" not in path:
             return df_case
         elif "investigation_note" in path:
             return df_note
         return test_spark.createDataFrame([], StructType([]))
 
-    target_module = "pipeline.silver.fincrime_transformation" if "pipeline.silver.fincrime_transformation" in sys.modules else "fincrime_transformation"
-
-    with patch(f"{target_module}.spark.read.table", side_effect=mock_read_table):
+    with patch("pyspark.sql.readwriter.DataFrameReader.table", side_effect=mock_read_table):
         row_case = fincrime_transformation.silver_investigation_case().first()
+        assert row_case is not None
         assert row_case.source_business_key == "CASE_001"
         assert row_case.priority == "HIGH"
 
         row_note = fincrime_transformation.silver_investigation_note().first()
+        assert row_note is not None
         assert row_note.source_business_key == "NOTE_001"
         assert len(row_note.investigation_case_key) == 64
 
 
 def test_silver_call_center_contact_pii_masking(test_spark):
     """Verify silver_call_center_contact applies NAB phone masking, AES encryption, and SHA-256 tokenization."""
+    fincrime_transformation.spark = test_spark
+
     schema = StructType([
         StructField("call_id", StringType(), True),
         StructField("customer_ref", StringType(), True),
@@ -284,17 +285,20 @@ def test_silver_call_center_contact_pii_masking(test_spark):
         ("CALL_001", "CUST_100", "CASE_001", "0901234567", "2026-07-01 14:00:00", "FRAUD_INQUIRY", "AGENT_07", 180, "RUN_01")
     ], schema)
 
-    target_module = "pipeline.silver.fincrime_transformation" if "pipeline.silver.fincrime_transformation" in sys.modules else "fincrime_transformation"
-
-    with patch(f"{target_module}.spark.read.table", return_value=df):
+    with patch("pyspark.sql.readwriter.DataFrameReader.table", return_value=df):
         res_df = fincrime_transformation.silver_call_center_contact()
         row = res_df.first()
 
+        assert row is not None
         assert row.source_business_key == "CALL_001"
         assert row.caller_phone_masked is not None
         assert row.caller_phone_encrypted != "0901234567"  # Mã hóa Base64 AES
         assert len(row.caller_phone_token) == 64          # SHA-256 Token
         assert row.call_duration_seconds == 180
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", "-s", __file__])
 
 
 # Entrypoint thực thi trực tiếp từ file
