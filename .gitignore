@@ -3,8 +3,12 @@ __pycache__/
 .ipynb_checkpoints/
 .pytest_cache/
 .env
+.databrickscfg
+.databricks-token*
 .DS_Store
 
 data/generated/
 output/
 checkpoints/
+.databricks
+.vscode/

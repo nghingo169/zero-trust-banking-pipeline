@@ -1,0 +1,763 @@
+// ============================================================================
+// FINAL CANONICAL SILVER ATOMIC MODEL FOR DATABRICKS LAKEHOUSE
+// Derived strictly from Banking_Mock_Data_Schema.dbml (Bronze). Zero fabricated fields.
+// ============================================================================
+
+Project banking_silver_atomic {
+  database_type: 'Databricks Delta'
+  Note: '''Canonical Atomic Silver Model for Banking. Resolves multi-system customer identities, preserves SCD2 history, tokenizes PII, and includes full Data Governance & DLQ Metadata.'''
+}
+
+// ---------------------------------------------------------------------------
+// Table Groups
+// ---------------------------------------------------------------------------
+
+TableGroup identity_and_party {
+  party
+  party_identifier
+  party_identity_resolution
+  party_profile_version
+  party_kyc_assessment
+  party_employment
+  party_service_request
+}
+
+TableGroup accounts_and_instruments {
+  account
+  party_account_role
+  payment_card
+  payment_card_limit_history
+  account_balance_snapshot
+  transaction_channel
+  merchant
+  merchant_location
+}
+
+TableGroup financial_events {
+  financial_event
+  account_posting
+  card_payment
+  atm_activity
+  gateway_payment
+  financial_event_association
+  financial_event_status_history
+}
+
+TableGroup financial_crime_and_compliance {
+  financial_event_risk_score
+  fraud_alert
+  financial_event_fraud_alert
+  transaction_monitoring_alert
+  monitoring_alert_financial_event
+  investigation_case
+  investigation_case_financial_event
+  investigation_case_fraud_alert
+  investigation_case_monitoring_alert
+  investigation_note
+  aml_case
+  sanctions_screening
+  investigation_case_sanctions_screening
+  watchlist_entry
+  suspicious_activity_report
+  card_fraud_flag
+  financial_event_card_fraud_flag
+  chargeback
+  call_center_contact
+}
+
+TableGroup data_governance_and_ops {
+  pipeline_run
+  data_quality_audit_log
+  silver_quarantine_record
+  pii_masking_log
+}
+
+
+// ===========================================================================
+// 1. IDENTITY AND PARTY (Derived from core_banking_customer & crm_customer)
+// ===========================================================================
+
+Table party {
+  party_key varchar [pk, note: 'Stable enterprise surrogate key; never reused']
+  party_type varchar [not null, note: 'PERSON or ORGANISATION']
+  party_status varchar
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+  load_batch_id varchar [not null]
+  data_quality_status varchar [not null, note: 'VALID / WARN / QUARANTINED']
+}
+
+Table party_identifier {
+  party_identifier_key varchar [pk]
+  party_key varchar [not null]
+  identifier_type varchar [not null, note: 'CORE_CUST_NO / CIF / CRM_PARTY_ID / AML_CUST / NATIONAL_ID / PHONE / EMAIL']
+  identifier_value_token varchar [not null, note: 'Hashed/Tokenized from raw phone, national_id, or email']
+  source_system varchar [not null]
+  is_primary boolean
+  valid_from timestamp
+  valid_to timestamp
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+
+  indexes {
+    (source_system, identifier_type, identifier_value_token) [unique]
+  }
+}
+
+Table party_identity_resolution {
+  identity_resolution_key varchar [pk]
+  source_system varchar [not null]
+  source_entity varchar [not null, note: 'e.g., crm_customer, customer_kyc, aml_case']
+  source_business_key varchar [not null]
+  candidate_party_key varchar [note: 'Null until identity is resolved']
+  resolution_status varchar [not null, note: 'CONFIRMED / AMBIGUOUS / UNRESOLVED / REJECTED']
+  match_method varchar [not null, note: 'DIRECT_IDENTIFIER / RULE / MANUAL_REVIEW']
+  match_confidence decimal(5,4)
+  resolved_at timestamp
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+
+  indexes {
+    (source_system, source_entity, source_business_key) [unique]
+  }
+}
+
+Table party_profile_version {
+  party_profile_version_key varchar [pk]
+  party_key varchar [not null]
+  profile_source varchar [not null, note: 'core_banking or crm']
+  full_name varchar
+  date_of_birth date
+  address varchar
+  preferred_contact_method varchar [note: 'Introduced by CRM source']
+  effective_from timestamp [not null]
+  effective_to timestamp
+  is_current boolean [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table party_kyc_assessment {
+  kyc_assessment_key varchar [pk]
+  party_key varchar [not null]
+  id_type varchar
+  id_number_token varchar
+  verification_status varchar [not null]
+  verified_date date
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table party_employment {
+  employment_key varchar [pk]
+  party_key varchar [not null]
+  employer_name varchar
+  job_title varchar
+  monthly_income decimal(12,2)
+  effective_from date
+  effective_to date
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table party_service_request {
+  service_request_key varchar [pk]
+  party_key varchar [not null]
+  request_type varchar
+  channel varchar
+  request_date date
+  request_status varchar
+  resolution_date date
+  request_description varchar
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+
+// ===========================================================================
+// 2. ACCOUNTS, CARDS, AND INSTRUMENTS (Derived from account, card, balance...)
+// ===========================================================================
+
+Table account {
+  account_key varchar [pk]
+  source_account_id bigint [not null]
+  product_type varchar
+  account_status varchar
+  open_date date
+  branch_code varchar
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+
+  indexes {
+    (source_system, source_account_id) [unique]
+  }
+}
+
+Table party_account_role {
+  party_account_role_key varchar [pk]
+  party_key varchar [not null]
+  account_key varchar [not null]
+  relationship_type varchar [not null, note: 'From customer_account.relationship_type']
+  valid_from date
+  valid_to date
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+
+  indexes {
+    (party_key, account_key, relationship_type, valid_from) [unique]
+  }
+}
+
+Table payment_card {
+  payment_card_key varchar [pk]
+  source_card_id varchar [not null]
+  account_key varchar [not null]
+  card_number_token varchar [not null]
+  card_type varchar
+  issue_date date
+  expiry_date date
+  card_status varchar
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+
+  indexes {
+    (source_system, source_card_id) [unique]
+  }
+}
+
+Table payment_card_limit_history {
+  card_limit_history_key varchar [pk]
+  payment_card_key varchar [not null]
+  limit_amount decimal(12,2) [not null]
+  effective_date date [not null]
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table account_balance_snapshot {
+  account_balance_snapshot_key varchar [pk]
+  account_key varchar [not null]
+  balance_date date [not null]
+  opening_balance decimal(14,2)
+  closing_balance decimal(14,2)
+  available_balance decimal(14,2)
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+
+  indexes {
+    (account_key, balance_date, source_system) [unique]
+  }
+}
+
+Table transaction_channel {
+  channel_key varchar [pk]
+  source_channel_id varchar [not null]
+  channel_name varchar
+  channel_type varchar
+  source_system varchar [not null]
+
+  indexes {
+    (source_system, source_channel_id) [unique]
+  }
+}
+
+Table merchant {
+  merchant_key varchar [pk]
+  source_merchant_id varchar [not null]
+  merchant_name varchar
+  mcc_code varchar
+  country varchar
+  source_system varchar [not null]
+
+  indexes {
+    (source_system, source_merchant_id) [unique]
+  }
+}
+
+Table merchant_location {
+  merchant_location_key varchar [pk]
+  merchant_key varchar [not null]
+  source_store_id varchar [not null]
+  store_name varchar
+  store_description varchar
+  store_type varchar
+  store_address varchar
+  risk_rating varchar
+  registered_date date
+  source_system varchar [not null]
+
+  indexes {
+    (source_system, source_store_id) [unique]
+  }
+}
+
+
+// ===========================================================================
+// 3. FINANCIAL EVENTS (Derived from account_txn, card_txn, log_atm, gateway_log)
+// ===========================================================================
+
+Table financial_event {
+  financial_event_key varchar [pk]
+  event_type varchar [not null, note: 'ACCOUNT_POSTING / CARD_PAYMENT / ATM_ACTIVITY / GATEWAY_PAYMENT']
+  account_key varchar
+  payment_card_key varchar
+  party_key varchar [note: 'Resolved party at event time']
+  merchant_location_key varchar [note: 'References merchant_location.merchant_location_key for store-level fraud detection; null for online/gateway transactions']
+  currency varchar [not null, default: 'VND', note: 'Promoted to header for cross-event consistency. Populated from gateway_payment or defaulted to base currency']
+  occurred_at timestamp [not null]
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+  data_quality_status varchar [not null]
+
+  indexes {
+    (source_system, event_type, source_business_key) [unique]
+  }
+}
+
+Table account_posting {
+  financial_event_key varchar [pk]
+  posting_amount decimal(12,2) [not null]
+  posting_direction varchar [not null, note: 'DEBIT / CREDIT']
+  posting_type varchar [not null, note: 'DEPOSIT / WITHDRAWAL / TRANSFER / FEE / INTEREST / REVERSAL / ACCOUNT_PAYMENT']
+  channel_key varchar
+  merchant_key varchar
+}
+
+Table card_payment {
+  financial_event_key varchar [pk]
+  payment_amount decimal(12,2) [not null]
+  card_transaction_type varchar [not null, note: 'PURCHASE / REFUND / REVERSAL / FEE']
+  merchant_key varchar
+  is_fraud_source_flag boolean
+}
+
+Table atm_activity {
+  financial_event_key varchar [pk]
+  atm_id varchar [not null]
+  activity_type varchar [not null, note: 'WITHDRAWAL / DEPOSIT / BALANCE_INQUIRY / PIN_CHANGE']
+  amount decimal(12,2)
+  response_code varchar
+}
+
+Table gateway_payment {
+  financial_event_key varchar [pk]
+  payment_reference varchar
+  payment_method varchar
+  merchant_key varchar
+  amount decimal(12,2)
+  provider_code varchar
+}
+
+Table financial_event_association {
+  financial_event_association_key varchar [pk]
+  from_financial_event_key varchar [not null]
+  to_financial_event_key varchar [not null]
+  association_type varchar [not null, note: 'SETTLES / REPRESENTS / REVERSES / RELATES_TO']
+  source_system varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+
+  indexes {
+    (from_financial_event_key, to_financial_event_key, association_type) [unique]
+  }
+}
+
+Table financial_event_status_history {
+  financial_event_status_history_key varchar [pk]
+  financial_event_key varchar [not null]
+  status varchar [not null, note: 'INITIATED / PENDING / SUCCESS / REJECTED / CANCELED']
+  status_timestamp timestamp [not null, note: 'Business time']
+  source_arrival_timestamp timestamp [not null, note: 'Arrival/processing time']
+  sequence_number bigint [not null]
+  source_status_event_id varchar [not null]
+  source_system varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+
+  indexes {
+    (financial_event_key, sequence_number) [unique]
+    (source_system, source_status_event_id) [unique]
+  }
+}
+
+
+// ===========================================================================
+// 4. FINANCIAL CRIME AND COMPLIANCE (Derived from alerts, cases, SAR...)
+// ===========================================================================
+
+Table financial_event_risk_score {
+  financial_event_risk_score_key varchar [pk]
+  financial_event_key varchar [not null]
+  model_score decimal(6,4)
+  risk_band varchar
+  scored_date date
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table fraud_alert {
+  fraud_alert_key varchar [pk]
+  alert_type varchar
+  alert_score decimal(5,2)
+  alert_status varchar
+  created_at timestamp
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table financial_event_fraud_alert {
+  financial_event_fraud_alert_key varchar [pk]
+  financial_event_key varchar [not null]
+  fraud_alert_key varchar [not null]
+  source_system varchar [not null]
+  bronze_record_ref varchar [not null]
+
+  indexes {
+    (financial_event_key, fraud_alert_key) [unique]
+  }
+}
+
+Table transaction_monitoring_alert {
+  monitoring_alert_key varchar [pk]
+  party_key varchar
+  alert_type varchar
+  alert_score decimal(5,2)
+  alert_status varchar
+  alert_timestamp timestamp
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table monitoring_alert_financial_event {
+  monitoring_alert_financial_event_key varchar [pk]
+  monitoring_alert_key varchar [not null]
+  financial_event_key varchar [not null]
+  is_primary boolean [not null]
+  source_system varchar [not null]
+  bronze_record_ref varchar [not null]
+
+  indexes {
+    (monitoring_alert_key, financial_event_key) [unique]
+  }
+}
+
+Table investigation_case {
+  investigation_case_key varchar [pk]
+  investigation_type varchar [not null, note: 'FRAUD / AML']
+  case_origin varchar
+  case_status varchar
+  priority varchar
+  opened_at timestamp
+  closed_at timestamp
+  assigned_analyst_id varchar
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table investigation_case_financial_event {
+  investigation_case_financial_event_key varchar [pk]
+  investigation_case_key varchar [not null]
+  financial_event_key varchar [not null]
+  link_reason varchar
+  linked_at timestamp
+  source_system varchar [not null]
+  bronze_record_ref varchar [not null]
+
+  indexes {
+    (investigation_case_key, financial_event_key) [unique]
+  }
+}
+
+Table investigation_case_fraud_alert {
+  investigation_case_fraud_alert_key varchar [pk]
+  investigation_case_key varchar [not null]
+  fraud_alert_key varchar [not null]
+  linked_at timestamp
+  source_system varchar [not null]
+  bronze_record_ref varchar [not null]
+
+  indexes {
+    (investigation_case_key, fraud_alert_key) [unique]
+  }
+}
+
+Table investigation_case_monitoring_alert {
+  investigation_case_monitoring_alert_key varchar [pk]
+  investigation_case_key varchar [not null]
+  monitoring_alert_key varchar [not null]
+  linked_at timestamp
+  source_system varchar [not null]
+  bronze_record_ref varchar [not null]
+
+  indexes {
+    (investigation_case_key, monitoring_alert_key) [unique]
+  }
+}
+
+Table investigation_note {
+  investigation_note_key varchar [pk]
+  investigation_case_key varchar [not null]
+  author_id varchar
+  note_timestamp timestamp
+  source_arrival_timestamp timestamp [not null]
+  note_type varchar
+  note_text varchar
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table aml_case {
+  aml_case_key varchar [pk]
+  investigation_case_key varchar [not null, unique]
+  party_key varchar
+  case_type varchar
+  risk_level varchar
+  opened_date date
+  closed_date date
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table watchlist_entry {
+  watchlist_entry_key varchar [pk]
+  source_watchlist_id varchar [not null]
+  entity_name varchar
+  list_type varchar
+  country varchar
+  added_date date
+  source_system varchar [not null]
+
+  indexes {
+    (source_system, source_watchlist_id) [unique]
+  }
+}
+
+Table sanctions_screening {
+  sanctions_screening_key varchar [pk]
+  party_key varchar
+  watchlist_entry_key varchar
+  screened_name varchar
+  match_score decimal(5,2)
+  screening_date date
+  screening_result varchar
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table investigation_case_sanctions_screening {
+  investigation_case_sanctions_screening_key varchar [pk]
+  investigation_case_key varchar [not null]
+  sanctions_screening_key varchar [not null]
+  linked_at timestamp
+  source_system varchar [not null]
+  bronze_record_ref varchar [not null]
+
+  indexes {
+    (investigation_case_key, sanctions_screening_key) [unique]
+  }
+}
+
+Table suspicious_activity_report {
+  suspicious_activity_report_key varchar [pk]
+  aml_case_key varchar [not null]
+  filed_date date
+  regulatory_reference varchar
+  report_status varchar
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table card_fraud_flag {
+  card_fraud_flag_key varchar [pk]
+  flag_reason varchar
+  flag_date date
+  resolved_status varchar
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table financial_event_card_fraud_flag {
+  financial_event_card_fraud_flag_key varchar [pk]
+  financial_event_key varchar [not null]
+  card_fraud_flag_key varchar [not null]
+  source_system varchar [not null]
+  bronze_record_ref varchar [not null]
+
+  indexes {
+    (financial_event_key, card_fraud_flag_key) [unique]
+  }
+}
+
+Table chargeback {
+  chargeback_key varchar [pk]
+  financial_event_key varchar [not null, note: 'Must reference a CARD_PAYMENT event']
+  reason_code varchar
+  dispute_amount decimal(12,2)
+  filed_date date
+  chargeback_status varchar
+  resolved_date date
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+Table call_center_contact {
+  call_center_contact_key varchar [pk]
+  party_key varchar
+  investigation_case_key varchar
+  caller_phone_token varchar
+  call_timestamp timestamp
+  call_reason varchar
+  agent_id varchar
+  call_duration_seconds bigint
+  source_system varchar [not null]
+  source_business_key varchar [not null]
+  bronze_record_ref varchar [not null]
+  ingested_at timestamp [not null]
+}
+
+
+// ===========================================================================
+// 5. DATA GOVERNANCE AND OPS (Operational Metadata & DLQ)
+// ===========================================================================
+
+Table pipeline_run {
+  pipeline_run_id varchar [pk]
+  pipeline_name varchar
+  start_time timestamp
+  end_time timestamp
+  execution_status varchar [note: 'SUCCESS / FAILED / PARTIAL_SUCCESS']
+}
+
+Table data_quality_audit_log {
+  log_id varchar [pk]
+  pipeline_run_id varchar [ref: > pipeline_run.pipeline_run_id]
+  target_table_name varchar
+  rule_name varchar
+  records_checked bigint
+  records_failed bigint
+  evaluated_at timestamp
+}
+
+Table silver_quarantine_record {
+  quarantine_key varchar [pk]
+  pipeline_run_id varchar [ref: > pipeline_run.pipeline_run_id]
+  source_table_name varchar
+  source_business_key varchar
+  bronze_record_ref varchar
+  failed_rule_name varchar [note: 'One failed validation rule per atomic quarantine record']
+  quarantine_reason varchar
+  rescued_data_json string [note: 'Chứa nội dung thô từ _rescued_data ở Bronze']
+  quarantine_data_payload string [note: 'Complete raw Bronze record retained for every quarantined event']
+  quarantined_at timestamp
+}
+
+Table pii_masking_log {
+  audit_id varchar [pk]
+  pipeline_run_id varchar [ref: > pipeline_run.pipeline_run_id]
+  target_table_name varchar
+  target_column_name varchar [note: 'e.g., identifier_value_token, card_number_token']
+  masking_policy varchar [note: 'SHA256_TOKENIZATION / ANONYMIZATION / REDACTION']
+  records_transformed integer
+  executed_at timestamp
+}
+
+
+// ===========================================================================
+// ENTITY RELATIONSHIPS (FOREIGN KEYS)
+// ===========================================================================
+
+Ref: party_identifier.party_key > party.party_key
+Ref: party_identity_resolution.candidate_party_key > party.party_key
+Ref: party_profile_version.party_key > party.party_key
+Ref: party_kyc_assessment.party_key > party.party_key
+Ref: party_employment.party_key > party.party_key
+Ref: party_service_request.party_key > party.party_key
+
+Ref: party_account_role.party_key > party.party_key
+Ref: party_account_role.account_key > account.account_key
+Ref: payment_card.account_key > account.account_key
+Ref: payment_card_limit_history.payment_card_key > payment_card.payment_card_key
+Ref: account_balance_snapshot.account_key > account.account_key
+Ref: merchant_location.merchant_key > merchant.merchant_key
+
+Ref: financial_event.account_key > account.account_key
+Ref: financial_event.payment_card_key > payment_card.payment_card_key
+Ref: financial_event.party_key > party.party_key
+Ref: account_posting.financial_event_key - financial_event.financial_event_key
+Ref: account_posting.channel_key > transaction_channel.channel_key
+Ref: account_posting.merchant_key > merchant.merchant_key
+Ref: card_payment.financial_event_key - financial_event.financial_event_key
+Ref: card_payment.merchant_key > merchant.merchant_key
+Ref: atm_activity.financial_event_key - financial_event.financial_event_key
+Ref: gateway_payment.financial_event_key - financial_event.financial_event_key
+Ref: gateway_payment.merchant_key > merchant.merchant_key
+Ref: financial_event_association.from_financial_event_key > financial_event.financial_event_key
+Ref: financial_event_association.to_financial_event_key > financial_event.financial_event_key
+Ref: financial_event_status_history.financial_event_key > financial_event.financial_event_key
+Ref: financial_event.merchant_location_key > merchant_location.merchant_location_key
+Ref: financial_event_risk_score.financial_event_key > financial_event.financial_event_key
+Ref: financial_event_fraud_alert.financial_event_key > financial_event.financial_event_key
+Ref: financial_event_fraud_alert.fraud_alert_key > fraud_alert.fraud_alert_key
+Ref: transaction_monitoring_alert.party_key > party.party_key
+Ref: monitoring_alert_financial_event.monitoring_alert_key > transaction_monitoring_alert.monitoring_alert_key
+Ref: monitoring_alert_financial_event.financial_event_key > financial_event.financial_event_key
+Ref: investigation_case_financial_event.investigation_case_key > investigation_case.investigation_case_key
+Ref: investigation_case_financial_event.financial_event_key > financial_event.financial_event_key
+Ref: investigation_case_fraud_alert.investigation_case_key > investigation_case.investigation_case_key
+Ref: investigation_case_fraud_alert.fraud_alert_key > fraud_alert.fraud_alert_key
+Ref: investigation_case_monitoring_alert.investigation_case_key > investigation_case.investigation_case_key
+Ref: investigation_case_monitoring_alert.monitoring_alert_key > transaction_monitoring_alert.monitoring_alert_key
+Ref: investigation_note.investigation_case_key > investigation_case.investigation_case_key
+Ref: aml_case.investigation_case_key - investigation_case.investigation_case_key
+Ref: sanctions_screening.party_key > party.party_key
+Ref: sanctions_screening.watchlist_entry_key > watchlist_entry.watchlist_entry_key
+Ref: investigation_case_sanctions_screening.investigation_case_key > investigation_case.investigation_case_key
+Ref: investigation_case_sanctions_screening.sanctions_screening_key > sanctions_screening.sanctions_screening_key
+Ref: suspicious_activity_report.aml_case_key > aml_case.aml_case_key
+Ref: financial_event_card_fraud_flag.financial_event_key > financial_event.financial_event_key
+Ref: financial_event_card_fraud_flag.card_fraud_flag_key > card_fraud_flag.card_fraud_flag_key
+Ref: chargeback.financial_event_key > financial_event.financial_event_key
+Ref: call_center_contact.party_key > party.party_key
+Ref: call_center_contact.investigation_case_key > investigation_case.investigation_case_key

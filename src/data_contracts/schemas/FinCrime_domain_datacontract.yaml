@@ -1,0 +1,1048 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: urn:datacontract:banking:fincrime_data
+name: FinCrime Data Contract
+version: 1.0.0
+status: active
+domain: Financial Crime & Compliance
+info:
+  title: Financial Crime and Compliance Data Contract
+  version: 1.0.0
+  description: Data contract covering fraud alerts, transaction monitoring, sanctions, AML case management, analyst notes, SARs, card disputes, and risk scoring.
+team:
+  name: Financial Crime Data Engineering
+  description: Team responsible for generating and maintaining FinCrime datasets.
+  members:
+    - name: Data Governance Lead
+      role: owner
+      email: datagovernance@banking.com
+servers:
+  - id: databricks-silver-prod
+    server: prod-databricks.banking.com
+    type: databricks
+    environment: production
+    host: prod-databricks.banking.com
+    catalog: silver_catalog
+    schema: silver_fincrime
+terms:
+  usage: Restricted to AML, Fraud, and Compliance analytics and reporting pipelines.
+  limitations: Contains sensitive PII tokens and transaction data. Access requires tier-3 security clearance.
+serviceLevelAgreement:
+  - property: availability
+    value: 99.9
+    unit: percent
+    description: Data platform uptime guarantee.
+  - property: retention
+    value: 7
+    unit: year
+    description: Compliance retention policy for financial crime investigation records.
+  - property: freshness
+    value: 24
+    unit: hour
+    description: Daily batch processing completed by 06:00 AM UTC.
+schema:
+  - id: fraud_alert_tbl
+    name: fraud_alert
+    logicalType: object
+    physicalType: table
+    description: Fraud-rule/model alert on an account transaction.
+    properties:
+      - name: alert_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Alert identifier
+      - name: account_txn_id
+        logicalType: integer
+        physicalType: BIGINT
+        description: References account_transaction.account_txn_id
+        relationships:
+          - to: account_transaction.account_txn_id
+            type: foreignKey
+      - name: alert_type
+        logicalType: string
+        physicalType: VARCHAR
+        description: VELOCITY / GEO_MISMATCH / AMOUNT_OUTLIER / DEVICE_CHANGE
+        enum:
+          - VELOCITY
+          - GEO_MISMATCH
+          - AMOUNT_OUTLIER
+          - DEVICE_CHANGE
+      - name: alert_score
+        logicalType: number
+        physicalType: DECIMAL(5,2)
+        precision: 5
+        scale: 2
+        description: Risk score, expected 0–100
+      - name: alert_status
+        logicalType: string
+        physicalType: VARCHAR
+        description: OPEN / CLOSED / ESCALATED
+        enum:
+          - OPEN
+          - CLOSED
+          - ESCALATED
+      - name: created_date
+        logicalType: date
+        physicalType: DATE
+        config:
+          format: date
+        description: Alert creation date
+  - id: transaction_monitoring_alert_tbl
+    name: transaction_monitoring_alert
+    logicalType: object
+    physicalType: table
+    description: AML transaction-monitoring alert that can collect multiple account and card transaction evidence items.
+    properties:
+      - name: alert_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Alert identifier
+      - name: customer_ref
+        logicalType: string
+        physicalType: VARCHAR
+        description: References core_banking_customer.cust_no
+      - name: primary_account_txn_id
+        logicalType: integer
+        physicalType: BIGINT
+        description: Primary account transaction; also represented in the evidence bridge (References account_transaction.account_txn_id)
+        relationships:
+          - to: account_transaction.account_txn_id
+            type: foreignKey
+      - name: alert_type
+        logicalType: string
+        physicalType: VARCHAR
+        description: AML alert/rule type
+      - name: alert_score
+        logicalType: number
+        physicalType: DECIMAL(5,2)
+        precision: 5
+        scale: 2
+        description: Model/rule score
+      - name: alert_status
+        logicalType: string
+        physicalType: VARCHAR
+        description: Alert workflow status
+      - name: alert_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Alert generation time
+  - id: transaction_monitoring_alert_account_transaction_tbl
+    name: transaction_monitoring_alert_account_transaction
+    logicalType: object
+    physicalType: table
+    description: Evidence bridge between a transaction-monitoring alert and an account transaction.
+    properties:
+      - name: alert_account_txn_link_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Evidence link identifier
+      - name: alert_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References transaction_monitoring_alert.alert_id
+        relationships:
+          - to: transaction_monitoring_alert.alert_id
+            type: foreignKey
+      - name: account_txn_id
+        logicalType: integer
+        physicalType: BIGINT
+        description: References account_transaction.account_txn_id
+        relationships:
+          - to: account_transaction.account_txn_id
+            type: foreignKey
+      - name: is_primary
+        logicalType: boolean
+        physicalType: BOOLEAN
+        description: Marks the primary evidence transaction for the alert
+  - id: transaction_monitoring_alert_card_transaction_tbl
+    name: transaction_monitoring_alert_card_transaction
+    logicalType: object
+    physicalType: table
+    description: Evidence bridge between a transaction-monitoring alert and a card transaction.
+    properties:
+      - name: alert_card_txn_link_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Evidence link identifier
+      - name: alert_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References transaction_monitoring_alert.alert_id
+        relationships:
+          - to: transaction_monitoring_alert.alert_id
+            type: foreignKey
+      - name: card_txn_id
+        logicalType: integer
+        physicalType: BIGINT
+        description: References card_transaction.card_txn_id
+        relationships:
+          - to: card_transaction.card_txn_id
+            type: foreignKey
+      - name: is_primary
+        logicalType: boolean
+        physicalType: BOOLEAN
+        description: Marks the primary evidence transaction for the alert
+  - id: investigation_case_tbl
+    name: investigation_case
+    logicalType: object
+    physicalType: table
+    description: General investigation-workflow case for fraud or AML, regardless of its origin.
+    properties:
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Case identifier
+      - name: investigation_type
+        logicalType: string
+        physicalType: VARCHAR
+        description: FRAUD / AML
+        enum:
+          - FRAUD
+          - AML
+      - name: case_origin
+        logicalType: string
+        physicalType: VARCHAR
+        description: ALERT / CUSTOMER_DISPUTE / CHARGEBACK / SANCTIONS_HIT / MANUAL
+        enum:
+          - ALERT
+          - CUSTOMER_DISPUTE
+          - CHARGEBACK
+          - SANCTIONS_HIT
+          - MANUAL
+      - name: case_status
+        logicalType: string
+        physicalType: VARCHAR
+        description: OPEN / IN_REVIEW / ESCALATED / CLOSED
+        enum:
+          - OPEN
+          - IN_REVIEW
+          - ESCALATED
+          - CLOSED
+      - name: priority
+        logicalType: string
+        physicalType: VARCHAR
+        description: LOW / MEDIUM / HIGH / CRITICAL
+        enum:
+          - LOW
+          - MEDIUM
+          - HIGH
+          - CRITICAL
+      - name: opened_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Case opened time
+      - name: closed_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Case closed time
+      - name: assigned_analyst_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: Analyst assigned to case
+  - id: investigation_case_transaction_monitoring_alert_tbl
+    name: investigation_case_transaction_monitoring_alert
+    logicalType: object
+    physicalType: table
+    description: Links an AML investigation case to a transaction-monitoring alert.
+    properties:
+      - name: case_alert_link_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Link identifier
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References investigation_case.case_id; case must be AML
+        relationships:
+          - to: investigation_case.case_id
+            type: foreignKey
+      - name: alert_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References transaction_monitoring_alert.alert_id
+        relationships:
+          - to: transaction_monitoring_alert.alert_id
+            type: foreignKey
+      - name: linked_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Time of link creation
+  - id: investigation_case_card_fraud_flag_tbl
+    name: investigation_case_card_fraud_flag
+    logicalType: object
+    physicalType: table
+    description: Links a fraud investigation case to a card fraud flag.
+    properties:
+      - name: case_flag_link_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Link identifier
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References investigation_case.case_id; case must be FRAUD
+        relationships:
+          - to: investigation_case.case_id
+            type: foreignKey
+      - name: flag_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References card_fraud_flag.flag_id
+        relationships:
+          - to: card_fraud_flag.flag_id
+            type: foreignKey
+      - name: linked_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Time of link creation
+  - id: investigation_case_account_transaction_tbl
+    name: investigation_case_account_transaction
+    logicalType: object
+    physicalType: table
+    description: Evidence bridge between an investigation case and a suspicious account transaction.
+    properties:
+      - name: case_account_txn_link_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Link identifier
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References investigation_case.case_id
+        relationships:
+          - to: investigation_case.case_id
+            type: foreignKey
+      - name: account_txn_id
+        logicalType: integer
+        physicalType: BIGINT
+        description: References account_transaction.account_txn_id
+        relationships:
+          - to: account_transaction.account_txn_id
+            type: foreignKey
+      - name: link_reason
+        logicalType: string
+        physicalType: VARCHAR
+        description: PRIMARY_TRANSACTION / RELATED_TRANSACTION / CUSTOMER_DISPUTE
+        enum:
+          - PRIMARY_TRANSACTION
+          - RELATED_TRANSACTION
+          - CUSTOMER_DISPUTE
+      - name: linked_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Time of link creation
+  - id: investigation_case_card_transaction_tbl
+    name: investigation_case_card_transaction
+    logicalType: object
+    physicalType: table
+    description: Evidence bridge between an investigation case and a suspicious card-network transaction.
+    properties:
+      - name: case_card_txn_link_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Link identifier
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References investigation_case.case_id
+        relationships:
+          - to: investigation_case.case_id
+            type: foreignKey
+      - name: card_txn_id
+        logicalType: integer
+        physicalType: BIGINT
+        description: References card_transaction.card_txn_id
+        relationships:
+          - to: card_transaction.card_txn_id
+            type: foreignKey
+      - name: link_reason
+        logicalType: string
+        physicalType: VARCHAR
+        description: PRIMARY_TRANSACTION / RELATED_TRANSACTION / CUSTOMER_DISPUTE
+        enum:
+          - PRIMARY_TRANSACTION
+          - RELATED_TRANSACTION
+          - CUSTOMER_DISPUTE
+      - name: linked_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Time of link creation
+  - id: investigation_case_fraud_alert_tbl
+    name: investigation_case_fraud_alert
+    logicalType: object
+    physicalType: table
+    description: Evidence bridge between an investigation case and a fraud alert.
+    properties:
+      - name: case_alert_link_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Link identifier
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References investigation_case.case_id
+        relationships:
+          - to: investigation_case.case_id
+            type: foreignKey
+      - name: alert_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References fraud_alert.alert_id
+        relationships:
+          - to: fraud_alert.alert_id
+            type: foreignKey
+      - name: linked_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Time of link creation
+  - id: investigation_case_sanction_screening_tbl
+    name: investigation_case_sanction_screening
+    logicalType: object
+    physicalType: table
+    description: Evidence bridge between an AML investigation case and a sanctions-screening result.
+    properties:
+      - name: case_screening_link_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Link identifier
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References investigation_case.case_id
+        relationships:
+          - to: investigation_case.case_id
+            type: foreignKey
+      - name: screening_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References sanction_screening.screening_id
+        relationships:
+          - to: sanction_screening.screening_id
+            type: foreignKey
+      - name: linked_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Time of link creation
+  - id: investigation_note_tbl
+    name: investigation_note
+    logicalType: object
+    physicalType: table
+    description: Analyst notes, evidence, customer contacts, and decisions logged against an investigation case.
+    properties:
+      - name: note_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Note identifier
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References investigation_case.case_id
+        relationships:
+          - to: investigation_case.case_id
+            type: foreignKey
+      - name: author_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: Note author
+      - name: note_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Business event time of note
+      - name: source_arrival_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Source system arrival time; may be later than subsequent business events
+      - name: note_type
+        logicalType: string
+        physicalType: VARCHAR
+        description: ANALYST_NOTE / EVIDENCE / CUSTOMER_CONTACT / DECISION
+        enum:
+          - ANALYST_NOTE
+          - EVIDENCE
+          - CUSTOMER_CONTACT
+          - DECISION
+      - name: note_text
+        logicalType: string
+        physicalType: VARCHAR
+        description: Free-text note content
+  - id: aml_case_tbl
+    name: aml_case
+    logicalType: object
+    physicalType: table
+    description: Compliance-system AML case extension linked one-to-one to the general investigation workflow.
+    properties:
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Case identifier
+      - name: investigation_case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: Unique; references investigation_case.case_id; links the compliance-system AML case to the general investigation workflow
+        relationships:
+          - to: investigation_case.case_id
+            type: foreignKey
+      - name: customer_ref
+        logicalType: string
+        physicalType: VARCHAR
+        description: Compliance-system format, e.g. AML-CUST-000123
+      - name: case_type
+        logicalType: string
+        physicalType: VARCHAR
+        description: STRUCTURING / UNUSUAL_PATTERN / SANCTIONS_HIT
+        enum:
+          - STRUCTURING
+          - UNUSUAL_PATTERN
+          - SANCTIONS_HIT
+      - name: risk_level
+        logicalType: string
+        physicalType: VARCHAR
+        description: LOW / MEDIUM / HIGH
+        enum:
+          - LOW
+          - MEDIUM
+          - HIGH
+      - name: opened_date
+        logicalType: date
+        physicalType: DATE
+        config:
+          format: date
+        description: Case opened date
+      - name: closed_date
+        logicalType: date
+        physicalType: DATE
+        config:
+          format: date
+        description: Case closed date
+  - id: sanction_screening_tbl
+    name: sanction_screening
+    logicalType: object
+    physicalType: table
+    description: Name-screening result against a watchlist; the matched watchlist entry is optional.
+    properties:
+      - name: screening_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Screening record identifier
+      - name: customer_ref
+        logicalType: string
+        physicalType: VARCHAR
+        description: AML-CUST-XXXXXX format, same as aml_case
+      - name: watchlist_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References watchlist.watchlist_id; null for CLEAR/no retained candidate
+        relationships:
+          - to: watchlist.watchlist_id
+            type: foreignKey
+      - name: screened_name
+        logicalType: string
+        physicalType: VARCHAR
+        description: Name string submitted for screening
+      - name: match_score
+        logicalType: number
+        physicalType: DECIMAL(5,2)
+        precision: 5
+        scale: 2
+        description: Fuzzy-match score, 0–100
+      - name: screening_date
+        logicalType: date
+        physicalType: DATE
+        config:
+          format: date
+        description: Screening date
+      - name: result
+        logicalType: string
+        physicalType: VARCHAR
+        description: CLEAR / HIT / FALSE_POSITIVE
+        enum:
+          - CLEAR
+          - HIT
+          - FALSE_POSITIVE
+  - id: suspicious_activity_report_tbl
+    name: suspicious_activity_report
+    logicalType: object
+    physicalType: table
+    description: Formal SARs filed with the regulator following an AML case.
+    properties:
+      - name: sar_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: SAR identifier
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References aml_case.case_id
+        relationships:
+          - to: aml_case.case_id
+            type: foreignKey
+      - name: filed_date
+        logicalType: date
+        physicalType: DATE
+        config:
+          format: date
+        description: Filing date
+      - name: regulatory_ref
+        logicalType: string
+        physicalType: VARCHAR
+        description: Regulator-assigned reference number
+      - name: status
+        logicalType: string
+        physicalType: VARCHAR
+        description: DRAFT / FILED / ACKNOWLEDGED
+        enum:
+          - DRAFT
+          - FILED
+          - ACKNOWLEDGED
+  - id: watchlist_tbl
+    name: watchlist
+    logicalType: object
+    physicalType: table
+    description: Reference table of sanctioned/PEP entities used by sanction_screening.
+    properties:
+      - name: watchlist_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Watchlist entry identifier
+      - name: entity_name
+        logicalType: string
+        physicalType: VARCHAR
+        description: Listed entity/person name
+      - name: list_type
+        logicalType: string
+        physicalType: VARCHAR
+        description: PEP / OFAC / UN_SANCTIONS
+        enum:
+          - PEP
+          - OFAC
+          - UN_SANCTIONS
+      - name: country
+        logicalType: string
+        physicalType: VARCHAR
+        description: Associated country
+      - name: added_date
+        logicalType: date
+        physicalType: DATE
+        config:
+          format: date
+        description: Date added to list
+  - id: account_transaction_risk_score_tbl
+    name: account_transaction_risk_score
+    logicalType: object
+    physicalType: table
+    description: Model-generated risk score for every transaction (1:1 with the account_transaction table).
+    properties:
+      - name: score_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Score record identifier
+      - name: account_txn_id
+        logicalType: integer
+        physicalType: BIGINT
+        description: References account_transaction.account_txn_id
+        relationships:
+          - to: account_transaction.account_txn_id
+            type: foreignKey
+      - name: model_score
+        logicalType: number
+        physicalType: DECIMAL(6,4)
+        precision: 6
+        scale: 4
+        description: Model probability score, 0.0000–1.0000
+      - name: risk_band
+        logicalType: string
+        physicalType: VARCHAR
+        description: LOW / MEDIUM / HIGH
+        enum:
+          - LOW
+          - MEDIUM
+          - HIGH
+      - name: scored_date
+        logicalType: date
+        physicalType: DATE
+        config:
+          format: date
+        description: Date scored
+  - id: call_center_log_tbl
+    name: call_center_log
+    logicalType: object
+    physicalType: table
+    description: Customer service call log — the primary human-reported entry point for fraud reports and disputes, before they become a formal fraud_alert or aml_case.
+    properties:
+      - name: call_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Call record identifier
+      - name: customer_ref
+        logicalType: string
+        physicalType: VARCHAR
+        description: cust_no or party_id when the agent identified the caller
+      - name: caller_phone
+        logicalType: string
+        physicalType: VARCHAR
+        description: Phone number the call originated from
+      - name: call_timestamp
+        logicalType: timestamp
+        physicalType: TIMESTAMP
+        config:
+          format: date-time
+          timezone: UTC
+        description: Call date/time
+      - name: call_reason
+        logicalType: string
+        physicalType: VARCHAR
+        description: FRAUD_REPORT / DISPUTE / GENERAL_INQUIRY / CARD_LOST
+        enum:
+          - FRAUD_REPORT
+          - DISPUTE
+          - GENERAL_INQUIRY
+          - CARD_LOST
+      - name: agent_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: Handling agent identifier
+      - name: call_duration_seconds
+        logicalType: integer
+        physicalType: BIGINT
+        description: Call duration in seconds
+      - name: case_id
+        logicalType: string
+        physicalType: VARCHAR
+        description: References investigation_case.case_id; null until the call is classified into a case
+        relationships:
+          - to: investigation_case.case_id
+            type: foreignKey
+  - id: chargeback_tbl
+    name: chargeback
+    logicalType: object
+    physicalType: table
+    description: Card-network chargeback disputes filed against card_transaction rows.
+    properties:
+      - name: chargeback_id
+        logicalType: string
+        physicalType: VARCHAR
+        primaryKey: true
+        description: Chargeback identifier
+      - name: card_txn_id
+        logicalType: integer
+        physicalType: BIGINT
+        description: References card_transaction.card_txn_id
+        relationships:
+          - to: card_transaction.card_txn_id
+            type: foreignKey
+      - name: reason_code
+        logicalType: string
+        physicalType: VARCHAR
+        description: Card-network standard reason code
+      - name: dispute_amount
+        logicalType: number
+        physicalType: DECIMAL(12,2)
+        precision: 12
+        scale: 2
+        description: Disputed amount (VND)
+      - name: filed_date
+        logicalType: date
+        physicalType: DATE
+        config:
+          format: date
+        description: Chargeback filing date
+      - name: status
+        logicalType: string
+        physicalType: VARCHAR
+        description: FILED / UNDER_REVIEW / APPROVED / DENIED
+        enum:
+          - FILED
+          - UNDER_REVIEW
+          - APPROVED
+          - DENIED
+      - name: resolved_date
+        logicalType: date
+        physicalType: DATE
+        config:
+          format: date
+        description: Date the chargeback was resolved
+dataQuality:
+  - type: library
+    name: invalidValues
+    columns:
+      - alert_type
+    arguments:
+      validValues:
+        - VELOCITY
+        - GEO_MISMATCH
+        - AMOUNT_OUTLIER
+        - DEVICE_CHANGE
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - alert_status
+    arguments:
+      validValues:
+        - OPEN
+        - CLOSED
+        - ESCALATED
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - investigation_type
+    arguments:
+      validValues:
+        - FRAUD
+        - AML
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - case_origin
+    arguments:
+      validValues:
+        - ALERT
+        - CUSTOMER_DISPUTE
+        - CHARGEBACK
+        - SANCTIONS_HIT
+        - MANUAL
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - case_status
+    arguments:
+      validValues:
+        - OPEN
+        - IN_REVIEW
+        - ESCALATED
+        - CLOSED
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - priority
+    arguments:
+      validValues:
+        - LOW
+        - MEDIUM
+        - HIGH
+        - CRITICAL
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - link_reason
+    arguments:
+      validValues:
+        - PRIMARY_TRANSACTION
+        - RELATED_TRANSACTION
+        - CUSTOMER_DISPUTE
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - note_type
+    arguments:
+      validValues:
+        - ANALYST_NOTE
+        - EVIDENCE
+        - CUSTOMER_CONTACT
+        - DECISION
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - case_type
+    arguments:
+      validValues:
+        - STRUCTURING
+        - UNUSUAL_PATTERN
+        - SANCTIONS_HIT
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - risk_level
+    arguments:
+      validValues:
+        - LOW
+        - MEDIUM
+        - HIGH
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - result
+    arguments:
+      validValues:
+        - CLEAR
+        - HIT
+        - FALSE_POSITIVE
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - status
+    arguments:
+      validValues:
+        - DRAFT
+        - FILED
+        - ACKNOWLEDGED
+        - UNDER_REVIEW
+        - APPROVED
+        - DENIED
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - list_type
+    arguments:
+      validValues:
+        - PEP
+        - OFAC
+        - UN_SANCTIONS
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - risk_band
+    arguments:
+      validValues:
+        - LOW
+        - MEDIUM
+        - HIGH
+    mustBe: 0
+  - type: library
+    name: invalidValues
+    columns:
+      - call_reason
+    arguments:
+      validValues:
+        - FRAUD_REPORT
+        - DISPUTE
+        - GENERAL_INQUIRY
+        - CARD_LOST
+    mustBe: 0
+  - type: sql
+    name: Ru_2_Missing_customer_lookup
+    sql: |
+      SELECT call_id, customer_ref
+      FROM call_center_log
+      WHERE customer_ref IS NULL
+        AND caller_phone IS NULL
+  - type: sql
+    name: Ru_7_Invalid_screened_name
+    sql: |
+      SELECT screening_id, screened_name
+      FROM sanction_screening
+      WHERE screened_name IS NULL
+         OR LENGTH(TRIM(screened_name)) < 3
+  - type: sql
+    name: Ru_8_Reference_lookup_chargeback_reason_code
+    sql: |
+      SELECT c.chargeback_id, c.reason_code
+      FROM chargeback c
+      LEFT JOIN reference_reason_code r
+        ON c.reason_code = r.reason_code
+      WHERE r.reason_code IS NULL
+  - type: sql
+    name: Ru_13_Numeric_range_fraud_alert_score
+    sql: |
+      SELECT alert_id, alert_score
+      FROM fraud_alert
+      WHERE alert_score < 0.00
+         OR alert_score > 100.00
+  - type: sql
+    name: Ru_18_Ambiguous_customer_mapping
+    sql: |
+      SELECT source_customer_ref
+      FROM customer_crosswalk
+      GROUP BY source_customer_ref
+      HAVING COUNT(DISTINCT enterprise_customer_id) > 1
+  - type: sql
+    name: Ru_17_Customer_mapping_aml_case
+    sql: |
+      SELECT a.case_id, a.customer_ref
+      FROM aml_case a
+      LEFT JOIN customer_crosswalk c
+        ON a.customer_ref = c.source_customer_ref
+      WHERE c.enterprise_customer_id IS NULL
+  - type: sql
+    name: Structural_NULL_aml_case_closed_date
+    description: closed_date must be populated only when the AML case has been closed.
+    sql: |
+      SELECT case_id, closed_date
+      FROM aml_case
+      WHERE risk_level IS NOT NULL
+        AND closed_date IS NULL
+        AND case_status = 'CLOSED'
+  - type: sql
+    name: Structural_NULL_suspicious_activity_report_regulatory_ref
+    sql: |
+      SELECT sar_id, regulatory_ref, status
+      FROM suspicious_activity_report
+      WHERE status IN ('FILED', 'ACKNOWLEDGED')
+        AND regulatory_ref IS NULL
+  - type: sql
+    name: Structural_NULL_call_center_log_case_id
+    sql: |
+      SELECT call_id, case_id
+      FROM call_center_log
+      WHERE case_id IS NOT NULL
+        AND call_reason NOT IN ('FRAUD_REPORT', 'DISPUTE')
+  - type: sql
+    name: Structural_NULL_chargeback_resolved_date
+    sql: |
+      SELECT chargeback_id, resolved_date, status
+      FROM chargeback
+      WHERE status IN ('APPROVED', 'DENIED')
+        AND resolved_date IS NULL

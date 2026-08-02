@@ -1,0 +1,16 @@
+resources:
+  pipelines:
+    source_to_bronze:
+      name: source-to-bronze
+      catalog: ${var.catalog}
+      schema: ${var.bronze_schema}
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/pipeline/bronze/source_to_bronze_ingestion.py
+      configuration:
+        pipeline.target_catalog: ${var.catalog}
+        pipeline.target_schema: ${var.bronze_schema}
+        pipeline.source_mode: ${var.source_mode}
+        pipeline.source_root: ${var.source_root}

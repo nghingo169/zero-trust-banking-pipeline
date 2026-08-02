@@ -1,0 +1,19 @@
+resources:
+  pipelines:
+    dev_centralized_quarantine:
+      # Retain this resource key during migration so Databricks reuses the
+      # existing pipeline ID instead of consuming another pipeline slot.
+      name: bronze-to-validated-silver
+      catalog: ${var.catalog}
+      schema: ${var.governance_schema}
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/pipeline/silver/bronze_to_validated_silver.py
+      configuration:
+        pipeline.catalog: ${var.catalog}
+        pipeline.validated_schema: ${var.silver_validated_schema}
+        pipeline.governance_schema: ${var.governance_schema}
+        pipeline.bronze_schema: ${var.bronze_schema}
+        pipeline.quality_rules_path: ${workspace.file_path}/src

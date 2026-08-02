@@ -1,0 +1,64 @@
+# This is a Declarative Automation Bundle definition for zero-trust-banking-pipeline.
+# The Databricks extension requires databricks.yml configuration file.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+
+bundle:
+  name: zero-trust-banking-pipeline
+
+experimental:
+  # Development mode normally prefixes UC schema names with the deployer.
+  # This bundle uses explicit, stable schema names across workspaces.
+  skip_name_prefix_for_schema: true
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog destination catalog.
+    default: workspace
+  source_landing_schema:
+    description: Shared immutable raw-file landing schema for every source domain.
+    default: source_landing
+  source_landing_volume:
+    description: Managed volume that receives raw source snapshots before Bronze ingestion.
+    default: source_snapshot_files
+  bronze_schema:
+    description: Unified Bronze schema for all source-domain tables.
+    default: bronze
+  source_mode:
+    description: "Source location mode: volume for local-development uploads or s3 for production."
+    default: volume
+  source_root:
+    description: Root directory containing business_date snapshot folders.
+    default: ""
+  silver_validated_schema:
+    description: Production-style schema for normalized and validated Silver source tables.
+    default: silver_validated
+  governance_schema:
+    description: Production-style schema for shared pipeline operations, audit, and quarantine tables.
+    default: governance
+  silver_schema:
+    description: Production-style schema for Silver atomic model tables.
+    default: silver
+
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      source_mode: volume
+
+  team:
+    mode: development
+    variables:
+      source_mode: s3
+      source_root: "s3://nab-src-dataset/banking/snapshots/simulation_id=banking-20260705-20260710/snapshot_type=full"
+    resources:
+      pipelines:
+        source_to_bronze:
+          configuration:
+            spark.hadoop.fs.s3a.aws.credentials.provider: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
+            spark.hadoop.fs.s3a.access.key: "{{secrets/banking-s3-ingestion/access-key-id}}"
+            spark.hadoop.fs.s3a.secret.key: "{{secrets/banking-s3-ingestion/secret-access-key}}"
+            spark.hadoop.fs.s3a.endpoint.region: ap-southeast-1
