@@ -9,10 +9,12 @@ from pyspark.sql import Row, functions as F
 
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
+dbutils.widgets.text("pipeline_name", "full-source-to-validated-silver")
 dbutils.widgets.text("quality_rules_path", "")
 
 BUSINESS_DATE = dbutils.widgets.get("business_date")
 RUN_ID = dbutils.widgets.get("run_id")
+PIPELINE_NAME = dbutils.widgets.get("pipeline_name")
 RULE_PATH = dbutils.widgets.get("quality_rules_path")
 if not RUN_ID:
     raise ValueError("run_id is required")
@@ -98,7 +100,7 @@ for domain in DOMAINS:
         ))
     write_audit(
         spark, catalog=CATALOG, domain=domain, pipeline_run_id=RUN_ID,
-        pipeline_name="full-source-to-validated-silver", business_date=BUSINESS_DATE,
+        pipeline_name=PIPELINE_NAME, business_date=BUSINESS_DATE,
         execution_status="SUCCEEDED",
         table_metrics=[row.asDict() for row in metrics], rule_audits=rule_audits,
     )

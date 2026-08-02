@@ -109,11 +109,62 @@ if __name__ == '__main__':
 
 ## Integration with CI/CD
 
-These tests are designed to be integrated into CI/CD pipelines:
+These tests are fully integrated into the GitHub Actions CI/CD pipeline (`.github/workflows/ci-cd.yml`):
 
-1. **Pre-commit**: Run locally before committing (`pytest tests/`)
-2. **PR Validation**: Automatically run via bundle job on pull requests
-3. **Pre-deployment**: Run full test suite before deploying to production
+### Automated Test Execution
+
+**1. Local Development (Pre-commit)**
+```bash
+# Run before committing
+pytest tests/
+```
+
+**2. GitHub Actions Pipeline (Automatic)**
+
+On every push or pull request to `main`:
+
+* **Code Quality Stage**
+  - Runs flake8 (linting)
+  - Checks black formatting
+  - Validates import sorting (isort)
+
+* **Unit Tests Stage** (Parallel)
+  - Runs all tests in `tests/` folder
+  - Tests across Python 3.10, 3.11, 3.12 simultaneously
+  - Generates code coverage reports
+  - **Fails pipeline if any test fails**
+
+* **Integration Tests Stage** (After Deploy to Dev)
+  - Triggers `run_integration_tests` job on Databricks
+  - Runs all tests on actual Databricks compute
+  - Validates end-to-end pipeline functionality
+  - **Blocks production deployment if tests fail**
+
+**3. Manual Bundle Job Execution**
+```bash
+# Run integration tests via bundle
+databricks bundle run run_integration_tests -t team --profile <your-profile>
+```
+
+### CI/CD Test Flow
+
+```text
+Push/PR to main → Code Quality → Unit Tests (3.10, 3.11, 3.12) → Bundle Validate
+                      ✓              ✓                              ✓
+                                                                         ↓
+                                                    Merge to main → Deploy Dev
+                                                                         ↓
+                                                              Integration Tests
+                                                                         ✓
+                                                                         ↓
+                                                            Deploy Team (Production)
+```
+
+### Viewing Test Results
+
+* **Local**: Terminal output from `pytest` command
+* **GitHub Actions**: Navigate to repo → **Actions** tab → Select workflow run
+* **Databricks**: Job runs page for `run_integration_tests` job
 
 ## Troubleshooting
 
