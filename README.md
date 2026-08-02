@@ -139,9 +139,9 @@ The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) t
 3. **Bundle validation** - Verify bundle configuration
 
 **On merge to `main` branch:**
-4. **Deploy to Dev** - Automatic deployment to dev environment
-5. **Integration Tests** - Run `run_integration_tests` job on Databricks
-6. **Deploy to Team (Production)** - Automatic deployment to team environment
+1. **Deploy to Dev** - Automatic deployment to dev environment
+2. **Integration Tests** - Run `run_integration_tests` job on Databricks
+3. **Deploy to Team (Production)** - Automatic deployment to team environment
 
 **Setup:**
 - Configure GitHub Secrets: `DATABRICKS_HOST` and `DATABRICKS_TOKEN`
