@@ -1,6 +1,53 @@
-# Testing dependencies
-pytest>=7.4.0
-pytest-cov>=4.1.0
+# ===================================================================
+# Zero-Trust Banking Pipeline - Python Dependencies
+# ===================================================================
+# This file specifies dependencies for:
+# - Local development and testing
+# - CI/CD pipeline (GitHub Actions)
+# - Databricks bundle deployment
+#
+# NOTE: Databricks Runtime provides many packages (pyspark, pandas, etc.)
+#       These are listed here for local testing compatibility.
+# ===================================================================
 
-# Data processing (if not already provided by Databricks Runtime)
-pyspark>=3.4.0
+# ------------------------------------------------------------------
+# Testing Framework
+# ------------------------------------------------------------------
+pytest>=7.4.0,<9.0.0           # Test runner with fixture support
+pytest-cov>=4.1.0,<6.0.0       # Code coverage reporting
+pytest-xdist>=3.3.0,<4.0.0     # Parallel test execution (optional)
+
+# ------------------------------------------------------------------
+# Code Quality & Formatting
+# ------------------------------------------------------------------
+flake8>=6.0.0,<8.0.0           # Linting and style checking
+black>=23.0.0,<25.0.0          # Code formatting (line length: 127)
+isort>=5.12.0,<6.0.0           # Import statement sorting
+mypy>=1.0.0,<2.0.0             # Static type checking (optional)
+
+# ------------------------------------------------------------------
+# Data Processing
+# ------------------------------------------------------------------
+# NOTE: Databricks Runtime provides these - versions here for local dev only
+pyspark>=3.4.0,<4.0.0          # Spark for local testing
+pandas>=1.5.0,<3.0.0           # Data manipulation
+numpy>=1.23.0,<2.0.0           # Numerical computing
+pyarrow>=12.0.0,<18.0.0        # Arrow columnar format
+
+# ------------------------------------------------------------------
+# Data Validation & Quality
+# ------------------------------------------------------------------
+pydantic>=2.0.0,<3.0.0         # Data validation (if used)
+
+# ------------------------------------------------------------------
+# Development Utilities
+# ------------------------------------------------------------------
+ipython>=8.12.0,<9.0.0         # Enhanced interactive shell (optional)
+jupyter>=1.0.0,<2.0.0          # Notebook environment (optional)
+pre-commit>=3.3.0,<4.0.0       # Git pre-commit hooks (optional)
+
+# ------------------------------------------------------------------
+# Documentation
+# ------------------------------------------------------------------
+mkdocs>=1.5.0,<2.0.0           # Documentation generator (optional)
+mkdocs-material>=9.0.0,<10.0.0 # Material theme for docs (optional)

@@ -318,9 +318,8 @@ def test_ai_customer_360_context_core_scenarios(test_spark):
     }
 
     def mock_read_table(table_name):
-        if table_name not in table_map:
-            raise AssertionError(f"Unexpected table requested: {table_name}")
-        return table_map[table_name]
+        short_name = table_name.split(".")[-1]
+        return table_map[short_name]
 
     with patch.object(_patched_reader(), "table", side_effect=mock_read_table):
         res_df = customer_360_context.ai_customer_360_context()
@@ -486,7 +485,8 @@ def test_monthly_income_banding_boundaries(test_spark):
     }
 
     def mock_read_table(table_name):
-        return table_map[table_name]
+        short_name = table_name.split(".")[-1]
+        return table_map[short_name]
 
     with patch.object(_patched_reader(), "table", side_effect=mock_read_table):
         res_df = customer_360_context.ai_customer_360_context()
