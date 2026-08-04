@@ -386,5 +386,3 @@ Located at `.github/workflows/ci-cd.yml`:
 * **Deployment:** Databricks Declarative Automation Bundles (DABs)
 * **Testing:** pytest, unittest
 * **CI/CD:** GitHub Actions
-
-```
