@@ -46,7 +46,7 @@ resources:
               pipeline_name: full-pipeline
               quality_rules_path: ${workspace.file_path}/src
 
-        # 5. Pre-Transform Setup: Ghi active_run_context table & log RUNNING
+        # 5. Pre-Transform Setup
         - task_key: pre_transform_setup
           depends_on:
             - task_key: silver_validation_audit

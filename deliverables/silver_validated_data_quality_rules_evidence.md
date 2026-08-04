@@ -34,7 +34,7 @@ SELECT
   start_time,
   end_time
 FROM workspace.governance.pipeline_run
-WHERE pipeline_name = 'full-source-to-validated-silver'
+WHERE pipeline_name = 'full-pipeline'
   AND pipeline_run_id IN ('528589439726686', '192086141413903')
 ORDER BY end_time DESC;
 ```
