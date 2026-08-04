@@ -10,7 +10,7 @@ from pyspark.sql import functions as F
 
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
-dbutils.widgets.text("pipeline_name", "full-source-to-validated-silver")
+dbutils.widgets.text("pipeline_name", "full-pipeline")
 dbutils.widgets.text("quality_rules_path", "")
 
 BUSINESS_DATE = dbutils.widgets.get("business_date")
