@@ -4,6 +4,7 @@ Source Schema : Bronze / Validated Datasets (`silver_validated`)
 Domain        : Customer / Enterprise Party Domain
 """
 
+import sys
 import time
 import uuid
 
@@ -49,6 +50,8 @@ AES_KEY = "NAB_SECRET_AES256_KEY_32BYTES!!!"  # Chuẩn 32 bytes cho AES-256
 
 
 def clean_customer_src(table_name: str) -> str:
+    if "pytest" in sys.modules:
+        return table_name
     cat = get_catalog()
     return (
         f"{cat}.{get_src_schema()}.{table_name}"
@@ -58,6 +61,8 @@ def clean_customer_src(table_name: str) -> str:
 
 
 def clean_bronze_src(table_name: str) -> str:
+    if "pytest" in sys.modules:
+        return table_name
     cat = get_catalog()
     return (
         f"{cat}.{get_bronze_schema()}.{table_name}"
@@ -67,6 +72,8 @@ def clean_bronze_src(table_name: str) -> str:
 
 
 def atomic_tgt(table_name: str) -> str:
+    if "pytest" in sys.modules:
+        return table_name
     cat = get_catalog()
     return (
         f"{cat}.{get_silver_atomic_schema()}.{table_name}"

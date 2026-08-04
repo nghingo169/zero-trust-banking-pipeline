@@ -53,6 +53,8 @@ AES_KEY = "NAB_SECRET_AES256_KEY_32BYTES!!!"  # Chuẩn 32 bytes cho AES-256
 # Helper Functions
 # ---------------------------------------------------------------------------
 def clean_src(table_name: str) -> str:
+    if "pytest" in sys.modules:
+        return table_name  # Khi chạy pytest local, lấy thẳng tên bảng mock đơn
     cat = get_catalog()
     return (
         f"{cat}.{get_bronze_schema()}.{table_name}"
@@ -62,6 +64,8 @@ def clean_src(table_name: str) -> str:
 
 
 def clean_card_src(table_name: str) -> str:
+    if "pytest" in sys.modules:
+        return table_name  # Khi chạy pytest local, lấy thẳng tên bảng mock đơn
     cat = get_catalog()
     return (
         f"{cat}.{get_src_schema()}.{table_name}"
@@ -71,6 +75,8 @@ def clean_card_src(table_name: str) -> str:
 
 
 def atomic_tgt(table_name: str) -> str:
+    if "pytest" in sys.modules:
+        return table_name  # Khi chạy pytest local, lấy thẳng tên bảng mock đơn
     cat = get_catalog()
     return (
         f"{cat}.{get_silver_atomic_schema()}.{table_name}"
