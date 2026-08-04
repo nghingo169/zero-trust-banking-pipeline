@@ -14,21 +14,28 @@ Tests the ai_customer_360_context gold table transformation end-to-end:
 - dq_status precedence (REJECTED_QUALITY > WARNING_UNRESOLVED_PARTY > PASSED_CLEAN)
 """
 
-# Databricks notebook source
-from pathlib import Path
-from datetime import date, timedelta
+import builtins
 import os
 import sys
-import builtins
+from datetime import date, timedelta
+
+# Databricks notebook source
+from pathlib import Path
 from types import ModuleType
 from unittest.mock import patch
-import pytest
 
 import pyspark
-from pyspark.sql import SparkSession, functions as F
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
 from pyspark.sql.types import (
-    StructType, StructField, StringType, DoubleType,
-    BooleanType, TimestampType, DateType,
+    BooleanType,
+    DateType,
+    DoubleType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
 )
 
 # ------------------------------------------------------------------------------
@@ -46,8 +53,7 @@ try:
     test_spark_session = spark  # Databricks Runtime Context
 except NameError:
     test_spark_session = (
-        SparkSession.builder
-        .master("local[1]")
+        SparkSession.builder.master("local[1]")
         .appName("Pipeline-UnitTest-Gold")
         .config("spark.sql.shuffle.partitions", "1")
         .config("pipeline.catalog", "workspace")
@@ -89,9 +95,17 @@ if not hasattr(pyspark, "pipelines"):
 else:
     # pyspark.pipelines may already have been mocked (e.g. by the silver test
     # module in the same session) without expect_or_drop -- top it up.
-    for attr in ("table", "temporary_view", "expect_or_drop", "expect_or_fail", "expect"):
+    for attr in (
+        "table",
+        "temporary_view",
+        "expect_or_drop",
+        "expect_or_fail",
+        "expect",
+    ):
         if not hasattr(pyspark.pipelines, attr):
-            setattr(pyspark.pipelines, attr, lambda *args, **kwargs: (lambda func: func))
+            setattr(
+                pyspark.pipelines, attr, lambda *args, **kwargs: (lambda func: func)
+            )
 
 if "dlt" not in sys.modules:
     dlt_mock = ModuleType("dlt")
@@ -112,12 +126,14 @@ except ImportError:
     gold_common_mock.gold_target_name = lambda spark_session, name: name
     sys.modules["gold_common"] = gold_common_mock
 
+
 # ------------------------------------------------------------------------------
 # 2. LOCAL / DATABRICKS SPARK SESSION FIXTURE
 # ------------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def test_spark():
     return test_spark_session
+
 
 # ------------------------------------------------------------------------------
 # 3. IMPORT TARGET MODULE
@@ -149,158 +165,314 @@ def test_ai_customer_360_context_core_scenarios(test_spark):
     today = date.today()
 
     # ---------------------------------------------------------------- party
-    schema_party = StructType([
-        StructField("party_key", StringType(), True),
-        StructField("party_type", StringType(), True),
-        StructField("party_status", StringType(), True),
-        StructField("source_system", StringType(), True),
-        StructField("source_business_key", StringType(), True),
-        StructField("ingested_at", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True),
-        StructField("data_quality_status", StringType(), True),
-    ])
-    df_party = test_spark.createDataFrame([
-        ("P1", "PERSON", "ACTIVE",  "CORE_BANKING", "CB-101",  "2026-07-01 00:00:00", "RUN_01", "CLEAN"),
-        ("P2", "PERSON", "ACTIVE",  "CRM",          "CRM-202", "2026-07-01 00:00:00", "RUN_01", "CLEAN"),
-        ("P3", "PERSON", "PENDING", "CORE_BANKING", "CB-303",  "2026-07-01 00:00:00", "RUN_01", "QUARANTINED"),
-    ], schema_party)
+    schema_party = StructType(
+        [
+            StructField("party_key", StringType(), True),
+            StructField("party_type", StringType(), True),
+            StructField("party_status", StringType(), True),
+            StructField("source_system", StringType(), True),
+            StructField("source_business_key", StringType(), True),
+            StructField("ingested_at", StringType(), True),
+            StructField("pipeline_run_id", StringType(), True),
+            StructField("data_quality_status", StringType(), True),
+        ]
+    )
+    df_party = test_spark.createDataFrame(
+        [
+            (
+                "P1",
+                "PERSON",
+                "ACTIVE",
+                "CORE_BANKING",
+                "CB-101",
+                "2026-07-01 00:00:00",
+                "RUN_01",
+                "CLEAN",
+            ),
+            (
+                "P2",
+                "PERSON",
+                "ACTIVE",
+                "CRM",
+                "CRM-202",
+                "2026-07-01 00:00:00",
+                "RUN_01",
+                "CLEAN",
+            ),
+            (
+                "P3",
+                "PERSON",
+                "PENDING",
+                "CORE_BANKING",
+                "CB-303",
+                "2026-07-01 00:00:00",
+                "RUN_01",
+                "QUARANTINED",
+            ),
+        ],
+        schema_party,
+    )
 
     # ---------------------------------------------------------- profile version (SCD2)
-    schema_ppv = StructType([
-        StructField("party_key", StringType(), True),
-        StructField("is_current", BooleanType(), True),
-        StructField("preferred_contact_method", StringType(), True),
-        StructField("effective_from", StringType(), True),
-    ])
-    df_ppv = test_spark.createDataFrame([
-        ("P1", False, None,    "2025-01-01 00:00:00"),  # superseded version -> must be excluded
-        ("P1", True,  None,    "2026-01-01 00:00:00"),  # current: CORE_BANKING -> no preferred_contact_method
-        ("P2", True,  "EMAIL", "2026-02-01 00:00:00"),  # current
-        # P3 has no profile version at all -> left-join nulls
-    ], schema_ppv)
+    schema_ppv = StructType(
+        [
+            StructField("party_key", StringType(), True),
+            StructField("is_current", BooleanType(), True),
+            StructField("preferred_contact_method", StringType(), True),
+            StructField("effective_from", StringType(), True),
+        ]
+    )
+    df_ppv = test_spark.createDataFrame(
+        [
+            (
+                "P1",
+                False,
+                None,
+                "2025-01-01 00:00:00",
+            ),  # superseded version -> must be excluded
+            (
+                "P1",
+                True,
+                None,
+                "2026-01-01 00:00:00",
+            ),  # current: CORE_BANKING -> no preferred_contact_method
+            ("P2", True, "EMAIL", "2026-02-01 00:00:00"),  # current
+            # P3 has no profile version at all -> left-join nulls
+        ],
+        schema_ppv,
+    )
 
     # ---------------------------------------------------------------- KYC
-    schema_kyc = StructType([
-        StructField("party_key", StringType(), True),
-        StructField("verified_date", StringType(), True),
-        StructField("verification_status", StringType(), True),
-        StructField("id_type", StringType(), True),
-        StructField("id_number_token", StringType(), True),
-    ])
-    df_kyc = test_spark.createDataFrame([
-        ("P1", "2025-12-01", "PENDING",  "NATIONAL_ID", "old_token_hash"),  # superseded
-        ("P1", "2026-01-05", "VERIFIED", "NATIONAL_ID", "new_token_hash"),  # latest -> wins
-        # P2: no KYC record at all -> triggers WARNING_UNRESOLVED_PARTY
-        # P3: no KYC record either, but REJECTED_QUALITY takes precedence
-    ], schema_kyc)
+    schema_kyc = StructType(
+        [
+            StructField("party_key", StringType(), True),
+            StructField("verified_date", StringType(), True),
+            StructField("verification_status", StringType(), True),
+            StructField("id_type", StringType(), True),
+            StructField("id_number_token", StringType(), True),
+        ]
+    )
+    df_kyc = test_spark.createDataFrame(
+        [
+            (
+                "P1",
+                "2025-12-01",
+                "PENDING",
+                "NATIONAL_ID",
+                "old_token_hash",
+            ),  # superseded
+            (
+                "P1",
+                "2026-01-05",
+                "VERIFIED",
+                "NATIONAL_ID",
+                "new_token_hash",
+            ),  # latest -> wins
+            # P2: no KYC record at all -> triggers WARNING_UNRESOLVED_PARTY
+            # P3: no KYC record either, but REJECTED_QUALITY takes precedence
+        ],
+        schema_kyc,
+    )
 
     # ---------------------------------------------------------------- employment
-    schema_emp = StructType([
-        StructField("party_key", StringType(), True),
-        StructField("effective_to", StringType(), True),
-        StructField("effective_from", StringType(), True),
-        StructField("employer_name", StringType(), True),
-        StructField("job_title", StringType(), True),
-        StructField("monthly_income", DoubleType(), True),
-    ])
-    df_emp = test_spark.createDataFrame([
-        ("P1", "2025-06-01", "2025-01-01", "Old Corp",  "Junior Engineer", 20000000.0),  # closed -> excluded
-        ("P1", None,         "2026-01-01", "Tech Corp", "Engineer",        45000000.0),  # open/current -> 30-100M
-        ("P2", None,         "2026-01-01", "Retail Co", "Cashier",         8000000.0),   # open/current -> <10M
-        # P3: no employment record -> NULL band
-    ], schema_emp)
+    schema_emp = StructType(
+        [
+            StructField("party_key", StringType(), True),
+            StructField("effective_to", StringType(), True),
+            StructField("effective_from", StringType(), True),
+            StructField("employer_name", StringType(), True),
+            StructField("job_title", StringType(), True),
+            StructField("monthly_income", DoubleType(), True),
+        ]
+    )
+    df_emp = test_spark.createDataFrame(
+        [
+            (
+                "P1",
+                "2025-06-01",
+                "2025-01-01",
+                "Old Corp",
+                "Junior Engineer",
+                20000000.0,
+            ),  # closed -> excluded
+            (
+                "P1",
+                None,
+                "2026-01-01",
+                "Tech Corp",
+                "Engineer",
+                45000000.0,
+            ),  # open/current -> 30-100M
+            (
+                "P2",
+                None,
+                "2026-01-01",
+                "Retail Co",
+                "Cashier",
+                8000000.0,
+            ),  # open/current -> <10M
+            # P3: no employment record -> NULL band
+        ],
+        schema_emp,
+    )
 
     # ---------------------------------------------------------------- account roles / accounts
-    schema_par = StructType([
-        StructField("party_key", StringType(), True),
-        StructField("account_key", StringType(), True),
-        StructField("valid_to", StringType(), True),
-    ])
-    df_par = test_spark.createDataFrame([
-        ("P1", "ACC1", None),          # open role
-        ("P1", "ACC2", "2025-01-01"),  # closed role -> excluded from active_account_count
-        ("P2", "ACC3", None),          # open role
-    ], schema_par)
+    schema_par = StructType(
+        [
+            StructField("party_key", StringType(), True),
+            StructField("account_key", StringType(), True),
+            StructField("valid_to", StringType(), True),
+        ]
+    )
+    df_par = test_spark.createDataFrame(
+        [
+            ("P1", "ACC1", None),  # open role
+            (
+                "P1",
+                "ACC2",
+                "2025-01-01",
+            ),  # closed role -> excluded from active_account_count
+            ("P2", "ACC3", None),  # open role
+        ],
+        schema_par,
+    )
 
-    schema_acct = StructType([
-        StructField("account_key", StringType(), True),
-        StructField("account_status", StringType(), True),
-    ])
-    df_acct = test_spark.createDataFrame([
-        ("ACC1", "ACTIVE"),
-        ("ACC2", "CLOSED"),
-        ("ACC3", "ACTIVE"),
-    ], schema_acct)
+    schema_acct = StructType(
+        [
+            StructField("account_key", StringType(), True),
+            StructField("account_status", StringType(), True),
+        ]
+    )
+    df_acct = test_spark.createDataFrame(
+        [
+            ("ACC1", "ACTIVE"),
+            ("ACC2", "CLOSED"),
+            ("ACC3", "ACTIVE"),
+        ],
+        schema_acct,
+    )
 
     # ---------------------------------------------------------------- balances
-    schema_bal = StructType([
-        StructField("account_key", StringType(), True),
-        StructField("balance_date", StringType(), True),
-        StructField("closing_balance", DoubleType(), True),
-    ])
-    df_bal_raw = test_spark.createDataFrame([
-        ("ACC1", (today - timedelta(days=20)).isoformat(), 14000000.0),  # older snapshot, within 30d
-        ("ACC1", (today - timedelta(days=5)).isoformat(),  15000000.0),  # latest snapshot -> should win
-        ("ACC3", (today - timedelta(days=3)).isoformat(),  5000000.0),
-        # ACC2 has no balance snapshot at all
-    ], schema_bal)
+    schema_bal = StructType(
+        [
+            StructField("account_key", StringType(), True),
+            StructField("balance_date", StringType(), True),
+            StructField("closing_balance", DoubleType(), True),
+        ]
+    )
+    df_bal_raw = test_spark.createDataFrame(
+        [
+            (
+                "ACC1",
+                (today - timedelta(days=20)).isoformat(),
+                14000000.0,
+            ),  # older snapshot, within 30d
+            (
+                "ACC1",
+                (today - timedelta(days=5)).isoformat(),
+                15000000.0,
+            ),  # latest snapshot -> should win
+            ("ACC3", (today - timedelta(days=3)).isoformat(), 5000000.0),
+            # ACC2 has no balance snapshot at all
+        ],
+        schema_bal,
+    )
     df_bal = df_bal_raw.withColumn("balance_date", F.col("balance_date").cast("date"))
 
     # ---------------------------------------------------------------- cards
-    schema_card = StructType([
-        StructField("account_key", StringType(), True),
-        StructField("payment_card_key", StringType(), True),
-        StructField("card_status", StringType(), True),
-    ])
-    df_card = test_spark.createDataFrame([
-        ("ACC1", "CARD1", "ACTIVE"),
-        ("ACC1", "CARD2", "BLOCKED"),
-        ("ACC3", "CARD3", "ACTIVE"),
-    ], schema_card)
+    schema_card = StructType(
+        [
+            StructField("account_key", StringType(), True),
+            StructField("payment_card_key", StringType(), True),
+            StructField("card_status", StringType(), True),
+        ]
+    )
+    df_card = test_spark.createDataFrame(
+        [
+            ("ACC1", "CARD1", "ACTIVE"),
+            ("ACC1", "CARD2", "BLOCKED"),
+            ("ACC3", "CARD3", "ACTIVE"),
+        ],
+        schema_card,
+    )
 
     # ---------------------------------------------------------------- service requests
-    schema_req = StructType([
-        StructField("party_key", StringType(), True),
-        StructField("request_status", StringType(), True),
-    ])
-    df_req = test_spark.createDataFrame([
-        ("P1", "RESOLVED"),  # excluded -> P1 open count = 0
-        ("P2", "OPEN"),      # included -> P2 open count = 1
-        ("P2", "REJECTED"),  # excluded
-    ], schema_req)
+    schema_req = StructType(
+        [
+            StructField("party_key", StringType(), True),
+            StructField("request_status", StringType(), True),
+        ]
+    )
+    df_req = test_spark.createDataFrame(
+        [
+            ("P1", "RESOLVED"),  # excluded -> P1 open count = 0
+            ("P2", "OPEN"),  # included -> P2 open count = 1
+            ("P2", "REJECTED"),  # excluded
+        ],
+        schema_req,
+    )
 
     # ---------------------------------------------------------------- call center
-    schema_call = StructType([
-        StructField("party_key", StringType(), True),
-        StructField("call_timestamp", StringType(), True),
-        StructField("call_reason", StringType(), True),
-    ])
-    df_call_raw = test_spark.createDataFrame([
-        ("P1", f"{(today - timedelta(days=10)).isoformat()} 09:00:00", "BALANCE_INQUIRY"),
-        ("P1", f"{(today - timedelta(days=5)).isoformat()} 14:30:00",  "CARD_LOST"),        # most recent -> last_call_reason
-        ("P3", f"{(today - timedelta(days=200)).isoformat()} 11:00:00", "COMPLAINT"),        # outside 90d, still "last" overall
-        # P2 never called
-    ], schema_call)
-    df_call = df_call_raw.withColumn("call_timestamp", F.col("call_timestamp").cast("timestamp"))
+    schema_call = StructType(
+        [
+            StructField("party_key", StringType(), True),
+            StructField("call_timestamp", StringType(), True),
+            StructField("call_reason", StringType(), True),
+        ]
+    )
+    df_call_raw = test_spark.createDataFrame(
+        [
+            (
+                "P1",
+                f"{(today - timedelta(days=10)).isoformat()} 09:00:00",
+                "BALANCE_INQUIRY",
+            ),
+            (
+                "P1",
+                f"{(today - timedelta(days=5)).isoformat()} 14:30:00",
+                "CARD_LOST",
+            ),  # most recent -> last_call_reason
+            (
+                "P3",
+                f"{(today - timedelta(days=200)).isoformat()} 11:00:00",
+                "COMPLAINT",
+            ),  # outside 90d, still "last" overall
+            # P2 never called
+        ],
+        schema_call,
+    )
+    df_call = df_call_raw.withColumn(
+        "call_timestamp", F.col("call_timestamp").cast("timestamp")
+    )
 
     # ---------------------------------------------------------------- AML / investigation
-    schema_aml = StructType([
-        StructField("investigation_case_key", StringType(), True),
-        StructField("party_key", StringType(), True),
-    ])
-    df_aml = test_spark.createDataFrame([
-        ("IC1", "P2"),  # open case
-        ("IC2", "P3"),  # closed case -> must NOT raise the flag
-    ], schema_aml)
+    schema_aml = StructType(
+        [
+            StructField("investigation_case_key", StringType(), True),
+            StructField("party_key", StringType(), True),
+        ]
+    )
+    df_aml = test_spark.createDataFrame(
+        [
+            ("IC1", "P2"),  # open case
+            ("IC2", "P3"),  # closed case -> must NOT raise the flag
+        ],
+        schema_aml,
+    )
 
-    schema_inv = StructType([
-        StructField("investigation_case_key", StringType(), True),
-        StructField("case_status", StringType(), True),
-    ])
-    df_inv = test_spark.createDataFrame([
-        ("IC1", "OPEN"),
-        ("IC2", "CLOSED"),
-    ], schema_inv)
+    schema_inv = StructType(
+        [
+            StructField("investigation_case_key", StringType(), True),
+            StructField("case_status", StringType(), True),
+        ]
+    )
+    df_inv = test_spark.createDataFrame(
+        [
+            ("IC1", "OPEN"),
+            ("IC2", "CLOSED"),
+        ],
+        schema_inv,
+    )
 
     table_map = {
         "party": df_party,
@@ -373,8 +545,10 @@ def test_ai_customer_360_context_core_scenarios(test_spark):
     assert p3.total_current_balance is None
     assert p3.active_card_count == 0
     assert p3.call_center_contact_count_90d == 0
-    assert p3.last_call_reason == "COMPLAINT"     # "any time" -> still surfaces despite being 200 days old
-    assert p3.open_investigation_flag is False    # its only case is CLOSED
+    assert (
+        p3.last_call_reason == "COMPLAINT"
+    )  # "any time" -> still surfaces despite being 200 days old
+    assert p3.open_investigation_flag is False  # its only case is CLOSED
     assert p3.dq_status == "REJECTED_QUALITY"
 
 
@@ -385,89 +559,215 @@ def test_monthly_income_banding_boundaries(test_spark):
     """Verify monthly_income_band bucketing exactly at each threshold edge."""
     customer_360_context.spark = test_spark
 
-    schema_party = StructType([
-        StructField("party_key", StringType(), True),
-        StructField("party_type", StringType(), True),
-        StructField("party_status", StringType(), True),
-        StructField("source_system", StringType(), True),
-        StructField("source_business_key", StringType(), True),
-        StructField("ingested_at", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True),
-        StructField("data_quality_status", StringType(), True),
-    ])
-    df_party = test_spark.createDataFrame([
-        ("B1", "PERSON", "ACTIVE", "CORE_BANKING", "CB-1", "2026-01-01", "RUN_01", "CLEAN"),
-        ("B2", "PERSON", "ACTIVE", "CORE_BANKING", "CB-2", "2026-01-01", "RUN_01", "CLEAN"),
-        ("B3", "PERSON", "ACTIVE", "CORE_BANKING", "CB-3", "2026-01-01", "RUN_01", "CLEAN"),
-        ("B4", "PERSON", "ACTIVE", "CORE_BANKING", "CB-4", "2026-01-01", "RUN_01", "CLEAN"),
-        ("B5", "PERSON", "ACTIVE", "CORE_BANKING", "CB-5", "2026-01-01", "RUN_01", "CLEAN"),
-    ], schema_party)
+    schema_party = StructType(
+        [
+            StructField("party_key", StringType(), True),
+            StructField("party_type", StringType(), True),
+            StructField("party_status", StringType(), True),
+            StructField("source_system", StringType(), True),
+            StructField("source_business_key", StringType(), True),
+            StructField("ingested_at", StringType(), True),
+            StructField("pipeline_run_id", StringType(), True),
+            StructField("data_quality_status", StringType(), True),
+        ]
+    )
+    df_party = test_spark.createDataFrame(
+        [
+            (
+                "B1",
+                "PERSON",
+                "ACTIVE",
+                "CORE_BANKING",
+                "CB-1",
+                "2026-01-01",
+                "RUN_01",
+                "CLEAN",
+            ),
+            (
+                "B2",
+                "PERSON",
+                "ACTIVE",
+                "CORE_BANKING",
+                "CB-2",
+                "2026-01-01",
+                "RUN_01",
+                "CLEAN",
+            ),
+            (
+                "B3",
+                "PERSON",
+                "ACTIVE",
+                "CORE_BANKING",
+                "CB-3",
+                "2026-01-01",
+                "RUN_01",
+                "CLEAN",
+            ),
+            (
+                "B4",
+                "PERSON",
+                "ACTIVE",
+                "CORE_BANKING",
+                "CB-4",
+                "2026-01-01",
+                "RUN_01",
+                "CLEAN",
+            ),
+            (
+                "B5",
+                "PERSON",
+                "ACTIVE",
+                "CORE_BANKING",
+                "CB-5",
+                "2026-01-01",
+                "RUN_01",
+                "CLEAN",
+            ),
+        ],
+        schema_party,
+    )
 
-    schema_emp = StructType([
-        StructField("party_key", StringType(), True),
-        StructField("effective_to", StringType(), True),
-        StructField("effective_from", StringType(), True),
-        StructField("employer_name", StringType(), True),
-        StructField("job_title", StringType(), True),
-        StructField("monthly_income", DoubleType(), True),
-    ])
-    df_emp = test_spark.createDataFrame([
-        ("B1", None, "2026-01-01", "Co1", "Role1", 9999999.0),    # <10M
-        ("B2", None, "2026-01-01", "Co2", "Role2", 10000000.0),   # 10-30M (lower edge, inclusive)
-        ("B3", None, "2026-01-01", "Co3", "Role3", 29999999.0),   # 10-30M
-        ("B4", None, "2026-01-01", "Co4", "Role4", 30000000.0),   # 30-100M (lower edge, inclusive)
-        ("B5", None, "2026-01-01", "Co5", "Role5", 100000000.0),  # 100M+ (lower edge, inclusive)
-    ], schema_emp)
+    schema_emp = StructType(
+        [
+            StructField("party_key", StringType(), True),
+            StructField("effective_to", StringType(), True),
+            StructField("effective_from", StringType(), True),
+            StructField("employer_name", StringType(), True),
+            StructField("job_title", StringType(), True),
+            StructField("monthly_income", DoubleType(), True),
+        ]
+    )
+    df_emp = test_spark.createDataFrame(
+        [
+            ("B1", None, "2026-01-01", "Co1", "Role1", 9999999.0),  # <10M
+            (
+                "B2",
+                None,
+                "2026-01-01",
+                "Co2",
+                "Role2",
+                10000000.0,
+            ),  # 10-30M (lower edge, inclusive)
+            ("B3", None, "2026-01-01", "Co3", "Role3", 29999999.0),  # 10-30M
+            (
+                "B4",
+                None,
+                "2026-01-01",
+                "Co4",
+                "Role4",
+                30000000.0,
+            ),  # 30-100M (lower edge, inclusive)
+            (
+                "B5",
+                None,
+                "2026-01-01",
+                "Co5",
+                "Role5",
+                100000000.0,
+            ),  # 100M+ (lower edge, inclusive)
+        ],
+        schema_emp,
+    )
 
-    empty_ppv = test_spark.createDataFrame([], StructType([
-        StructField("party_key", StringType(), True),
-        StructField("is_current", BooleanType(), True),
-        StructField("preferred_contact_method", StringType(), True),
-        StructField("effective_from", StringType(), True),
-    ]))
-    empty_kyc = test_spark.createDataFrame([], StructType([
-        StructField("party_key", StringType(), True),
-        StructField("verified_date", StringType(), True),
-        StructField("verification_status", StringType(), True),
-        StructField("id_type", StringType(), True),
-        StructField("id_number_token", StringType(), True),
-    ]))
-    empty_par = test_spark.createDataFrame([], StructType([
-        StructField("party_key", StringType(), True),
-        StructField("account_key", StringType(), True),
-        StructField("valid_to", StringType(), True),
-    ]))
-    empty_acct = test_spark.createDataFrame([], StructType([
-        StructField("account_key", StringType(), True),
-        StructField("account_status", StringType(), True),
-    ]))
-    empty_bal = test_spark.createDataFrame([], StructType([
-        StructField("account_key", StringType(), True),
-        StructField("balance_date", DateType(), True),
-        StructField("closing_balance", DoubleType(), True),
-    ]))
-    empty_card = test_spark.createDataFrame([], StructType([
-        StructField("account_key", StringType(), True),
-        StructField("payment_card_key", StringType(), True),
-        StructField("card_status", StringType(), True),
-    ]))
-    empty_req = test_spark.createDataFrame([], StructType([
-        StructField("party_key", StringType(), True),
-        StructField("request_status", StringType(), True),
-    ]))
-    empty_call = test_spark.createDataFrame([], StructType([
-        StructField("party_key", StringType(), True),
-        StructField("call_timestamp", TimestampType(), True),
-        StructField("call_reason", StringType(), True),
-    ]))
-    empty_aml = test_spark.createDataFrame([], StructType([
-        StructField("investigation_case_key", StringType(), True),
-        StructField("party_key", StringType(), True),
-    ]))
-    empty_inv = test_spark.createDataFrame([], StructType([
-        StructField("investigation_case_key", StringType(), True),
-        StructField("case_status", StringType(), True),
-    ]))
+    empty_ppv = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("party_key", StringType(), True),
+                StructField("is_current", BooleanType(), True),
+                StructField("preferred_contact_method", StringType(), True),
+                StructField("effective_from", StringType(), True),
+            ]
+        ),
+    )
+    empty_kyc = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("party_key", StringType(), True),
+                StructField("verified_date", StringType(), True),
+                StructField("verification_status", StringType(), True),
+                StructField("id_type", StringType(), True),
+                StructField("id_number_token", StringType(), True),
+            ]
+        ),
+    )
+    empty_par = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("party_key", StringType(), True),
+                StructField("account_key", StringType(), True),
+                StructField("valid_to", StringType(), True),
+            ]
+        ),
+    )
+    empty_acct = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("account_key", StringType(), True),
+                StructField("account_status", StringType(), True),
+            ]
+        ),
+    )
+    empty_bal = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("account_key", StringType(), True),
+                StructField("balance_date", DateType(), True),
+                StructField("closing_balance", DoubleType(), True),
+            ]
+        ),
+    )
+    empty_card = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("account_key", StringType(), True),
+                StructField("payment_card_key", StringType(), True),
+                StructField("card_status", StringType(), True),
+            ]
+        ),
+    )
+    empty_req = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("party_key", StringType(), True),
+                StructField("request_status", StringType(), True),
+            ]
+        ),
+    )
+    empty_call = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("party_key", StringType(), True),
+                StructField("call_timestamp", TimestampType(), True),
+                StructField("call_reason", StringType(), True),
+            ]
+        ),
+    )
+    empty_aml = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("investigation_case_key", StringType(), True),
+                StructField("party_key", StringType(), True),
+            ]
+        ),
+    )
+    empty_inv = test_spark.createDataFrame(
+        [],
+        StructType(
+            [
+                StructField("investigation_case_key", StringType(), True),
+                StructField("case_status", StringType(), True),
+            ]
+        ),
+    )
 
     table_map = {
         "party": df_party,

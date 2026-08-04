@@ -6,11 +6,13 @@ by the Lakeflow graph loader) by the 3 view files, so it does NOT get `spark`
 injected into its own module namespace the way a top-level library file does.
 """
 
-
 import time
+
+
 def get_catalog(spark=None) -> str:
     try:
         from pyspark.sql import SparkSession
+
         s = spark or SparkSession.getActiveSession()
         return s.conf.get("pipeline.catalog", "workspace")
     except Exception:
@@ -20,6 +22,7 @@ def get_catalog(spark=None) -> str:
 def get_silver_schema(spark=None) -> str:
     try:
         from pyspark.sql import SparkSession
+
         s = spark or SparkSession.getActiveSession()
         return s.conf.get("pipeline.silver_schema", "silver")
     except Exception:
@@ -29,6 +32,7 @@ def get_silver_schema(spark=None) -> str:
 def get_gold_schema(spark=None) -> str:
     try:
         from pyspark.sql import SparkSession
+
         s = spark or SparkSession.getActiveSession()
         return s.conf.get("pipeline.gold_schema", "gold")
     except Exception:

@@ -1,11 +1,11 @@
 """Reusable Card validation logic for the source-bound Silver pipeline."""
 
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 
 from data_contracts.normalization import normalize
 from data_contracts.quality_rules.registry import get_rules
 from data_contracts.table_catalog import DOMAINS
-
 
 TABLES = {**DOMAINS["card"]["scd2"], **DOMAINS["card"]["append"]}
 
@@ -17,9 +17,7 @@ def assess(df: DataFrame, table_name: str) -> DataFrame:
     failed_rule_names = F.filter(
         F.array(
             *[
-                F.when(
-                    ~F.coalesce(F.expr(rule), F.lit(False)), F.lit(name)
-                )
+                F.when(~F.coalesce(F.expr(rule), F.lit(False)), F.lit(name))
                 for name, rule in rules.items()
             ]
         ),

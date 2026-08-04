@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Iterable, Mapping
 
-
 AUDIT_SCHEMA = "governance"
 
 
@@ -17,8 +16,7 @@ def ensure_audit_tables(spark, catalog: str) -> None:
     """Create the shared audit storage once, without resetting prior evidence."""
 
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{AUDIT_SCHEMA}")
-    spark.sql(
-        f"""CREATE TABLE IF NOT EXISTS {_table(catalog, 'pipeline_run')} (
+    spark.sql(f"""CREATE TABLE IF NOT EXISTS {_table(catalog, 'pipeline_run')} (
             pipeline_run_id STRING,
             pipeline_name STRING,
             domain STRING,
@@ -26,8 +24,7 @@ def ensure_audit_tables(spark, catalog: str) -> None:
             start_time TIMESTAMP,
             end_time TIMESTAMP,
             execution_status STRING
-        ) USING DELTA"""
-    )
+        ) USING DELTA""")
     spark.sql(
         f"""CREATE TABLE IF NOT EXISTS {_table(catalog, 'table_quality_metrics')} (
             pipeline_run_id STRING,
@@ -54,8 +51,7 @@ def ensure_audit_tables(spark, catalog: str) -> None:
             evaluated_at TIMESTAMP
         ) USING DELTA"""
     )
-    spark.sql(
-        f"""CREATE TABLE IF NOT EXISTS {_table(catalog, 'pii_masking_log')} (
+    spark.sql(f"""CREATE TABLE IF NOT EXISTS {_table(catalog, 'pii_masking_log')} (
             audit_id STRING,
             pipeline_run_id STRING,
             target_table_name STRING,
@@ -63,8 +59,7 @@ def ensure_audit_tables(spark, catalog: str) -> None:
             masking_policy STRING,
             records_transformed BIGINT,
             executed_at TIMESTAMP
-        ) USING DELTA"""
-    )
+        ) USING DELTA""")
 
 
 def write_audit(
@@ -84,20 +79,28 @@ def write_audit(
     ensure_audit_tables(spark, catalog)
     now = datetime.utcnow()
     pipeline_run = spark.createDataFrame(
-        [(pipeline_run_id, pipeline_name, "ALL", date.fromisoformat(business_date), now, now, execution_status)],
+        [
+            (
+                pipeline_run_id,
+                pipeline_name,
+                "ALL",
+                date.fromisoformat(business_date),
+                now,
+                now,
+                execution_status,
+            )
+        ],
         "pipeline_run_id string, pipeline_name string, domain string, business_date date, "
         "start_time timestamp, end_time timestamp, execution_status string",
     )
     pipeline_run.createOrReplaceTempView("_pipeline_run_to_upsert")
-    spark.sql(
-        f"""MERGE INTO {_table(catalog, 'pipeline_run')} AS target
+    spark.sql(f"""MERGE INTO {_table(catalog, 'pipeline_run')} AS target
             USING _pipeline_run_to_upsert AS source
             ON target.pipeline_run_id = source.pipeline_run_id
             WHEN MATCHED THEN UPDATE SET
               end_time = source.end_time,
               execution_status = source.execution_status
-            WHEN NOT MATCHED THEN INSERT *"""
-    )
+            WHEN NOT MATCHED THEN INSERT *""")
 
     metrics = list(table_metrics)
     if metrics:

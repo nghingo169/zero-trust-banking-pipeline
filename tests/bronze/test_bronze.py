@@ -1,15 +1,15 @@
 # Databricks notebook source
-from pathlib import Path
-import os
-import sys
 import builtins
 import datetime
+import os
+import sys
 import tempfile
+from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock
-import pytest
 
 import pyspark
+import pytest
 from pyspark.errors import AnalysisException
 from pyspark.sql import Row, SparkSession
 from pyspark.sql.types import DecimalType, LongType, StringType
@@ -29,8 +29,7 @@ try:
     test_spark_session = spark  # Databricks Runtime Context
 except NameError:
     test_spark_session = (
-        SparkSession.builder
-        .master("local[2]")
+        SparkSession.builder.master("local[2]")
         .appName("Pipeline-UnitTest-Bronze")
         .config("spark.sql.shuffle.partitions", "1")
         .getOrCreate()
@@ -77,9 +76,12 @@ if not hasattr(_conf_cls, "_bronze_test_get_patched"):
 
 pipelines_mock = ModuleType("pyspark.pipelines")
 pipelines_mock.create_streaming_table = MagicMock(name="create_streaming_table")
-pipelines_mock.create_auto_cdc_from_snapshot_flow = MagicMock(name="create_auto_cdc_from_snapshot_flow")
+pipelines_mock.create_auto_cdc_from_snapshot_flow = MagicMock(
+    name="create_auto_cdc_from_snapshot_flow"
+)
 pyspark.pipelines = pipelines_mock
 sys.modules["pyspark.pipelines"] = pipelines_mock
+
 
 # ------------------------------------------------------------------------------
 # 2. LOCAL / DATABRICKS SPARK SESSION FIXTURE
@@ -114,10 +116,13 @@ def _reset_business_date_cache():
 # apply_schema_hints(df, hints)
 # ==============================================================================
 
+
 def test_schema_hints_cast_columns_to_correct_types_and_values(test_spark):
     df = test_spark.createDataFrame([Row(account_id="123", amount="45.50", label="x")])
 
-    out = source_to_bronze_ingestion.apply_schema_hints(df, "account_id BIGINT, amount DECIMAL(12,2)")
+    out = source_to_bronze_ingestion.apply_schema_hints(
+        df, "account_id BIGINT, amount DECIMAL(12,2)"
+    )
     schema = {f.name: f.dataType for f in out.schema.fields}
     row = out.collect()[0]
 
@@ -132,7 +137,9 @@ def test_schema_hints_skip_columns_not_present_on_the_df(test_spark):
     """A hint naming a column the snapshot doesn't have must not raise."""
     df = test_spark.createDataFrame([Row(only_col="value")])
 
-    out = source_to_bronze_ingestion.apply_schema_hints(df, "account_id BIGINT, open_date DATE")
+    out = source_to_bronze_ingestion.apply_schema_hints(
+        df, "account_id BIGINT, open_date DATE"
+    )
 
     assert out.columns == ["only_col"]
 
@@ -175,10 +182,14 @@ def test_derived_event_keys_only_apply_to_payment_gateway_status_event(test_spar
 @pytest.mark.parametrize(
     "account_txn_id, card_txn_id, expected",
     [
-        (42, None, "ACCOUNT:42"),          # account id present -> account ref
-        (None, 99, "CARD:99"),             # only card id present -> card ref
-        (42, 99, "ACCOUNT:42"),            # both present -> account takes priority
-        (None, None, "<MISSING_PARENT>"),  # neither present -> explicit sentinel, not NULL
+        (42, None, "ACCOUNT:42"),  # account id present -> account ref
+        (None, 99, "CARD:99"),  # only card id present -> card ref
+        (42, 99, "ACCOUNT:42"),  # both present -> account takes priority
+        (
+            None,
+            None,
+            "<MISSING_PARENT>",
+        ),  # neither present -> explicit sentinel, not NULL
     ],
 )
 def test_derived_event_keys_resolve_the_parent_reference_correctly(
@@ -188,7 +199,9 @@ def test_derived_event_keys_resolve_the_parent_reference_correctly(
         [Row(account_txn_id=account_txn_id, card_txn_id=card_txn_id)], _EVENT_KEY_SCHEMA
     )
 
-    out = source_to_bronze_ingestion.add_derived_event_keys(df, "payment_gateway_status_event")
+    out = source_to_bronze_ingestion.add_derived_event_keys(
+        df, "payment_gateway_status_event"
+    )
 
     assert out.collect()[0]["event_parent_ref"] == expected
 
@@ -197,6 +210,7 @@ def test_derived_event_keys_resolve_the_parent_reference_correctly(
 # SECTION 3: DATA QUALITY
 # remove_confirmed_snapshot_replays(df, table_name, keys)
 # ==============================================================================
+
 
 def test_dedup_only_applies_to_account_transaction_status_event(test_spark):
     df = test_spark.createDataFrame(
@@ -237,6 +251,7 @@ def test_dedup_leaves_every_other_table_untouched(test_spark):
 WORKSPACE_TMP_DIR = PROJECT_ROOT / ".tmp_pytest"
 WORKSPACE_TMP_DIR.mkdir(parents=True, exist_ok=True)
 
+
 def _read_back(spark, tmp_path, rows, subdir="snapshot"):
     # Generate unique test path inside project workspace directory
     target_dir = WORKSPACE_TMP_DIR / tmp_path.name / subdir
@@ -246,9 +261,13 @@ def _read_back(spark, tmp_path, rows, subdir="snapshot"):
     return spark.read.parquet(target_path)
 
 
-def test_metadata_adds_all_technical_columns_and_drops_layout_only_ones(test_spark, tmp_path):
+def test_metadata_adds_all_technical_columns_and_drops_layout_only_ones(
+    test_spark, tmp_path
+):
     raw = _read_back(
-        test_spark, tmp_path, [Row(cust_no="CB-1", simulation_id="sim-1", snapshot_type="FULL")]
+        test_spark,
+        tmp_path,
+        [Row(cust_no="CB-1", simulation_id="sim-1", snapshot_type="FULL")],
     )
 
     out = source_to_bronze_ingestion.add_operational_metadata(
@@ -263,7 +282,9 @@ def test_metadata_adds_all_technical_columns_and_drops_layout_only_ones(test_spa
 
 
 def test_metadata_business_date_domain_and_timestamps_are_correct(test_spark, tmp_path):
-    raw = _read_back(test_spark, tmp_path, [Row(a=1, simulation_id="s", snapshot_type="FULL")])
+    raw = _read_back(
+        test_spark, tmp_path, [Row(a=1, simulation_id="s", snapshot_type="FULL")]
+    )
 
     out = source_to_bronze_ingestion.add_operational_metadata(
         raw, domain="card", business_date="2026-01-31"
@@ -288,12 +309,14 @@ def test_metadata_requires_a_file_backed_dataframe(test_spark):
         out = source_to_bronze_ingestion.add_operational_metadata(
             df, domain="card", business_date="2026-01-31"
         )
-        _ = out.schema 
+        _ = out.schema
+
 
 # ==============================================================================
 # SECTION 5: INCREMENTAL LOGIC
 # get_available_business_dates(), build_snapshot_flow()'s watermark closure
 # ==============================================================================
+
 
 def _dir(path: str) -> SimpleNamespace:
     """Minimal stand-in for the FileInfo objects dbutils.fs.ls() returns."""
@@ -309,7 +332,10 @@ def test_business_dates_are_parsed_deduped_and_sorted(monkeypatch):
     ]
     monkeypatch.setattr(builtins.dbutils.fs, "ls", lambda root: listing)
 
-    assert source_to_bronze_ingestion.get_available_business_dates() == [20260115, 20260301]
+    assert source_to_bronze_ingestion.get_available_business_dates() == [
+        20260115,
+        20260301,
+    ]
 
 
 def test_business_dates_result_is_cached(monkeypatch):
@@ -339,7 +365,7 @@ def test_business_dates_listing_failure_raises_a_helpful_error(monkeypatch):
 @pytest.fixture
 def watermark_source(fake_dp, test_spark, tmp_path_factory, monkeypatch, request):
     domain, table = "wm_domain", f"wm_table_{request.node.name}"
-    
+
     # Store temporary test snapshots under project root workspace folder
     root = WORKSPACE_TMP_DIR / tmp_path_factory.mktemp("watermark_root").name
     root.mkdir(parents=True, exist_ok=True)
@@ -353,18 +379,26 @@ def watermark_source(fake_dp, test_spark, tmp_path_factory, monkeypatch, request
         )
 
     source_to_bronze_ingestion.build_snapshot_flow(
-        table_name=table, domain=domain, keys=["id"], stored_as_scd_type="2", schema_hints=""
+        table_name=table,
+        domain=domain,
+        keys=["id"],
+        stored_as_scd_type="2",
+        schema_hints="",
     )
     source_fn = fake_dp.create_auto_cdc_from_snapshot_flow.call_args.kwargs["source"]
     return source_fn, write_snapshot
 
 
-def test_watermark_first_run_returns_the_earliest_snapshot(watermark_source, monkeypatch):
+def test_watermark_first_run_returns_the_earliest_snapshot(
+    watermark_source, monkeypatch
+):
     source_fn, write_snapshot = watermark_source
     write_snapshot("2026-01-01", row_id=20260101)
     write_snapshot("2026-02-01", row_id=20260201)
     monkeypatch.setattr(
-        source_to_bronze_ingestion, "get_available_business_dates", lambda: [20260101, 20260201]
+        source_to_bronze_ingestion,
+        "get_available_business_dates",
+        lambda: [20260101, 20260201],
     )
 
     df, version = source_fn(None)  # no watermark yet -> first run
@@ -373,12 +407,16 @@ def test_watermark_first_run_returns_the_earliest_snapshot(watermark_source, mon
     assert df.collect()[0]["id"] == 20260101
 
 
-def test_watermark_only_advances_to_snapshots_newer_than_the_current_one(watermark_source, monkeypatch):
+def test_watermark_only_advances_to_snapshots_newer_than_the_current_one(
+    watermark_source, monkeypatch
+):
     source_fn, write_snapshot = watermark_source
     write_snapshot("2026-01-01", row_id=20260101)
     write_snapshot("2026-02-01", row_id=20260201)
     monkeypatch.setattr(
-        source_to_bronze_ingestion, "get_available_business_dates", lambda: [20260101, 20260201]
+        source_to_bronze_ingestion,
+        "get_available_business_dates",
+        lambda: [20260101, 20260201],
     )
 
     df, version = source_fn(20260101)  # already processed 2026-01-01
@@ -391,7 +429,9 @@ def test_watermark_returns_none_when_fully_caught_up(watermark_source, monkeypat
     """Edge case: nothing new to ingest since the last run."""
     source_fn, write_snapshot = watermark_source
     write_snapshot("2026-01-01", row_id=20260101)
-    monkeypatch.setattr(source_to_bronze_ingestion, "get_available_business_dates", lambda: [20260101])
+    monkeypatch.setattr(
+        source_to_bronze_ingestion, "get_available_business_dates", lambda: [20260101]
+    )
 
     assert source_fn(20260101) is None
 

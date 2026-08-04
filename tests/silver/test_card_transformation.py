@@ -8,18 +8,27 @@ Tests Helper Functions & Table Builders:
 - All Atomic Silver Card Table Builders (_build_account, _build_payment_card, _build_merchant, etc.)
 """
 
-# Databricks notebook source
-from pathlib import Path
+import builtins
 import os
 import sys
-import builtins
+
+# Databricks notebook source
+from pathlib import Path
 from types import ModuleType
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import MagicMock, patch
 
 import pyspark
-from pyspark.sql import SparkSession, functions as F
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, BooleanType
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.types import (
+    BooleanType,
+    DoubleType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 # ------------------------------------------------------------------------------
 # 1. DYNAMIC PATH RESOLUTION
@@ -36,8 +45,7 @@ try:
     test_spark_session = spark  # Databricks Runtime Context
 except NameError:
     test_spark_session = (
-        SparkSession.builder
-        .master("local[1]")
+        SparkSession.builder.master("local[1]")
         .appName("Pipeline-UnitTest")
         .config("spark.sql.shuffle.partitions", "1")
         .config("pipeline.catalog", "workspace")
@@ -77,12 +85,14 @@ if "dlt" not in sys.modules:
     dlt_mock.temporary_view = lambda *args, **kwargs: (lambda func: func)
     sys.modules["dlt"] = dlt_mock
 
+
 # ------------------------------------------------------------------------------
 # 2. LOCAL / DATABRICKS SPARK SESSION FIXTURE
 # ------------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def test_spark():
     return test_spark_session
+
 
 # ------------------------------------------------------------------------------
 # 3. IMPORT TARGET MODULE
@@ -93,18 +103,23 @@ import card_transformation
 # SECTION 1: HELPER FUNCTION TESTS
 # ==============================================================================
 
+
 def test_hash_key_generation(test_spark):
     """Verify hash_key produces deterministic 64-char SHA-256 hashes with trim/coalesce."""
-    df = test_spark.createDataFrame([
-        ("core_banking", "10001"),
-        ("core_banking", "  10001  ")  # Whitspace test
-    ], ["system", "id"])
+    df = test_spark.createDataFrame(
+        [("core_banking", "10001"), ("core_banking", "  10001  ")],  # Whitspace test
+        ["system", "id"],
+    )
 
-    result_df = df.select(card_transformation.hash_key("system", "id").alias("key_hash"))
+    result_df = df.select(
+        card_transformation.hash_key("system", "id").alias("key_hash")
+    )
     hashes = [r.key_hash for r in result_df.collect()]
 
     assert len(hashes[0]) == 64, "SHA-256 output must be 64 hexadecimal characters"
-    assert hashes[0] == hashes[1], "Trimming whitespace must produce identical hash values"
+    assert (
+        hashes[0] == hashes[1]
+    ), "Trimming whitespace must produce identical hash values"
 
 
 def test_tokenize_pii(test_spark):
@@ -121,7 +136,7 @@ def test_get_pipeline_run_id_existing_column(test_spark):
     """Verify get_pipeline_run_id extracts column if present in DataFrame."""
     df = test_spark.createDataFrame([("RUN_001",)], ["pipeline_run_id"])
     result_df = df.select(card_transformation.get_pipeline_run_id(df).alias("run_id"))
-    
+
     assert result_df.first().run_id == "RUN_001"
 
 
@@ -129,19 +144,22 @@ def test_get_pipeline_run_id_existing_column(test_spark):
 # SECTION 2: TABLE BUILDERS TESTS
 # ==============================================================================
 
+
 def test_build_account(test_spark):
     """Verify _build_account projects account fields and formats hashes correctly."""
-    schema = StructType([
-        StructField("account_id", LongType(), True),
-        StructField("product_type", StringType(), True),
-        StructField("status", StringType(), True),
-        StructField("open_date", StringType(), True),
-        StructField("branch_code", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df = test_spark.createDataFrame([
-        (1001, "SAVINGS", "ACTIVE", "2026-01-01", "BR001", "RUN_CARD_01")
-    ], schema)
+    schema = StructType(
+        [
+            StructField("account_id", LongType(), True),
+            StructField("product_type", StringType(), True),
+            StructField("status", StringType(), True),
+            StructField("open_date", StringType(), True),
+            StructField("branch_code", StringType(), True),
+            StructField("pipeline_run_id", StringType(), True),
+        ]
+    )
+    df = test_spark.createDataFrame(
+        [(1001, "SAVINGS", "ACTIVE", "2026-01-01", "BR001", "RUN_CARD_01")], schema
+    )
 
     result_df = card_transformation._build_account(df)
     row = result_df.first()
@@ -155,19 +173,33 @@ def test_build_account(test_spark):
 
 def test_build_payment_card(test_spark):
     """Verify _build_payment_card applies masking, AES-256 encryption, and PII tokenization."""
-    schema = StructType([
-        StructField("card_id", StringType(), True),
-        StructField("account_id", LongType(), True),
-        StructField("card_number", StringType(), True),
-        StructField("card_type", StringType(), True),
-        StructField("issue_date", StringType(), True),
-        StructField("expiry_date", StringType(), True),
-        StructField("status", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df = test_spark.createDataFrame([
-        ("CARD_99", 1001, "4532015112830366", "VISA_DEBIT", "2026-01-01", "2030-01-01", "ACTIVE", "RUN_01")
-    ], schema)
+    schema = StructType(
+        [
+            StructField("card_id", StringType(), True),
+            StructField("account_id", LongType(), True),
+            StructField("card_number", StringType(), True),
+            StructField("card_type", StringType(), True),
+            StructField("issue_date", StringType(), True),
+            StructField("expiry_date", StringType(), True),
+            StructField("status", StringType(), True),
+            StructField("pipeline_run_id", StringType(), True),
+        ]
+    )
+    df = test_spark.createDataFrame(
+        [
+            (
+                "CARD_99",
+                1001,
+                "4532015112830366",
+                "VISA_DEBIT",
+                "2026-01-01",
+                "2030-01-01",
+                "ACTIVE",
+                "RUN_01",
+            )
+        ],
+        schema,
+    )
 
     result_df = card_transformation._build_payment_card(df)
     row = result_df.first()
@@ -176,23 +208,25 @@ def test_build_payment_card(test_spark):
     assert len(row.payment_card_key) == 64
     assert row.card_number_masked is not None
     assert row.card_number_encrypted != "4532015112830366"  # Base64 AES Encrypted
-    assert len(row.card_number_token) == 64                 # SHA-256 Token
+    assert len(row.card_number_token) == 64  # SHA-256 Token
     assert row.source_system == "card_system"
 
 
 def test_build_party_account_role(test_spark):
     """Verify _build_party_account_role maps customer to account link relationship."""
-    schema = StructType([
-        StructField("link_id", StringType(), True),
-        StructField("cif_number", StringType(), True),
-        StructField("account_id", LongType(), True),
-        StructField("relationship_type", StringType(), True),
-        StructField("linked_date", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df = test_spark.createDataFrame([
-        ("LINK_01", "CIF_100", 1001, "PRIMARY_OWNER", "2026-01-15", "RUN_01")
-    ], schema)
+    schema = StructType(
+        [
+            StructField("link_id", StringType(), True),
+            StructField("cif_number", StringType(), True),
+            StructField("account_id", LongType(), True),
+            StructField("relationship_type", StringType(), True),
+            StructField("linked_date", StringType(), True),
+            StructField("pipeline_run_id", StringType(), True),
+        ]
+    )
+    df = test_spark.createDataFrame(
+        [("LINK_01", "CIF_100", 1001, "PRIMARY_OWNER", "2026-01-15", "RUN_01")], schema
+    )
 
     result_df = card_transformation._build_party_account_role(df)
     row = result_df.first()
@@ -205,16 +239,18 @@ def test_build_party_account_role(test_spark):
 
 def test_build_payment_card_limit_history(test_spark):
     """Verify _build_payment_card_limit_history casts limit_amount to Decimal(12,2)."""
-    schema = StructType([
-        StructField("history_id", StringType(), True),
-        StructField("card_id", StringType(), True),
-        StructField("limit_amount", DoubleType(), True),
-        StructField("effective_date", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df = test_spark.createDataFrame([
-        ("HIST_01", "CARD_99", 5000.50, "2026-02-01", "RUN_01")
-    ], schema)
+    schema = StructType(
+        [
+            StructField("history_id", StringType(), True),
+            StructField("card_id", StringType(), True),
+            StructField("limit_amount", DoubleType(), True),
+            StructField("effective_date", StringType(), True),
+            StructField("pipeline_run_id", StringType(), True),
+        ]
+    )
+    df = test_spark.createDataFrame(
+        [("HIST_01", "CARD_99", 5000.50, "2026-02-01", "RUN_01")], schema
+    )
 
     result_df = card_transformation._build_payment_card_limit_history(df)
     row = result_df.first()
@@ -225,35 +261,52 @@ def test_build_payment_card_limit_history(test_spark):
 
 def test_build_merchant_and_location(test_spark):
     """Verify _build_merchant and _build_merchant_location field mappings."""
-    schema_mch = StructType([
-        StructField("merchant_id", StringType(), True),
-        StructField("merchant_name", StringType(), True),
-        StructField("mcc_code", StringType(), True),
-        StructField("country", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_mch = test_spark.createDataFrame([
-        ("MERCH_01", "Highlands Coffee", "5812", "VN", "RUN_01")
-    ], schema_mch)
+    schema_mch = StructType(
+        [
+            StructField("merchant_id", StringType(), True),
+            StructField("merchant_name", StringType(), True),
+            StructField("mcc_code", StringType(), True),
+            StructField("country", StringType(), True),
+            StructField("pipeline_run_id", StringType(), True),
+        ]
+    )
+    df_mch = test_spark.createDataFrame(
+        [("MERCH_01", "Highlands Coffee", "5812", "VN", "RUN_01")], schema_mch
+    )
 
     res_mch = card_transformation._build_merchant(df_mch).first()
     assert res_mch.merchant_name == "Highlands Coffee"
     assert res_mch.source_system == "merchant_system"
 
-    schema_loc = StructType([
-        StructField("store_id", StringType(), True),
-        StructField("merchant_id", StringType(), True),
-        StructField("store_name", StringType(), True),
-        StructField("store_description", StringType(), True),
-        StructField("store_type", StringType(), True),
-        StructField("store_address", StringType(), True),
-        StructField("risk_rating", StringType(), True),
-        StructField("registered_date", StringType(), True),
-        StructField("pipeline_run_id", StringType(), True)
-    ])
-    df_loc = test_spark.createDataFrame([
-        ("STORE_101", "MERCH_01", "Highlands District 1", "Flagship Store", "RETAIL", "72 Le Thanh Ton", "LOW", "2026-01-01", "RUN_01")
-    ], schema_loc)
+    schema_loc = StructType(
+        [
+            StructField("store_id", StringType(), True),
+            StructField("merchant_id", StringType(), True),
+            StructField("store_name", StringType(), True),
+            StructField("store_description", StringType(), True),
+            StructField("store_type", StringType(), True),
+            StructField("store_address", StringType(), True),
+            StructField("risk_rating", StringType(), True),
+            StructField("registered_date", StringType(), True),
+            StructField("pipeline_run_id", StringType(), True),
+        ]
+    )
+    df_loc = test_spark.createDataFrame(
+        [
+            (
+                "STORE_101",
+                "MERCH_01",
+                "Highlands District 1",
+                "Flagship Store",
+                "RETAIL",
+                "72 Le Thanh Ton",
+                "LOW",
+                "2026-01-01",
+                "RUN_01",
+            )
+        ],
+        schema_loc,
+    )
 
     res_loc = card_transformation._build_merchant_location(df_loc).first()
     assert res_loc.store_name == "Highlands District 1"
