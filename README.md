@@ -363,14 +363,6 @@ Located at `.github/workflows/ci-cd.yml`:
 | **Job run failures** | Schema mismatch or missing Volume | Check job execution logs in Databricks UI, verify UC volume path, and consult the Quarantine table for validation rule errors. |
 | **Notebook import error** | Missing workspace deployment | Ensure `databricks bundle deploy` has been executed on the target environment. |
 
-### Getting help
-
-1. Check [Pipeline Runbook](https://www.google.com/search?q=src/pipeline/README.md) for detailed guidance.
-2. Review [docs/](https://www.google.com/search?q=docs/) for architecture documentation.
-3. Search existing GitHub issues.
-4. Ask in team Slack channel.
-5. Create new GitHub issue with details.
-
 ---
 
 ## Documentation
