@@ -2,6 +2,7 @@ resources:
   pipelines:
     source_to_bronze:
       name: source-to-bronze
+      allow_duplicate_names: true
       catalog: ${var.catalog}
       schema: ${var.bronze_schema}
       serverless: true
