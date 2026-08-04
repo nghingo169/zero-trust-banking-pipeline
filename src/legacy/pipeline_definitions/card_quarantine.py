@@ -8,8 +8,7 @@ the source table and ``get_rules`` argument.
 from pyspark import pipelines as dp
 from pyspark.sql.functions import expr
 
-from data_contracts.quality_rules.registry import (get_quarantine_condition,
-                                                   get_rules)
+from data_contracts.quality_rules.registry import get_quarantine_condition, get_rules
 
 
 @dp.view

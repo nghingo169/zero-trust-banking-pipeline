@@ -20,8 +20,12 @@ if RULE_PATH not in sys.path:
     sys.path.insert(0, RULE_PATH)
 
 from data_contracts.table_catalog import DOMAINS, tables
-from pipeline.silver import (card_validation, customer_validation,
-                             fincrime_validation, transaction_validation)
+from pipeline.silver import (
+    card_validation,
+    customer_validation,
+    fincrime_validation,
+    transaction_validation,
+)
 
 CATALOG = spark.conf.get("pipeline.catalog")
 VALIDATED_SCHEMA = spark.conf.get("pipeline.validated_schema")

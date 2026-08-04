@@ -8,6 +8,7 @@ Test Focus  : Window Deduplication, Aggregations, DQ Status Logic, and Default V
 import builtins
 import os
 import sys
+
 # Databricks notebook source
 from pathlib import Path
 from types import ModuleType
@@ -17,8 +18,14 @@ import pyspark
 import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import (BooleanType, DoubleType, LongType, StringType,
-                               StructField, StructType)
+from pyspark.sql.types import (
+    BooleanType,
+    DoubleType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 # ------------------------------------------------------------------------------
 # 1. DYNAMIC PATH RESOLUTION

@@ -18,6 +18,7 @@ import builtins
 import os
 import sys
 from datetime import date, timedelta
+
 # Databricks notebook source
 from pathlib import Path
 from types import ModuleType
@@ -27,8 +28,15 @@ import pyspark
 import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import (BooleanType, DateType, DoubleType, StringType,
-                               StructField, StructType, TimestampType)
+from pyspark.sql.types import (
+    BooleanType,
+    DateType,
+    DoubleType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
+)
 
 # ------------------------------------------------------------------------------
 # 1. DYNAMIC PATH RESOLUTION
