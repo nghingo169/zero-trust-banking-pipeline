@@ -197,12 +197,12 @@ Execute the preload SQL script to set up schemas, volumes, and governance tables
 5. **Validate and deploy bundle:**
 ```bash
 # Validate and deploy bundle in dev target
-databricks bundle validate --t dev -p <your-profile>
-databricks bundle deploy --t dev -p <your-profile>
+databricks bundle validate -t dev -p <your-profile>
+databricks bundle deploy -t dev -p <your-profile>
 
 # Validate and deploy bundle in team target (recommended)
-databricks bundle validate --t team -p <your-profile>
-databricks bundle deploy --t team -p <your-profile>
+databricks bundle validate -t team -p <your-profile>
+databricks bundle deploy -t team -p <your-profile>
 
 ```
 
@@ -320,15 +320,15 @@ flake8 src/ tests/ --max-line-length=127
 
 ```bash
 # Validate and deploy bundle in dev target
-databricks bundle validate --t dev -p <your-profile>
-databricks bundle deploy --t dev -p <your-profile>
+databricks bundle validate -t dev -p <your-profile>
+databricks bundle deploy -t dev -p <your-profile>
 
 # Run integration tests remotely (dev environment)
 databricks bundle run run_integration_tests -t dev -p <your-profile>
 
 # Or team environment (recommended)
-databricks bundle validate --t team -p <your-profile>
-databricks bundle deploy --t team -p <your-profile>
+databricks bundle validate -t team -p <your-profile>
+databricks bundle deploy -t team -p <your-profile>
 databricks bundle run run_integration_tests -t team -p <your-profile>
 
 ```
