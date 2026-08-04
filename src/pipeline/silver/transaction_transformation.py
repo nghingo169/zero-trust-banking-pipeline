@@ -41,7 +41,7 @@ def get_silver_atomic_schema():
 
 def validated_src(table_name: str) -> str:
     if "pytest" in sys.modules:
-        return table_name
+        return f"{get_src_schema()}.{table_name}"
     cat = get_catalog()
     schema = get_src_schema()
     return f"{cat}.{schema}.{table_name}" if cat else f"{schema}.{table_name}"
@@ -49,7 +49,7 @@ def validated_src(table_name: str) -> str:
 
 def atomic_tgt(table_name: str) -> str:
     if "pytest" in sys.modules:
-        return table_name
+        return f"{get_silver_atomic_schema()}.{table_name}"
     cat = get_catalog()
     schema = get_silver_atomic_schema()
     return f"{cat}.{schema}.{table_name}" if cat else f"{schema}.{table_name}"
