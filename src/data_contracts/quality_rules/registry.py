@@ -5,7 +5,8 @@ single public API and implementation point for rule lookup and quarantine
 predicate construction, so pipelines have no helper-module dependency chain.
 """
 
-from data_contracts.quality_rules.domains import card, customer, fincrime, transaction
+from data_contracts.quality_rules.domains import (card, customer, fincrime,
+                                                  transaction)
 
 DOMAIN_MODULES = {
     "card": card,

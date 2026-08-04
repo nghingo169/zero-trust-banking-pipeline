@@ -14,7 +14,8 @@ import pyspark
 import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
+from pyspark.sql.types import (DoubleType, LongType, StringType, StructField,
+                               StructType)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = str(PROJECT_ROOT / "src")
@@ -22,12 +23,10 @@ SRC_DIR = str(PROJECT_ROOT / "src")
 if os.path.exists(SRC_DIR) and SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from data_contracts.quality_rules.registry import (
-    get_domain_rules,
-    get_quarantine_condition,
-    get_rules,
-    get_rules_as_list_of_dict,
-)
+from data_contracts.quality_rules.registry import (get_domain_rules,
+                                                   get_quarantine_condition,
+                                                   get_rules,
+                                                   get_rules_as_list_of_dict)
 
 
 class QualityRulesTests(unittest.TestCase):

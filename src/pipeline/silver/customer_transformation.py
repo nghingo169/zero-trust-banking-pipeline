@@ -7,7 +7,8 @@ Domain        : Customer / Enterprise Party Domain
 import time
 import uuid
 
-from nab_tdm_masking import mask_address, mask_name, mask_national_id, mask_phone
+from nab_tdm_masking import (mask_address, mask_name, mask_national_id,
+                             mask_phone)
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
