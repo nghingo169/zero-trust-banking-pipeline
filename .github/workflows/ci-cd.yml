@@ -46,8 +46,8 @@ jobs:
       
       - name: Run isort (Import Sorting)
         run: |
-          # Check if imports are sorted
-          isort --check-only --diff src/ tests/
+          # Bổ sung cờ --profile black trực tiếp vào lệnh
+          isort --profile black --check-only --diff src/ tests/
       
       # Notification on failure
       - name: Notify on code quality failure
