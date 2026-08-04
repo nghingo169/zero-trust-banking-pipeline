@@ -6,10 +6,6 @@ The project uses Databricks Declarative Automation Bundles (DABs) so the same co
 
 ---
 
-The project uses Databricks Declarative Automation Bundles (DABs) so the same codebase can be deployed seamlessly across engineer workspaces and target environments (`dev`, `staging`, `prod`/`team`). The `main` branch is reserved for production-ready releases; ongoing integration work belongs on the `dev` branch.
-
----
-
 ## Overview
 
 This project implements a zero-trust data pipeline that:
@@ -25,52 +21,38 @@ This project implements a zero-trust data pipeline that:
 ## Architecture & medallion flow
 
 ### Pipeline flow
-* Processes 41 banking source tables across Customer, Card, Transaction, and Financial Crime domains.
-* Implements SCD Type 2 for historical snapshot entities and SCD Type 1 for immutable events.
-* Enforces row-level data quality rules with automatic quarantine routing.
-* Provides full audit logging and quality metrics tracking.
-* Uses Databricks Declarative Automation Bundles for multi-environment deployment.
-* Includes an automated CI/CD pipeline with parallel testing and deployment triggers.
-
----
-
-## Architecture & medallion flow
-
-### Pipeline flow
 
 ```text
                     Source Snapshot Files (.csv/.parquet)
-                                  ↓
+                                      ↓
                     Source Landing Volume (Unity Catalog)
-                                  ↓
+                                      ↓
                     ================================
                          BRONZE LAYER (Raw)
                     ================================
                     SCD Type 2: Customer, Account, Card
                     SCD Type 1: Transactions, Events
                     + Source lineage & metadata
-                                  ↓
+                                      ↓
                     Validation & Normalization Engine
-                                  ↓
-              ┌──────────────────┴──────────────────┐
-              ↓                                      ↓
-    ================================      Governance Quarantine
-       SILVER LAYER (Validated)             (Failed Records)
-    ================================               ↓
-    Clean, normalized records              Audit & Monitoring
+                                      ↓
+              ┌──────────────────────┴──────────────────────┐
+              ↓                                             ↓
+    ================================               Governance Quarantine
+        SILVER LAYER (Validated)                     (Failed Records)
+    ================================                        ↓
+    Clean, normalized records                       Audit & Monitoring
     Row-level quality validated
     Business rules applied
               ↓
     ================================
-    GOLD LAYER (Aggregated)
-    GOLD LAYER (Aggregated)
+        GOLD LAYER (Aggregated)
     ================================
     Customer 360 views
     Pre-aggregated metrics
     Business-ready datasets
               ↓
     Dashboards, Reports, ML Models
-
 
 ```
 
@@ -83,20 +65,7 @@ This project implements a zero-trust data pipeline that:
 * **SCD Type 1 for status-event tables (transactions, status changes):** Treats immutable events using their real composite business keys. No history tracking needed as events are point-in-time facts.
 * **Metadata enrichment:** `business_date`, `load_timestamp`, `source_file`.
 * **Schema:** Minimal transformations, preserves raw source structure.
-#### Bronze Layer — Raw Data Ingestion
 
-* **Purpose:** Immutable landing zone preserving full source history.
-* **SCD Type 2 for snapshot entities (customer, account, card):** Tracks historical changes with effective dates (`valid_from`, `valid_to`) to maintain a complete audit trail of state changes.
-* **SCD Type 1 for status-event tables (transactions, status changes):** Treats immutable events using their real composite business keys. No history tracking needed as events are point-in-time facts.
-* **Metadata enrichment:** `business_date`, `load_timestamp`, `source_file`.
-* **Schema:** Minimal transformations, preserves raw source structure.
-
-#### Silver layer — Validated & normalized
-
-* **Purpose:** Clean, conformed data ready for analytics and downstream ML feature engineering.
-* **Data quality validation:** Row-level quality rule enforcement.
-* **Schema standardization:** Consistent data types, naming conventions, and deduplication.
-* **Quarantine routing:** Failed records are automatically routed to Governance Quarantine with context.
 #### Silver layer — Validated & normalized
 
 * **Purpose:** Clean, conformed data ready for analytics and downstream ML feature engineering.
@@ -111,15 +80,7 @@ This project implements a zero-trust data pipeline that:
 * **Aggregated metrics:** Denormalized models for executive analytics and dashboards.
 
 #### Governance & Infrastructure
-#### Gold layer — Business aggregates & analytics
 
-* **Purpose:** Pre-aggregated, business-level datasets optimized for reporting and ML.
-* **Customer 360 Views:** Unified customer profiles across all 4 domains.
-* **Aggregated metrics:** Denormalized models for executive analytics and dashboards.
-
-#### Governance & Infrastructure
-
-Cross-layer capabilities for data quality, lineage, and compliance:
 Cross-layer capabilities for data quality, lineage, and compliance:
 
 * **Quarantine table:** Centralized tracking for failed validation rules. Stores one record per failed rule, preserving the original Bronze payload for root cause analysis and remediation.
@@ -129,37 +90,29 @@ Cross-layer capabilities for data quality, lineage, and compliance:
 ---
 
 ## Repository structure
-* **Quarantine table:** Centralized tracking for failed validation rules. Stores one record per failed rule, preserving the original Bronze payload for root cause analysis and remediation.
-* **Audit logs:** Full lineage and execution metadata, tracking performance, metrics, and compliance logs across all pipeline stages.
-* **Infrastructure lifecycle:** Unity Catalog schemas and governance state tables represent persistent infrastructure. They are preloaded once via SQL scripts, while application bundles deploy and own pipelines, jobs, and source code updates without destroying existing catalogs.
 
----
-
-## Repository structure
-
-```plaintext
 ```plaintext
 zero-trust-banking-pipeline/
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml           # GitHub Actions CI/CD pipeline
 ├── src/
-│   ├── pipeline/              # Core pipeline modules
+│   ├── pipeline/               # Core pipeline modules
 │   │   ├── source_landing/    # Auto Loader ingestion
-│   │   ├── bronze/            # SCD Type 2/1 bronze layer logic
-│   │   ├── silver/            # Validation and normalization
-│   │   ├── monitoring/        # Audit and metrics
+│   │   ├── bronze/             # SCD Type 2/1 bronze layer logic
+│   │   ├── silver/             # Validation and normalization
+│   │   ├── monitoring/         # Audit and metrics
 │   │   └── README.md          # Detailed pipeline runbook
-│   └── data_contracts/        # Schemas and rules
-│       ├── schemas/           # Table schema definitions
-│       ├── quality_rules/     # Data quality rule registry
-│       ├── audit/             # Audit logging modules
-│       ├── table_catalog.py   # Table metadata and keys
-│       └── normalization.py   # Data normalization functions
+│   └── data_contracts/         # Schemas and rules
+│       ├── schemas/            # Table schema definitions
+│       ├── quality_rules/      # Data quality rule registry
+│       ├── audit/              # Audit logging modules
+│       ├── table_catalog.py    # Table metadata and keys
+│       └── normalization.py    # Data normalization functions
 ├── tests/
-│   ├── bronze/                # Tests for Bronze layer ingestion & metadata
+│   ├── bronze/                 # Tests for Bronze layer ingestion & metadata
 │   │   └── test_bronze.py
-│   ├── silver/                # Silver domain transformation & quality tests
+│   ├── silver/                 # Silver domain transformation & quality tests
 │   │   ├── test_card_transformation.py
 │   │   ├── test_card_validation.py
 │   │   ├── test_customer_transformation.py
@@ -170,58 +123,36 @@ zero-trust-banking-pipeline/
 │   │   ├── test_quality_rules.py
 │   │   ├── test_transaction_transformation.py
 │   │   └── test_transaction_validation.py
-│   ├── gold/                  # Gold layer aggregation & context tests
+│   ├── gold/                   # Gold layer aggregation & context tests
 │   │   ├── test_ai_aml_investigation_context.py
 │   │   ├── test_customer_360_context.py
 │   │   └── test_fraud_transaction_context.py
-│   ├── conftest.py            # Pytest fixtures & shared test configurations
-│   ├── run_unit_tests.py      # Test execution script
-│   ├── bronze/                # Tests for Bronze layer ingestion & metadata
-│   │   └── test_bronze.py
-│   ├── silver/                # Silver domain transformation & quality tests
-│   │   ├── test_card_transformation.py
-│   │   ├── test_card_validation.py
-│   │   ├── test_customer_transformation.py
-│   │   ├── test_customer_validation.py
-│   │   ├── test_fincrime_transformation.py
-│   │   ├── test_fincrime_validation.py
-│   │   ├── test_nab_tdm_masking.py
-│   │   ├── test_quality_rules.py
-│   │   ├── test_transaction_transformation.py
-│   │   └── test_transaction_validation.py
-│   ├── gold/                  # Gold layer aggregation & context tests
-│   │   ├── test_ai_aml_investigation_context.py
-│   │   ├── test_customer_360_context.py
-│   │   └── test_fraud_transaction_context.py
-│   ├── conftest.py            # Pytest fixtures & shared test configurations
-│   ├── run_unit_tests.py      # Test execution script
-│   └── README.md              # Testing guide
-├── resources/                 # Databricks Bundle resources
-│   ├── pipelines.yml          # DLT pipeline definitions
-│   ├── jobs.yml               # Job definitions
-│   └── volumes.yml            # UC Volume definitions
-├── deliverables/              # Implementation evidence and runbooks
+│   ├── conftest.py             # Pytest fixtures & shared test configurations
+│   ├── run_unit_tests.py       # Test execution script
+│   └── README.md               # Testing guide
+├── resources/                  # Databricks Bundle resources
+│   ├── pipelines.yml           # DLT pipeline definitions
+│   ├── jobs.yml                # Job definitions
+│   └── volumes.yml             # UC Volume definitions
+├── deliverables/               # Implementation evidence and runbooks
 │   └── Team_Workspace_Pipeline_Technical_Runbook.md
-├── deliverables/              # Implementation evidence and runbooks
-│   └── Team_Workspace_Pipeline_Technical_Runbook.md
-├── docs/                      # Architecture documentation
+├── docs/                       # Architecture documentation
 │   ├── Banking_Silver_Atomic_Warehouse.dbml
 │   ├── banking_daily_change_catalog.md
 │   ├── banking_error_injection_catalog.md
 │   ├── customer_360_silver_guide.md
 │   └── error_injection_rule_mapping.md
-├── sql/                       # SQL queries and exploration
-│   └── customer_360/          # Customer 360 exploration SQL
-│   └── customer_360/          # Customer 360 exploration SQL
-├── scripts/                   # Utility scripts
-│   └── source_landing/        # Data upload helpers
-├── notebooks/                 # Ad-hoc analysis notebooks
-├── configs/                   # Configuration files
-├── data/                      # Sample/test data
-├── databricks.yml             # Bundle configuration
-├── requirements.txt           # Python dependencies
+├── sql/                        # SQL queries and exploration
+│   └── customer_360/           # Customer 360 exploration SQL
+├── scripts/                    # Utility scripts
+│   └── source_landing/         # Data upload helpers
+├── notebooks/                  # Ad-hoc analysis notebooks
+├── configs/                    # Configuration files
+├── data/                       # Sample/test data
+├── databricks.yml              # Bundle configuration
+├── requirements.txt            # Python dependencies
 ├── .gitignore
-└── README.md                  # Root documentation
+└── README.md                   # Root documentation
 
 ```
 
@@ -261,10 +192,9 @@ databricks auth login --host <workspace-url>
 ```
 
 
-4. **Preload unity Catalog infrastructure:**
+4. **Preload Unity Catalog infrastructure:**
 Execute the preload SQL script to set up schemas, volumes, and governance tables. Refer to the Pipeline runbook for full SQL statements.
-
-6. **Validate and deploy bundle:**
+5. **Validate and deploy bundle:**
 ```bash
 # Validate and deploy bundle in dev target
 databricks bundle validate --t dev -p <your-profile>
@@ -283,17 +213,22 @@ databricks bundle deploy --t team -p <your-profile>
 databricks bundle run full_pipeline -t dev -p <your-profile>
 
 # Run full_pipeline job in team target (recommended)
-databricks bundle run full_pipeline -t dev -p <your-profile>
+databricks bundle run full_pipeline -t team -p <your-profile>
 
 ```
+
 
 7. **Run the automated testing:**
 ```bash
-# Run the automated testing job in dev target
+# Run automated testing in dev target
 databricks bundle run run_integration_tests -t dev -p <your-profile>
-# Run full_pipeline job in team target (recommended)
-databricks bundle run  run_integration_tests -t team -p <your-profile>
+
+# Run automated testing in team target (recommended)
+databricks bundle run run_integration_tests -t team -p <your-profile>
+
 ```
+
+
 
 ---
 
@@ -305,7 +240,6 @@ databricks bundle run  run_integration_tests -t team -p <your-profile>
 | **Deploy bundle** | `databricks bundle deploy -t dev -p <your-profile>` | `databricks bundle deploy -t team -p <your-profile>` |
 | **Run integration tests** | `databricks bundle run run_integration_tests -t dev -p <your-profile>` | `databricks bundle run run_integration_tests -t team -p <your-profile>` |
 | **Run full pipeline** | `databricks bundle run full_pipeline -t dev -p <your-profile>` | `databricks bundle run full_pipeline -t team -p <your-profile>` |
-
 
 ---
 
@@ -325,6 +259,7 @@ git checkout dev && git pull origin dev && git checkout -b feature/your-feature
 
 ```
 
+
 2. **Develop & test locally:**
 ```bash
 # Unit testing
@@ -337,11 +272,13 @@ flake8 src/ tests/
 
 ```
 
+
 3. **Validate bundle configuration:**
 ```bash
 databricks bundle validate --target dev --profile <your-profile>
 
 ```
+
 
 4. **Deploy & integration test on Databricks:**
 ```bash
@@ -349,11 +286,16 @@ databricks bundle deploy --target dev
 databricks bundle run run_integration_tests -t dev
 
 ```
+
+
 5. **PR & merge:** Open PR to `dev`. Upon review and approval, merge to `dev`, and eventually promote from `dev` to `main`.
+
 ---
 
 ## Testing & validation
+
 Testing occurs across multiple levels:
+
 ### 1. Local unit tests
 
 ```bash
@@ -363,8 +305,8 @@ pytest tests/ -v --cov=src --cov-report=term-missing
 # Using unittest
 PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py'
 
-
 ```
+
 ### 2. Static code analysis
 
 ```bash
@@ -372,8 +314,8 @@ black src/ tests/
 isort src/ tests/
 flake8 src/ tests/ --max-line-length=127
 
-
 ```
+
 ### 3. Integration & end-to-end testing (Databricks)
 
 ```bash
@@ -384,32 +326,9 @@ databricks bundle deploy --t dev -p <your-profile>
 # Run integration tests remotely (dev environment)
 databricks bundle run run_integration_tests -t dev -p <your-profile>
 
-or
-
-# Validate and deploy bundle in team target (recommended)
+# Or team environment (recommended)
 databricks bundle validate --t team -p <your-profile>
 databricks bundle deploy --t team -p <your-profile>
-# Run integration tests remotely (team environment)
-databricks bundle run run_integration_tests -t team -p <your-profile>
-
-```
-
-### 4. CI/CD automation (GitHub actions)
-
-Located at `.github/workflows/ci-cd.yml`:
-# Validate and deploy bundle in dev target
-databricks bundle validate --t dev -p <your-profile>
-databricks bundle deploy --t dev -p <your-profile>
-
-# Run integration tests remotely (dev environment)
-databricks bundle run run_integration_tests -t dev -p <your-profile>
-
-or
-
-# Validate and deploy bundle in team target (recommended)
-databricks bundle validate --t team -p <your-profile>
-databricks bundle deploy --t team -p <your-profile>
-# Run integration tests remotely (team environment)
 databricks bundle run run_integration_tests -t team -p <your-profile>
 
 ```
@@ -446,22 +365,26 @@ Located at `.github/workflows/ci-cd.yml`:
 
 ### Getting help
 
-1. Check [Pipeline Runbook](src/pipeline/README.md) for detailed guidance
-2. Review [docs/](docs/) for architecture documentation
-3. Search existing GitHub issues
-4. Ask in team Slack channel
-5. Create new GitHub issue with details
+1. Check [Pipeline Runbook](https://www.google.com/search?q=src/pipeline/README.md) for detailed guidance.
+2. Review [docs/](https://www.google.com/search?q=docs/) for architecture documentation.
+3. Search existing GitHub issues.
+4. Ask in team Slack channel.
+5. Create new GitHub issue with details.
+
+---
 
 ## Documentation
 
 ### Available guides
 
-* **[Pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md)** - Complete setup and operations guide
-* **[Testing guide](tests/README.md)** - Unit and integration testing
-* **[Banking silver warehouse](docs/Banking_Silver_Atomic_Warehouse.dbml)** - Data model DBML
-* **[Daily change catalog](docs/banking_daily_change_catalog.md)** - Change detection patterns
-* **[Error injection catalog](docs/banking_error_injection_catalog.md)** - Quality rule catalog
-* **[Customer 360 guide](docs/customer_360_silver_guide.md)** - Customer analytics queries
+* **[Pipeline runbook](https://www.google.com/search?q=deliverables/Team_Workspace_Pipeline_Technical_Runbook.md)** - Complete setup and operations guide
+* **[Testing guide](https://www.google.com/search?q=tests/README.md)** - Unit and integration testing
+* **[Banking silver warehouse](https://www.google.com/search?q=docs/Banking_Silver_Atomic_Warehouse.dbml)** - Data model DBML
+* **[Daily change catalog](https://www.google.com/search?q=docs/banking_daily_change_catalog.md)** - Change detection patterns
+* **[Error injection catalog](https://www.google.com/search?q=docs/banking_error_injection_catalog.md)** - Quality rule catalog
+* **[Customer 360 guide](https://www.google.com/search?q=docs/customer_360_silver_guide.md)** - Customer analytics queries
+
+---
 
 ## Tech Stack & Dependencies
 
@@ -471,3 +394,5 @@ Located at `.github/workflows/ci-cd.yml`:
 * **Deployment:** Databricks Declarative Automation Bundles (DABs)
 * **Testing:** pytest, unittest
 * **CI/CD:** GitHub Actions
+
+```
