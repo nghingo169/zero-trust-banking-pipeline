@@ -338,7 +338,7 @@ databricks bundle run run_integration_tests -t team -p <your-profile>
 
 Located at `.github/workflows/ci-cd.yml`:
 
-* **On push/PR to `main` or `dev`:** Runs code quality checks (`flake8`, `black`, `isort`), parallel unit tests on Python 3.10/3.11/3.12, and bundle syntax validation.
+* **On push/PR to `main`:** Runs code quality checks (`flake8`, `black`, `isort`), parallel unit tests on Python 3.10/3.11/3.12, and bundle syntax validation.
 * **On merge to `main`:** Automatically deploys to Dev, executes integration tests on Databricks, and promotes/deploys to the production/team workspace.
 * **Secret configuration:** Ensure `DATABRICKS_HOST` and `DATABRICKS_TOKEN` are configured in GitHub Repository Secrets.
 
