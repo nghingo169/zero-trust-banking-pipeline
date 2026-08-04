@@ -74,19 +74,21 @@ def get_currency_col(df):
 
 
 FALLBACK_MODULE_UUID = str(uuid.uuid4())
-
-
 def get_pipeline_run_id(df) -> F.Column:
     """
     Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery.
+    Xử lý an toàn khi get_catalog() trả về chuỗi rỗng trong môi trường test/pytest.
     """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
-    # Scalar Subquery: Query trực tiếp cột pipeline_run_id theo dòng có start_time mới nhất
+    cat = get_catalog()
+    table_ref = f"{cat}.governance.pipeline_run" if cat else "governance.pipeline_run"
+
+    # Scalar Subquery chuẩn cú pháp SQL
     subquery_expr = f"""
         (SELECT CAST(pipeline_run_id AS STRING) 
-         FROM {get_catalog()}.governance.pipeline_run 
+         FROM {table_ref} 
          WHERE pipeline_name = 'full-pipeline' 
          ORDER BY start_time DESC 
          LIMIT 1)

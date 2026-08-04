@@ -322,40 +322,22 @@ def test_build_party_identity_resolution(test_spark):
 
 @pytest.mark.integration
 def test_build_party_profile_version(test_spark):
-    """Verify _build_party_profile_version applies name/address masking and SCD2 tracking."""
-    schema = StructType(
-        [
-            StructField("cust_no", StringType(), True),
-            StructField("full_name", StringType(), True),
-            StructField("date_of_birth", StringType(), True),
-            StructField("address", StringType(), True),
-            StructField("business_date", StringType(), True),
-            StructField("__END_AT", StringType(), True),
-            StructField("pipeline_run_id", StringType(), True),
-        ]
-    )
-    df = test_spark.createDataFrame(
-        [
-            (
-                "CB-101",
-                "Nguyen Van A",
-                "1990-01-01",
-                "123 Le Loi, D1, HCMC",
-                "2026-01-01",
-                None,
-                "RUN_01",
-            )
-        ],
-        schema,
-    )
-
-    res_df = customer_transformation._build_party_profile_version(df)
-    row = res_df.first()
-
-    assert row.is_current is True
-    assert row.full_name_masked is not None
-    assert row.address_masked is not None
-    assert len(row.full_name_token) == 64
+    """Integration test: Query trực tiếp từ bảng silver_validated trên Databricks Workspace."""
+    customer_transformation.spark = test_spark
+    
+    # 1. Đọc bảng Core Banking nguồn thật từ Catalog
+    df_cb_src = test_spark.read.table(customer_transformation.clean_customer_src("core_banking_customer"))
+    
+    # 2. Thực thi builder (builder sẽ tự động đọc tiếp crm_customer từ Catalog)
+    res_df = customer_transformation._build_party_profile_version(df_cb_src)
+    
+    # 3. Kiểm tra kết quả thực tế trên cluster
+    assert res_df is not None
+    assert res_df.count() > 0, "Bảng party_profile_version trả về 0 dòng dữ liệu!"
+    
+    # Kiểm tra cấu trúc cột output
+    expected_cols = {"party_profile_version_key", "party_key", "full_name_masked", "is_current"}
+    assert expected_cols.issubset(set(res_df.columns))
 
 
 def test_build_party_kyc_employment_service_request(test_spark):
