@@ -2,7 +2,7 @@
 
 This runbook describes how another engineering team can reproduce the complete banking pipeline demo in the shared Databricks team workspace. The `team` Bundle target reads source snapshots directly from Amazon S3; it does not use a source landing schema, Volume, or file-upload step.
 
-The end-to-end workflow is `full-source-to-gold`, with Bundle resource key `full_source_to_gold`. The earlier `full-source-to-validated-silver` job remains available for compatibility, but this runbook uses the explicitly named source-to-Gold job:
+The end-to-end workflow is `full-source-to-gold`, with Bundle resource key `full_source_to_gold`. The earlier `full-pipeline` job remains available for compatibility, but this runbook uses the explicitly named source-to-Gold job:
 
 ```text
 S3 source snapshots
@@ -195,7 +195,7 @@ databricks bundle deploy \
   --profile <team-profile>
 ```
 
-Validation checks the Bundle graph and resource configuration. Deployment uploads the source code and creates or updates the four pipelines and both orchestration jobs. Use `full-source-to-gold` for the complete demo; `full-source-to-validated-silver` is retained only for compatibility. The Bundle does not own or remove the catalog and schemas preloaded above.
+Validation checks the Bundle graph and resource configuration. Deployment uploads the source code and creates or updates the four pipelines and both orchestration jobs. Use `full-source-to-gold` for the complete demo; `full-pipeline` is retained only for compatibility. The Bundle does not own or remove the catalog and schemas preloaded above.
 
 ## 3. How to run the pipeline
 

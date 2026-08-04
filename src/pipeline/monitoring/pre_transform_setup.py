@@ -27,7 +27,7 @@ MERGE INTO {GOVERNANCE_TABLE} AS target
 USING (
     SELECT 
         '{RUN_ID}' AS pipeline_run_id,
-        'full-source-to-validated-silver' AS pipeline_name,
+        'full-pipeline' AS pipeline_name,
         'ALL' AS domain,
         '{BUSINESS_DATE}' AS business_date,
         current_timestamp() AS start_time,

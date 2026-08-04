@@ -15,7 +15,7 @@ from pyspark.sql import Row, functions as F
 # Databricks Widgets for parameters passed from Workflow Job Task
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
-dbutils.widgets.text("pipeline_name", "full-source-to-validated-silver")
+dbutils.widgets.text("pipeline_name", "full-pipeline")
 dbutils.widgets.text("quality_rules_path", "")
 dbutils.widgets.text("catalog", "workspace")
 dbutils.widgets.text("silver_schema", "silver")
@@ -222,7 +222,7 @@ UPDATE {CATALOG}.governance.pipeline_run
 SET execution_status = 'SUCCEEDED',
     end_time = current_timestamp()
 WHERE pipeline_run_id = '{RUN_ID}' 
-  AND pipeline_name = 'full-source-to-validated-silver'
+  AND pipeline_name = 'full-pipeline'
 """
 try:
     spark.sql(UPDATE_LOG_SQL)

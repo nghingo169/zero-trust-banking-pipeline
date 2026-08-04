@@ -63,7 +63,7 @@ def get_pipeline_run_id(df) -> F.Column:
     subquery_expr = f"""
         (SELECT CAST(pipeline_run_id AS STRING) 
          FROM {get_catalog()}.governance.pipeline_run 
-         WHERE pipeline_name = 'full-source-to-validated-silver' 
+         WHERE pipeline_name = 'full-pipeline' 
          ORDER BY start_time DESC 
          LIMIT 1)
     """

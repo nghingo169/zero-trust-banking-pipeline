@@ -1,8 +1,8 @@
 resources:
   jobs:
-    full_source_to_validated_silver:
-      name: full-source-to-validated-silver
-      description: Load source snapshots to Bronze, validate source tables, transform to Silver Atomic, and publish governance audit.
+    full_pipeline:
+      name: full-pipeline
+      description: Load source snapshots to Bronze, validate source tables, transform to Silver Atomic, publish to Gold, and record governance audit. # (Gợi ý update lại description)
       max_concurrent_runs: 1
       parameters:
         - name: audit_business_date
@@ -22,7 +22,7 @@ resources:
             base_parameters:
               business_date: "{{job.parameters.audit_business_date}}"
               run_id: "{{job.run_id}}"
-              pipeline_name: full-source-to-validated-silver
+              pipeline_name: full-pipeline
               quality_rules_path: ${workspace.file_path}/src
               catalog: ${var.catalog}
               bronze_schema: ${var.bronze_schema}
@@ -43,7 +43,7 @@ resources:
             base_parameters:
               business_date: "{{job.parameters.audit_business_date}}"
               run_id: "{{job.run_id}}"
-              pipeline_name: full-source-to-validated-silver
+              pipeline_name: full-pipeline
               quality_rules_path: ${workspace.file_path}/src
 
         # 5. Pre-Transform Setup: Ghi active_run_context table & log RUNNING
@@ -73,7 +73,7 @@ resources:
             base_parameters:
               business_date: "{{job.parameters.audit_business_date}}"
               run_id: "{{job.run_id}}"
-              pipeline_name: full-source-to-validated-silver
+              pipeline_name: full-pipeline
               quality_rules_path: ${workspace.file_path}/src
               catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}
