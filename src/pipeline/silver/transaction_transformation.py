@@ -152,9 +152,11 @@ def silver_financial_event():
     )
 
     # 2. Card Transactions (Fix: Alias DataFrame)
-    df_card = spark.read.table(validated_src("card_transaction")).join(
-        card_account, "card_id", "left"
-    ).alias("c_tx")
+    df_card = (
+        spark.read.table(validated_src("card_transaction"))
+        .join(card_account, "card_id", "left")
+        .alias("c_tx")
+    )
 
     card_tx = df_card.join(
         account_party,
@@ -182,9 +184,11 @@ def silver_financial_event():
     )
 
     # 3. ATM Activity (Fix: Alias DataFrame)
-    df_atm = spark.read.table(validated_src("log_atm")).join(
-        card_account, "card_id", "left"
-    ).alias("atm")
+    df_atm = (
+        spark.read.table(validated_src("log_atm"))
+        .join(card_account, "card_id", "left")
+        .alias("atm")
+    )
 
     atm_tx = df_atm.join(
         account_party,
@@ -203,7 +207,9 @@ def silver_financial_event():
         F.col("atm.log_timestamp").cast("timestamp").alias("occurred_at"),
         F.lit("atm_system").alias("source_system"),
         F.col("atm.log_id").cast("string").alias("source_business_key"),
-        F.concat_ws(":", F.lit("log_atm"), F.col("atm.log_id")).alias("bronze_record_ref"),
+        F.concat_ws(":", F.lit("log_atm"), F.col("atm.log_id")).alias(
+            "bronze_record_ref"
+        ),
         get_pipeline_run_id(df_atm).alias("pipeline_run_id"),
         F.current_timestamp().alias("ingested_at"),
         F.lit("VALID").alias("data_quality_status"),
@@ -255,9 +261,9 @@ def silver_financial_event():
         F.col("gw.gateway_timestamp").cast("timestamp").alias("occurred_at"),
         F.lit("payment_gateway").alias("source_system"),
         F.col("gw.gateway_txn_id").cast("string").alias("source_business_key"),
-        F.concat_ws(":", F.lit("payment_gateway_log"), F.col("gw.gateway_txn_id")).alias(
-            "bronze_record_ref"
-        ),
+        F.concat_ws(
+            ":", F.lit("payment_gateway_log"), F.col("gw.gateway_txn_id")
+        ).alias("bronze_record_ref"),
         get_pipeline_run_id(df_gw).alias("pipeline_run_id"),
         F.current_timestamp().alias("ingested_at"),
         F.lit("VALID").alias("data_quality_status"),
