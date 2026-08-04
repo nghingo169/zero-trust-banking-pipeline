@@ -324,19 +324,26 @@ def test_build_party_identity_resolution(test_spark):
 def test_build_party_profile_version(test_spark):
     """Integration test: Query trực tiếp từ bảng silver_validated trên Databricks Workspace."""
     customer_transformation.spark = test_spark
-    
+
     # 1. Đọc bảng Core Banking nguồn thật từ Catalog
-    df_cb_src = test_spark.read.table(customer_transformation.clean_customer_src("core_banking_customer"))
-    
+    df_cb_src = test_spark.read.table(
+        customer_transformation.clean_customer_src("core_banking_customer")
+    )
+
     # 2. Thực thi builder (builder sẽ tự động đọc tiếp crm_customer từ Catalog)
     res_df = customer_transformation._build_party_profile_version(df_cb_src)
-    
+
     # 3. Kiểm tra kết quả thực tế trên cluster
     assert res_df is not None
     assert res_df.count() > 0, "Bảng party_profile_version trả về 0 dòng dữ liệu!"
-    
+
     # Kiểm tra cấu trúc cột output
-    expected_cols = {"party_profile_version_key", "party_key", "full_name_masked", "is_current"}
+    expected_cols = {
+        "party_profile_version_key",
+        "party_key",
+        "full_name_masked",
+        "is_current",
+    }
     assert expected_cols.issubset(set(res_df.columns))
 
 

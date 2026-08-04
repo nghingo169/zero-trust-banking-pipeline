@@ -74,6 +74,8 @@ def get_currency_col(df):
 
 
 FALLBACK_MODULE_UUID = str(uuid.uuid4())
+
+
 def get_pipeline_run_id(df) -> F.Column:
     """
     Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery.
