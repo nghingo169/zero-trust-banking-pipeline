@@ -134,7 +134,8 @@ Cross-layer capabilities for data quality and compliance:
 5. **Validate and deploy bundle**
    ```bash
    databricks bundle validate --target dev
-   databricks bundle deploy --target dev
+   databricks bundle deploy --target dev (commment)
+   databricks bundle deploy --target team
    ```
 
 6. **Run the pipeline**
