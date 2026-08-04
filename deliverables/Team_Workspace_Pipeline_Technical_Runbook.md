@@ -202,7 +202,7 @@ Validation checks the Bundle graph and resource configuration. Deployment upload
 Run the complete job instead of starting individual pipelines. The audit date should identify a business date present below the configured S3 root; the committed demo default and latest snapshot date is `2026-07-10`.
 
 ```bash
-databricks bundle run full_source_to_gold \
+databricks bundle runfull_pipeline \
   --target team \
   --profile <team-profile> \
   --params audit_business_date=2026-07-10
