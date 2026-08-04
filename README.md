@@ -306,91 +306,6 @@ databricks bundle run  run_integration_tests -t team -p <your-profile>
 | **Run integration tests** | `databricks bundle run run_integration_tests -t dev -p <your-profile>` | `databricks bundle run run_integration_tests -t team -p <your-profile>` |
 | **Run full pipeline** | `databricks bundle run full_pipeline -t dev -p <your-profile>` | `databricks bundle run full_pipeline -t team -p <your-profile>` |
 
----
-└── README.md                  # Root documentation
-
-```
-
----
-
-## Quick start & setup
-
-### Prerequisites
-
-* Python 3.10+ installed locally
-* Databricks CLI installed and configured
-* Unity Catalog enabled workspace with appropriate schema/volume permissions
-* Git for version control
-
-### Initial setup (5 minutes)
-
-1. **Clone the repository:**
-```bash
-git clone <repository-url>
-cd zero-trust-banking-pipeline
-
-```
-
-
-2. **Install dependencies:**
-```bash
-pip install -r requirements.txt
-
-```
-
-
-3. **Configure Databricks CLI:**
-```bash
-databricks auth login --host <workspace-url>
-# Or configure profile via: databricks configure
-
-```
-
-
-4. **Preload unity Catalog infrastructure:**
-Execute the preload SQL script to set up schemas, volumes, and governance tables. Refer to the Pipeline runbook for full SQL statements.
-
-6. **Validate and deploy bundle:**
-```bash
-# Validate and deploy bundle in dev target
-databricks bundle validate --t dev -p <your-profile>
-databricks bundle deploy --t dev -p <your-profile>
-
-# Validate and deploy bundle in team target (recommended)
-databricks bundle validate --t team -p <your-profile>
-databricks bundle deploy --t team -p <your-profile>
-
-```
-
-
-6. **Run the pipeline:**
-```bash
-# Run full_pipeline job in dev target
-databricks bundle run full_pipeline -t dev -p <your-profile>
-
-# Run full_pipeline job in team target (recommended)
-databricks bundle run full_pipeline -t dev -p <your-profile>
-
-```
-
-7. **Run the automated testing:**
-```bash
-# Run the automated testing job in dev target
-databricks bundle run run_integration_tests -t dev -p <your-profile>
-# Run full_pipeline job in team target (recommended)
-databricks bundle run  run_integration_tests -t team -p <your-profile>
-```
-
----
-
-## Environment Commands Summary
-
-| Task | Dev Environment (`-t dev`) | Team Environment (`-t team`) (recommended) |
-| --- | --- | --- |
-| **Validate bundle** | `databricks bundle validate -t dev -p <your-profile>` | `databricks bundle validate -t team -p <your-profile>` |
-| **Deploy bundle** | `databricks bundle deploy -t dev -p <your-profile>` | `databricks bundle deploy -t team -p <your-profile>` |
-| **Run integration tests** | `databricks bundle run run_integration_tests -t dev -p <your-profile>` | `databricks bundle run run_integration_tests -t team -p <your-profile>` |
-| **Run full pipeline** | `databricks bundle run full_pipeline -t dev -p <your-profile>` | `databricks bundle run full_pipeline -t team -p <your-profile>` |
 
 ---
 
@@ -403,35 +318,10 @@ databricks bundle run  run_integration_tests -t team -p <your-profile>
 * `feature/*`: Feature-specific branches created from `dev`.
 
 ### Developer cycle
-### Branch strategy
-
-* `main`: Production-ready code only. Direct commits are restricted; changes require PR approvals. Merges trigger production deployment.
-* `dev`: Integration branch for ongoing development. Feature branches target `dev` first.
-* `feature/*`: Feature-specific branches created from `dev`.
-
-### Developer cycle
 
 1. **Branch out:**
 ```bash
 git checkout dev && git pull origin dev && git checkout -b feature/your-feature
-
-```
-1. **Branch out:**
-```bash
-git checkout dev && git pull origin dev && git checkout -b feature/your-feature
-
-```
-
-
-2. **Develop & test locally:**
-```bash
-# Unit testing
-pytest tests/ -v --cov=src
-
-# Formatting & Linting
-black src/ tests/
-isort src/ tests/
-flake8 src/ tests/
 
 ```
 
@@ -447,19 +337,11 @@ flake8 src/ tests/
 
 ```
 
-
 3. **Validate bundle configuration:**
 ```bash
 databricks bundle validate --target dev --profile <your-profile>
 
 ```
-
-3. **Validate bundle configuration:**
-```bash
-databricks bundle validate --target dev --profile <your-profile>
-
-```
-
 
 4. **Deploy & integration test on Databricks:**
 ```bash
@@ -467,44 +349,22 @@ databricks bundle deploy --target dev
 databricks bundle run run_integration_tests -t dev
 
 ```
-
-
-4. **Deploy & integration test on Databricks:**
-```bash
-databricks bundle deploy --target dev
-databricks bundle run run_integration_tests -t dev
-
-```
-
-
 5. **PR & merge:** Open PR to `dev`. Upon review and approval, merge to `dev`, and eventually promote from `dev` to `main`.
-
----
-5. **PR & merge:** Open PR to `dev`. Upon review and approval, merge to `dev`, and eventually promote from `dev` to `main`.
-
 ---
 
 ## Testing & validation
-
 Testing occurs across multiple levels:
-Testing occurs across multiple levels:
-
-### 1. Local unit tests
 ### 1. Local unit tests
 
 ```bash
 # Using pytest
-# Using pytest
 pytest tests/ -v --cov=src --cov-report=term-missing
 
-# Using unittest
 # Using unittest
 PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py'
 
 
 ```
-
-### 2. Static code analysis
 ### 2. Static code analysis
 
 ```bash
@@ -514,8 +374,6 @@ flake8 src/ tests/ --max-line-length=127
 
 
 ```
-
-### 3. Integration & end-to-end testing (Databricks)
 ### 3. Integration & end-to-end testing (Databricks)
 
 ```bash
@@ -534,8 +392,6 @@ databricks bundle deploy --t team -p <your-profile>
 # Run integration tests remotely (team environment)
 databricks bundle run run_integration_tests -t team -p <your-profile>
 
-
-
 ```
 
 ### 4. CI/CD automation (GitHub actions)
@@ -556,29 +412,12 @@ databricks bundle deploy --t team -p <your-profile>
 # Run integration tests remotely (team environment)
 databricks bundle run run_integration_tests -t team -p <your-profile>
 
-
-
 ```
 
 ### 4. CI/CD automation (GitHub actions)
 
 Located at `.github/workflows/ci-cd.yml`:
 
-* **On push/PR to `main`:** Runs code quality checks (`flake8`, `black`, `isort`), parallel unit tests on Python 3.10/3.11/3.12, and bundle syntax validation.
-* **On merge to `main`:** Automatically deploys to Dev, executes integration tests on Databricks, and promotes/deploys to the production/team workspace.
-* **Secret configuration:** Ensure `DATABRICKS_HOST` and `DATABRICKS_TOKEN` are configured in GitHub Repository Secrets.
-
----
-
-## Security & Configuration
-
-* **Zero hardcoded credentials:** No passwords, tokens, or workspace URLs are committed to source control.
-* **Local authentication:** Handled via standard Databricks CLI configuration in `~/.databrickscfg`.
-* **Variable overrides:** Stored locally in `.databricks/bundle/<target>/variable-overrides.json` (gitignored).
-* **Cloud storage access:** Unity Catalog Storage Credentials and External Locations govern S3 access. *(Note: Free Edition uses temporary secret scopes as documented in the runbook).*
-* **Gitignore safety:** `.databricks/`, `__pycache__/`, `.pytest_cache/`, `.coverage`, and environment files are strictly excluded.
-
----
 * **On push/PR to `main`:** Runs code quality checks (`flake8`, `black`, `isort`), parallel unit tests on Python 3.10/3.11/3.12, and bundle syntax validation.
 * **On merge to `main`:** Automatically deploys to Dev, executes integration tests on Databricks, and promotes/deploys to the production/team workspace.
 * **Secret configuration:** Ensure `DATABRICKS_HOST` and `DATABRICKS_TOKEN` are configured in GitHub Repository Secrets.
