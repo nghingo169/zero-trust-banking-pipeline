@@ -47,6 +47,8 @@ WHEN NOT MATCHED THEN
 
 try:
     spark.sql(INIT_AUDIT_SQL)
-    print(f"Successfully logged pipeline_run_id {RUN_ID} as RUNNING in {GOVERNANCE_TABLE}.")
+    print(
+        f"Successfully logged pipeline_run_id {RUN_ID} as RUNNING in {GOVERNANCE_TABLE}."
+    )
 except Exception as e:
     print(f"Governance table update skipped/failed: {e}")

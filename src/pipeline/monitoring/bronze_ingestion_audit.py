@@ -10,8 +10,8 @@ import sys
 import uuid
 from datetime import datetime
 
-from pyspark.sql import Row, functions as F
-
+from pyspark.sql import Row
+from pyspark.sql import functions as F
 
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
@@ -34,7 +34,6 @@ if RULE_PATH not in sys.path:
 
 from data_contracts.audit.writer import write_audit
 from data_contracts.table_catalog import DOMAINS, tables
-
 
 EVENT_KEYS = {
     "account_transaction_status_event": ["status_event_id", "account_txn_id"],
@@ -73,9 +72,7 @@ for domain in DOMAINS:
         bronze_table = qualified(BRONZE_SCHEMA, table_name)
 
         if not spark.catalog.tableExists(bronze_table):
-            rule_audits.append(
-                audit_row(table_name, "bronze_table_exists", 1, 1)
-            )
+            rule_audits.append(audit_row(table_name, "bronze_table_exists", 1, 1))
             metrics.append(
                 Row(
                     run_id=RUN_ID,
@@ -102,10 +99,7 @@ for domain in DOMAINS:
 
         key_columns = EVENT_KEYS.get(table_name, [business_key])
         duplicate_keys = (
-            current.groupBy(*key_columns)
-            .count()
-            .filter(F.col("count") > 1)
-            .count()
+            current.groupBy(*key_columns).count().filter(F.col("count") > 1).count()
         )
 
         rescued_rows = (

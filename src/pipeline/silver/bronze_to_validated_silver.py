@@ -12,8 +12,8 @@ import sys
 from functools import reduce
 
 from pyspark import pipelines as dp
-from pyspark.sql import DataFrame, functions as F
-
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 
 RULE_PATH = spark.conf.get("pipeline.quality_rules_path")
 if RULE_PATH not in sys.path:
@@ -26,7 +26,6 @@ from pipeline.silver import (
     fincrime_validation,
     transaction_validation,
 )
-
 
 CATALOG = spark.conf.get("pipeline.catalog")
 VALIDATED_SCHEMA = spark.conf.get("pipeline.validated_schema")
@@ -278,7 +277,9 @@ def quarantine_events(domain: str, table_name: str, business_key: str) -> DataFr
         # Python Lakeflow code cannot read a job-run pipeline parameter.
         # The dependent audit task stamps its own RUN_ID immediately after
         # this successful pipeline update.
-        F.lit(spark.conf.get("pipeline.run_id", None)).cast("string").alias("pipeline_run_id"),
+        F.lit(spark.conf.get("pipeline.run_id", None))
+        .cast("string")
+        .alias("pipeline_run_id"),
         F.lit(table_name).alias("source_table_name"),
         source_business_key.alias("source_business_key"),
         bronze_record_ref.alias("bronze_record_ref"),
@@ -286,7 +287,9 @@ def quarantine_events(domain: str, table_name: str, business_key: str) -> DataFr
         F.when(
             F.col("failed_rule_name") == F.lit("RESCUED_DATA_PRESENT"),
             F.lit("RESCUED_DATA_PRESENT"),
-        ).otherwise(F.lit("VALIDATION_RULE_FAILURE")).alias("quarantine_reason"),
+        )
+        .otherwise(F.lit("VALIDATION_RULE_FAILURE"))
+        .alias("quarantine_reason"),
         # Preserve only the Bronze schema-rescue content in its dedicated
         # field. It is null for ordinary rule failures.
         F.col("_rescued_data_json").alias("rescued_data_json"),

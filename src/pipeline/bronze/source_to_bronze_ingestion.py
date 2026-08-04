@@ -5,10 +5,10 @@ from pyspark import pipelines as dp
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-
 # ==============================================================================
 # PIPELINE CONFIGURATION HELPERS & RETRIEVAL
 # ==============================================================================
+
 
 def safe_conf_get(key: str, default: str = "") -> str:
     """Safely fetch Spark configuration in PySpark Connect / Serverless mode."""
@@ -65,6 +65,7 @@ CACHED_BUSINESS_DATES: Optional[List[int]] = None
 # SCD2 = business entities whose attributes or lifecycle can change over time.
 # ==============================================================================
 
+
 def table_configs(
     domain: str,
     stored_as_scd_type: str,
@@ -119,7 +120,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Transaction tables, except explicit status events → SCD2
     # --------------------------------------------------------------------------
@@ -171,7 +171,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Explicit transaction status events → SCD1
     # --------------------------------------------------------------------------
@@ -206,7 +205,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Financial-crime lifecycle/state records → SCD2
     # --------------------------------------------------------------------------
@@ -253,7 +251,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Financial-crime facts and relationship rows → SCD2
     # --------------------------------------------------------------------------
@@ -314,7 +311,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Card tables, except the explicit status event → SCD2
     # --------------------------------------------------------------------------
@@ -343,7 +339,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Explicit card status event → SCD1
     # --------------------------------------------------------------------------
@@ -367,6 +362,7 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
 # ==============================================================================
 # SOURCE AND METADATA HELPERS
 # ==============================================================================
+
 
 def source_path(
     domain: str,
@@ -401,9 +397,7 @@ def get_available_business_dates() -> List[int]:
             )
 
             if match:
-                dates.add(
-                    int(f"{match.group(1)}{match.group(2)}{match.group(3)}")
-                )
+                dates.add(int(f"{match.group(1)}{match.group(2)}{match.group(3)}"))
 
         CACHED_BUSINESS_DATES = sorted(dates)
         print(f"[INFO] Discovered snapshot versions: {CACHED_BUSINESS_DATES}")
@@ -443,10 +437,12 @@ def add_derived_event_keys(df: DataFrame, table_name: str) -> DataFrame:
         F.when(
             F.col("account_txn_id").isNotNull(),
             F.concat(F.lit("ACCOUNT:"), F.col("account_txn_id").cast("string")),
-        ).when(
+        )
+        .when(
             F.col("card_txn_id").isNotNull(),
             F.concat(F.lit("CARD:"), F.col("card_txn_id").cast("string")),
-        ).otherwise(F.lit("<MISSING_PARENT>")),
+        )
+        .otherwise(F.lit("<MISSING_PARENT>")),
     )
 
 
@@ -488,6 +484,7 @@ def add_operational_metadata(
 # SNAPSHOT CDC BUILDER
 # ==============================================================================
 
+
 def build_snapshot_flow(
     table_name: str,
     domain: str,
@@ -527,10 +524,8 @@ def build_snapshot_flow(
             business_date = f"{value[:4]}-{value[4:6]}-{value[6:]}"
 
             try:
-                snapshot_df = (
-                    spark.read
-                    .option("mergeSchema", "true")
-                    .parquet(source_path(table_domain, table, business_date))
+                snapshot_df = spark.read.option("mergeSchema", "true").parquet(
+                    source_path(table_domain, table, business_date)
                 )
 
                 snapshot_df = apply_schema_hints(snapshot_df, hints)
@@ -551,10 +546,7 @@ def build_snapshot_flow(
                 )
 
             except Exception as error:
-                if (
-                    "PATH_NOT_FOUND" in str(error)
-                    or "not found" in str(error).lower()
-                ):
+                if "PATH_NOT_FOUND" in str(error) or "not found" in str(error).lower():
                     print(
                         f"[WARN] Snapshot not found: "
                         f"{table} for {business_date}; skipping."
@@ -573,9 +565,7 @@ def build_snapshot_flow(
     }
 
     if stored_as_scd_type == "2":
-        flow_arguments[
-            "track_history_except_column_list"
-        ] = TECHNICAL_METADATA_COLUMNS
+        flow_arguments["track_history_except_column_list"] = TECHNICAL_METADATA_COLUMNS
 
     dp.create_auto_cdc_from_snapshot_flow(**flow_arguments)
 

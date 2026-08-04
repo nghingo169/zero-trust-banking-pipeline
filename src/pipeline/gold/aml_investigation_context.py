@@ -4,11 +4,10 @@ Grain  : 1 row per investigation_case
 Consumer: Compliance/Legal Agent (case triage, SAR/sanctions lookup)
 """
 
+from gold_common import gold_target_name, silver_ref
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-
-from gold_common import silver_ref, gold_target_name
 
 
 @dp.table(
@@ -64,10 +63,11 @@ def ai_aml_investigation_context():
     icfe = spark.read.table(silver_ref(spark, "investigation_case_financial_event"))
     in_note = spark.read.table(silver_ref(spark, "investigation_note"))
 
-    aml_case_window = Window.partitionBy("investigation_case_key").orderBy(F.col("opened_date").desc())
-    aml_case_dedup = (
-        ac.withColumn("rn", F.row_number().over(aml_case_window))
-        .filter("rn = 1")
+    aml_case_window = Window.partitionBy("investigation_case_key").orderBy(
+        F.col("opened_date").desc()
+    )
+    aml_case_dedup = ac.withColumn("rn", F.row_number().over(aml_case_window)).filter(
+        "rn = 1"
     )
 
     sar_window = Window.partitionBy("aml_case_key").orderBy(F.col("filed_date").desc())
@@ -78,45 +78,77 @@ def ai_aml_investigation_context():
         .join(we, "watchlist_entry_key", "left")
         .groupBy("investigation_case_key")
         .agg(
-            F.countDistinct("sanctions_screening_key").alias("sanctions_screening_count"),
-            F.max(F.when(~F.col("screening_result").isin("CLEAR", "FALSE_POSITIVE"), 1).otherwise(0)).cast("boolean").alias("sanctions_hit_flag"),
+            F.countDistinct("sanctions_screening_key").alias(
+                "sanctions_screening_count"
+            ),
+            F.max(
+                F.when(
+                    ~F.col("screening_result").isin("CLEAR", "FALSE_POSITIVE"), 1
+                ).otherwise(0)
+            )
+            .cast("boolean")
+            .alias("sanctions_hit_flag"),
             F.max("match_score").alias("max_sanctions_match_score"),
-            F.array_join(F.collect_set("list_type"), ", ").alias("linked_watchlist_types"),
+            F.array_join(F.collect_set("list_type"), ", ").alias(
+                "linked_watchlist_types"
+            ),
         )
     )
 
-    fraud_alert_agg = (
-        icfa.groupBy("investigation_case_key")
-        .agg(F.countDistinct("fraud_alert_key").alias("linked_fraud_alert_count"))
+    fraud_alert_agg = icfa.groupBy("investigation_case_key").agg(
+        F.countDistinct("fraud_alert_key").alias("linked_fraud_alert_count")
     )
 
-    monitoring_alert_agg = (
-        icma.groupBy("investigation_case_key")
-        .agg(F.countDistinct("monitoring_alert_key").alias("linked_monitoring_alert_count"))
+    monitoring_alert_agg = icma.groupBy("investigation_case_key").agg(
+        F.countDistinct("monitoring_alert_key").alias("linked_monitoring_alert_count")
     )
 
-    event_agg = (
-        icfe.groupBy("investigation_case_key")
-        .agg(F.countDistinct("financial_event_key").alias("linked_financial_event_count"))
+    event_agg = icfe.groupBy("investigation_case_key").agg(
+        F.countDistinct("financial_event_key").alias("linked_financial_event_count")
     )
 
-    note_agg = (
-        in_note.groupBy("investigation_case_key")
-        .agg(
-            F.count("*").alias("investigation_note_count"),
-            F.expr("max_by(note_text, note_timestamp)").alias("latest_note_text"),
-        )
+    note_agg = in_note.groupBy("investigation_case_key").agg(
+        F.count("*").alias("investigation_note_count"),
+        F.expr("max_by(note_text, note_timestamp)").alias("latest_note_text"),
     )
 
     return (
         ic.alias("ic")
-        .join(aml_case_dedup.alias("ac"), F.col("ac.investigation_case_key") == F.col("ic.investigation_case_key"), "left")
-        .join(sar_latest.alias("sl"), F.col("sl.aml_case_key") == F.col("ac.aml_case_key"), "left")
-        .join(sanctions_agg.alias("sa"), F.col("sa.investigation_case_key") == F.col("ic.investigation_case_key"), "left")
-        .join(fraud_alert_agg.alias("faa"), F.col("faa.investigation_case_key") == F.col("ic.investigation_case_key"), "left")
-        .join(monitoring_alert_agg.alias("maa"), F.col("maa.investigation_case_key") == F.col("ic.investigation_case_key"), "left")
-        .join(event_agg.alias("ea"), F.col("ea.investigation_case_key") == F.col("ic.investigation_case_key"), "left")
-        .join(note_agg.alias("na"), F.col("na.investigation_case_key") == F.col("ic.investigation_case_key"), "left")
+        .join(
+            aml_case_dedup.alias("ac"),
+            F.col("ac.investigation_case_key") == F.col("ic.investigation_case_key"),
+            "left",
+        )
+        .join(
+            sar_latest.alias("sl"),
+            F.col("sl.aml_case_key") == F.col("ac.aml_case_key"),
+            "left",
+        )
+        .join(
+            sanctions_agg.alias("sa"),
+            F.col("sa.investigation_case_key") == F.col("ic.investigation_case_key"),
+            "left",
+        )
+        .join(
+            fraud_alert_agg.alias("faa"),
+            F.col("faa.investigation_case_key") == F.col("ic.investigation_case_key"),
+            "left",
+        )
+        .join(
+            monitoring_alert_agg.alias("maa"),
+            F.col("maa.investigation_case_key") == F.col("ic.investigation_case_key"),
+            "left",
+        )
+        .join(
+            event_agg.alias("ea"),
+            F.col("ea.investigation_case_key") == F.col("ic.investigation_case_key"),
+            "left",
+        )
+        .join(
+            note_agg.alias("na"),
+            F.col("na.investigation_case_key") == F.col("ic.investigation_case_key"),
+            "left",
+        )
         .select(
             F.col("ic.investigation_case_key"),
             F.col("ic.investigation_type"),
@@ -133,20 +165,38 @@ def ai_aml_investigation_context():
             F.col("sl.filed_date").alias("sar_filed_date"),
             F.col("sl.regulatory_reference").alias("sar_regulatory_reference"),
             F.col("sl.report_status").alias("sar_report_status"),
-            F.coalesce(F.col("sa.sanctions_screening_count"), F.lit(0)).alias("sanctions_screening_count"),
-            F.coalesce(F.col("sa.sanctions_hit_flag"), F.lit(False)).alias("sanctions_hit_flag"),
+            F.coalesce(F.col("sa.sanctions_screening_count"), F.lit(0)).alias(
+                "sanctions_screening_count"
+            ),
+            F.coalesce(F.col("sa.sanctions_hit_flag"), F.lit(False)).alias(
+                "sanctions_hit_flag"
+            ),
             F.col("sa.max_sanctions_match_score"),
             F.col("sa.linked_watchlist_types"),
-            F.coalesce(F.col("faa.linked_fraud_alert_count"), F.lit(0)).alias("linked_fraud_alert_count"),
-            F.coalesce(F.col("maa.linked_monitoring_alert_count"), F.lit(0)).alias("linked_monitoring_alert_count"),
-            F.coalesce(F.col("ea.linked_financial_event_count"), F.lit(0)).alias("linked_financial_event_count"),
-            F.coalesce(F.col("na.investigation_note_count"), F.lit(0)).alias("investigation_note_count"),
+            F.coalesce(F.col("faa.linked_fraud_alert_count"), F.lit(0)).alias(
+                "linked_fraud_alert_count"
+            ),
+            F.coalesce(F.col("maa.linked_monitoring_alert_count"), F.lit(0)).alias(
+                "linked_monitoring_alert_count"
+            ),
+            F.coalesce(F.col("ea.linked_financial_event_count"), F.lit(0)).alias(
+                "linked_financial_event_count"
+            ),
+            F.coalesce(F.col("na.investigation_note_count"), F.lit(0)).alias(
+                "investigation_note_count"
+            ),
             F.col("na.latest_note_text"),
             F.col("ic.source_system"),
             F.col("ic.source_business_key"),
             F.col("ic.ingested_at"),
             F.col("ic.pipeline_run_id"),
-            F.when(F.col("ac.aml_case_key").isNotNull() & F.col("sl.regulatory_reference").isNull() & (F.col("ic.case_status") == "CLOSED"), "PENDING_REGULATORY_REF")
-            .otherwise("PASSED_CLEAN").alias("dq_status"),
+            F.when(
+                F.col("ac.aml_case_key").isNotNull()
+                & F.col("sl.regulatory_reference").isNull()
+                & (F.col("ic.case_status") == "CLOSED"),
+                "PENDING_REGULATORY_REF",
+            )
+            .otherwise("PASSED_CLEAN")
+            .alias("dq_status"),
         )
     )
