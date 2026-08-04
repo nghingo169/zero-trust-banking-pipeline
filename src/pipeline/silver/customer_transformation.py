@@ -9,21 +9,42 @@ from pyspark.sql import functions as F
 import uuid
 from nab_tdm_masking import mask_national_id, mask_phone, mask_name, mask_address
 
-CATALOG = spark.conf.get("pipeline.catalog", "workspace")
-BRONZE_SCHEMA = spark.conf.get("pipeline.bronze_schema", "bronze")
-SRC__SCHEMA = spark.conf.get("pipeline.silver_validated", "silver_validated")
-SILVER_ATOMIC_SCHEMA = spark.conf.get("pipeline.silver_schema", "silver")
+import time
+def get_catalog():
+    try:
+        return spark.conf.get("pipeline.catalog", "workspace")
+    except Exception:
+        return "workspace"
+
+def get_bronze_schema():
+    try:
+        return spark.conf.get("pipeline.bronze_schema", "bronze")
+    except Exception:
+        return "bronze"
+
+def get_src_schema():
+    try:
+        return spark.conf.get("pipeline.silver_validated", "silver_validated")
+    except Exception:
+        return "silver_validated"
+
+def get_silver_atomic_schema():
+    try:
+        return spark.conf.get("pipeline.silver_schema", "silver")
+    except Exception:
+        return "silver"
+
 TOKEN_SALT = "NAB_assignment_3"
 AES_KEY = "NAB_SECRET_AES256_KEY_32BYTES!!!"  # Chuẩn 32 bytes cho AES-256
 
 def clean_customer_src(table_name: str) -> str:
-    return f"{CATALOG}.{SRC__SCHEMA}.{table_name}"
+    return f"{get_catalog()}.{get_src_schema()}.{table_name}"
 
 def clean_bronze_src(table_name: str) -> str:
-    return f"{CATALOG}.{BRONZE_SCHEMA}.{table_name}"
+    return f"{get_catalog()}.{get_bronze_schema()}.{table_name}"
 
 def atomic_tgt(table_name: str) -> str:
-    return f"{CATALOG}.{SILVER_ATOMIC_SCHEMA}.{table_name}"
+    return f"{get_catalog()}.{get_silver_atomic_schema()}.{table_name}"
 
 def bronze_ref(bronze_table: str, business_key_col) -> F.Column:
     if isinstance(business_key_col, str):
@@ -64,19 +85,24 @@ FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 def get_pipeline_run_id(df) -> F.Column:
     """
-    Lấy Job Run ID từ bảng State Table bằng Scalar Subquery.
+    Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery.
     """
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
-    # Dùng Scalar Subquery: Spark sẽ tự query bảng này ở Worker level khi Materialize data
-    subquery_expr = f"(SELECT active_run_id FROM {CATALOG}.governance.active_run_context LIMIT 1)"
+    # Scalar Subquery: Query trực tiếp cột pipeline_run_id theo dòng có start_time mới nhất
+    subquery_expr = f"""
+        (SELECT CAST(pipeline_run_id AS STRING) 
+         FROM {get_catalog()}.governance.pipeline_run 
+         WHERE pipeline_name = 'full-source-to-validated-silver' 
+         ORDER BY start_time DESC 
+         LIMIT 1)
+    """
 
     return F.coalesce(
         F.expr(subquery_expr),
         F.lit(FALLBACK_MODULE_UUID)
     ).cast("string").alias("pipeline_run_id")
-
 
 def _latest_transaction_by_customer():
     txn = spark.read.table(clean_bronze_src("account_transaction"))
@@ -304,15 +330,16 @@ def _build_party_service_request(df):
         F.current_timestamp().alias("ingested_at"),
     )
 
-TABLE_SPECS = [
-    {"target": "party", "source": None, "comment": "Canonical Silver Enterprise Party Table", "builder": _build_party, "unique_keys": None},
-    {"target": "party_identifier", "source": clean_customer_src("core_banking_customer"), "comment": "Canonical Silver Party Identifier Table with PII Tokenization", "builder": _build_party_identifier, "unique_keys": ["source_system", "identifier_type", "identifier_value_token"]},
-    {"target": "party_identity_resolution", "source": clean_customer_src("crm_customer"), "comment": "Identity Resolution Matching Results", "builder": _build_party_identity_resolution, "unique_keys": ["source_system", "source_entity", "source_business_key"]},
-    {"target": "party_profile_version", "source": clean_customer_src("core_banking_customer"), "comment": "Canonical Silver Party Profile Version Table (SCD2)", "builder": _build_party_profile_version, "unique_keys": None},
-    {"target": "party_kyc_assessment", "source": clean_customer_src("customer_kyc"), "comment": "Canonical Silver Party KYC Assessment Table", "builder": _build_party_kyc_assessment, "unique_keys": None},
-    {"target": "party_employment", "source": clean_customer_src("customer_employment"), "comment": "Canonical Silver Party Employment Table", "builder": _build_party_employment, "unique_keys": None},
-    {"target": "party_service_request", "source": clean_customer_src("customer_request"), "comment": "Canonical Silver Party Service Request Table", "builder": _build_party_service_request, "unique_keys": None},
-]
+def get_table_specs():
+    return [
+        {"target": "party", "source": None, "comment": "Canonical Silver Enterprise Party Table", "builder": _build_party, "unique_keys": None},
+        {"target": "party_identifier", "source": clean_customer_src("core_banking_customer"), "comment": "Canonical Silver Party Identifier Table with PII Tokenization", "builder": _build_party_identifier, "unique_keys": ["source_system", "identifier_type", "identifier_value_token"]},
+        {"target": "party_identity_resolution", "source": clean_customer_src("crm_customer"), "comment": "Identity Resolution Matching Results", "builder": _build_party_identity_resolution, "unique_keys": ["source_system", "source_entity", "source_business_key"]},
+        {"target": "party_profile_version", "source": clean_customer_src("core_banking_customer"), "comment": "Canonical Silver Party Profile Version Table (SCD2)", "builder": _build_party_profile_version, "unique_keys": None},
+        {"target": "party_kyc_assessment", "source": clean_customer_src("customer_kyc"), "comment": "Canonical Silver Party KYC Assessment Table", "builder": _build_party_kyc_assessment, "unique_keys": None},
+        {"target": "party_employment", "source": clean_customer_src("customer_employment"), "comment": "Canonical Silver Party Employment Table", "builder": _build_party_employment, "unique_keys": None},
+        {"target": "party_service_request", "source": clean_customer_src("customer_request"), "comment": "Canonical Silver Party Service Request Table", "builder": _build_party_service_request, "unique_keys": None},
+    ]
 
 def _register_table(spec: dict) -> None:
     table_kwargs = {"name": atomic_tgt(spec["target"]), "comment": spec["comment"]}
@@ -330,7 +357,8 @@ def _register_table(spec: dict) -> None:
     dp.table(**table_kwargs)(_transform)
 
 def main() -> None:
-    for spec in TABLE_SPECS:
+    for spec in get_table_specs():
         _register_table(spec)
 
-main()
+if __name__ == "__main__":
+    main()

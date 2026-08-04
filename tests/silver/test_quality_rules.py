@@ -3,11 +3,24 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import sys
+import builtins
 import unittest
+from types import ModuleType
+from unittest.mock import patch, MagicMock
+import pytest
+import pyspark
+from pyspark.sql import SparkSession, functions as F
+from pyspark.sql.types import (
+    StructType, StructField, StringType, LongType, DoubleType
+)
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SRC_DIR = str(PROJECT_ROOT / "src")
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+if os.path.exists(SRC_DIR) and SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
 
 from data_contracts.quality_rules.registry import (
     get_domain_rules,
@@ -15,7 +28,6 @@ from data_contracts.quality_rules.registry import (
     get_rules,
     get_rules_as_list_of_dict,
 )
-
 
 class QualityRulesTests(unittest.TestCase):
     def test_card_rules_are_lakeflow_expectation_dictionary(self) -> None:
@@ -144,7 +156,7 @@ class QualityRulesTests(unittest.TestCase):
         self.assertNotIn("watchlist", [rule["table"] for rule in get_domain_rules("fincrime")])
 
     def test_silver_validation_imports_the_shared_rule_module(self) -> None:
-        root = Path(__file__).resolve().parents[1] / "src/pipeline/silver"
+        root = Path(__file__).resolve().parents[2] / "src/pipeline/silver"
         pipeline_source = (root / "bronze_to_validated_silver.py").read_text()
         card_assessment = (root / "card_validation.py").read_text()
         self.assertIn('spark.conf.get("pipeline.quality_rules_path")', pipeline_source)
@@ -153,14 +165,14 @@ class QualityRulesTests(unittest.TestCase):
 
     def test_silver_validation_quarantines_null_rule_evaluations(self) -> None:
         pipeline_source = (
-            Path(__file__).resolve().parents[1]
+            Path(__file__).resolve().parents[2]
             / "src/pipeline/silver/card_validation.py"
         ).read_text()
         self.assertIn("~F.coalesce(F.expr(rule), F.lit(False))", pipeline_source)
 
     def test_quality_pipelines_use_cdf_for_quarantine_history(self) -> None:
         source = (
-            Path(__file__).resolve().parents[1]
+            Path(__file__).resolve().parents[2]
             / "src/pipeline/silver/bronze_to_validated_silver.py"
         ).read_text()
         self.assertIn('option("readChangeFeed", "true")', source)
@@ -168,7 +180,7 @@ class QualityRulesTests(unittest.TestCase):
 
     def test_silver_validation_retains_scd2_history(self) -> None:
         source = (
-            Path(__file__).resolve().parents[1]
+            Path(__file__).resolve().parents[2]
             / "src/pipeline/silver/bronze_to_validated_silver.py"
         ).read_text()
         self.assertIn("_change_type IN ('insert', 'update_postimage')", source)

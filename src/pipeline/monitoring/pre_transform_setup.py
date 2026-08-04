@@ -1,15 +1,13 @@
 # Databricks notebook source
 """Pre-transform setup notebook.
 
-Gets the official job.run_id from Workflow parameters, creates/overwrites 
-the active_run_context table in Governance, so downstream DLT Pipelines 
-can read the exact job_run_id directly via Spark SQL without relying on Spark Conf.
+Registers the start of the transform run session in governance.pipeline_run.
 """
 
 import sys
 from datetime import datetime
 
-# Widgets receiving parameters directly from Workflow Job
+# Receiving parameters directly from Workflow Job
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
 dbutils.widgets.text("catalog", "workspace")
@@ -21,52 +19,34 @@ CATALOG = dbutils.widgets.get("catalog")
 if not RUN_ID:
     raise ValueError("run_id is required from Workflow")
 
-print(f"==================================================")
-print(f"INITIALIZING TRANSFORM RUN CONTEXT")
-print(f"Official Job Run ID : {RUN_ID}")
-print(f"Business Date       : {BUSINESS_DATE}")
-print(f"==================================================")
+GOVERNANCE_TABLE = f"{CATALOG}.governance.pipeline_run"
 
-# 1. Tạo/Ghi đè bảng Active Context duy nhất 1 dòng để DLT Pipeline đọc
-CONTEXT_TABLE = f"{CATALOG}.governance.active_run_context"
-
-spark.sql(f"""
-    CREATE TABLE IF NOT EXISTS {CONTEXT_TABLE} (
-        active_run_id STRING,
-        business_date STRING,
-        updated_at TIMESTAMP
-    )
-""")
-
-spark.sql(f"""
-    CREATE OR REPLACE TABLE {CONTEXT_TABLE} AS
-    SELECT 
-        '{RUN_ID}' AS active_run_id,
-        '{BUSINESS_DATE}' AS business_date,
-        current_timestamp() AS updated_at
-""")
-
-print(f"Active run context successfully written to {CONTEXT_TABLE}.")
-
-# 2. Log trạng thái RUNNING vào pipeline_execution_log như cũ
+# Ghi nhận log khởi tạo vào đúng schema của bảng governance.pipeline_run
 INIT_AUDIT_SQL = f"""
-MERGE INTO {CATALOG}.governance.pipeline_execution_log AS target
+MERGE INTO {GOVERNANCE_TABLE} AS target
 USING (
     SELECT 
-        '{RUN_ID}' AS run_id,
+        '{RUN_ID}' AS pipeline_run_id,
+        'full-source-to-validated-silver' AS pipeline_name,
+        'ALL' AS domain,
         '{BUSINESS_DATE}' AS business_date,
-        'transform_silver_atomic' AS pipeline_name,
-        'RUNNING' AS status,
-        current_timestamp() AS started_at
+        current_timestamp() AS start_time,
+        CAST(NULL AS TIMESTAMP) AS end_time,
+        'RUNNING' AS execution_status
 ) AS source
-ON target.run_id = source.run_id AND target.pipeline_name = source.pipeline_name
-WHEN MATCHED THEN UPDATE SET target.status = source.status
-WHEN NOT MATCHED THEN INSERT (run_id, business_date, pipeline_name, status, started_at)
-VALUES (source.run_id, source.business_date, source.pipeline_name, source.status, source.started_at)
+ON target.pipeline_run_id = source.pipeline_run_id 
+   AND target.pipeline_name = source.pipeline_name
+WHEN MATCHED THEN 
+    UPDATE SET 
+        target.execution_status = source.execution_status,
+        target.start_time = source.start_time
+WHEN NOT MATCHED THEN 
+    INSERT (pipeline_run_id, pipeline_name, domain, business_date, start_time, end_time, execution_status)
+    VALUES (source.pipeline_run_id, source.pipeline_name, source.domain, source.business_date, source.start_time, source.end_time, source.execution_status)
 """
 
 try:
     spark.sql(INIT_AUDIT_SQL)
-    print("Governance execution log updated to RUNNING.")
+    print(f"Successfully logged pipeline_run_id {RUN_ID} as RUNNING in {GOVERNANCE_TABLE}.")
 except Exception as e:
     print(f"Governance table update skipped/failed: {e}")

@@ -217,16 +217,15 @@ for domain in DOMAINS:
     )
 
 # Update governance execution log status to SUCCEEDED for transform_silver_atomic step
-UPDATE_EXECUTION_LOG_SQL = f"""
-UPDATE {CATALOG}.governance.pipeline_execution_log
-SET status = 'SUCCEEDED',
-    ended_at = current_timestamp()
-WHERE run_id = '{RUN_ID}' 
-  AND pipeline_name = 'transform_silver_atomic'
+UPDATE_LOG_SQL = f"""
+UPDATE {CATALOG}.governance.pipeline_run
+SET execution_status = 'SUCCEEDED',
+    end_time = current_timestamp()
+WHERE pipeline_run_id = '{RUN_ID}' 
+  AND pipeline_name = 'full-source-to-validated-silver'
 """
-
 try:
-    spark.sql(UPDATE_EXECUTION_LOG_SQL)
-    print(f"✅ Governance execution log updated to SUCCEEDED for run_id: {RUN_ID}")
+    spark.sql(UPDATE_LOG_SQL)
+    print(f"Governance execution log updated to SUCCEEDED for run_id: {RUN_ID}")
 except Exception as e:
-    print(f"⚠️ Governance table status update skipped/failed: {e}")
+    print(f"Governance table status update skipped/failed: {e}")
