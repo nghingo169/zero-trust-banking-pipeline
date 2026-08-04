@@ -10,18 +10,27 @@ Tests Helper Functions & Financial Crime Transformation Tables:
 - Call Center Contact PII Masking (Phone masking, AES-256 encryption, SHA-256 tokenization)
 """
 
-# Databricks notebook source
-from pathlib import Path
+import builtins
 import os
 import sys
-import builtins
+
+# Databricks notebook source
+from pathlib import Path
 from types import ModuleType
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import MagicMock, patch
 
 import pyspark
-from pyspark.sql import SparkSession, functions as F
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, BooleanType
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.types import (
+    BooleanType,
+    DoubleType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 # ------------------------------------------------------------------------------
 # 1. DYNAMIC PATH RESOLUTION
@@ -38,8 +47,7 @@ try:
     test_spark_session = spark  # Databricks Runtime Context
 except NameError:
     test_spark_session = (
-        SparkSession.builder
-        .master("local[1]")
+        SparkSession.builder.master("local[1]")
         .appName("Pipeline-UnitTest")
         .config("spark.sql.shuffle.partitions", "1")
         .config("pipeline.catalog", "workspace")
@@ -79,6 +87,7 @@ if "dlt" not in sys.modules:
     dlt_mock.temporary_view = lambda *args, **kwargs: (lambda func: func)
     sys.modules["dlt"] = dlt_mock
 
+
 # ------------------------------------------------------------------------------
 # 2. LOCAL / DATABRICKS SPARK SESSION FIXTURE
 # ------------------------------------------------------------------------------
@@ -86,38 +95,40 @@ if "dlt" not in sys.modules:
 def test_spark():
     return test_spark_session
 
+
 # ------------------------------------------------------------------------------
 # 3. IMPORT TARGET MODULE
 # ------------------------------------------------------------------------------
-import fincrime_validation 
-
+import fincrime_validation
 
 # ==============================================================================
 # UNIT TEST CASES
 # ==============================================================================
 
+
 def test_fincrime_tables_mapping():
     """Verify TABLES dict properly combines scd2 and append tables for fincrime domain."""
     assert "aml_case" in fincrime_validation.TABLES
-    assert "fraud_alert" in fincrime_validation.TABLES  # Sửa 'aml_alert' thành 'fraud_alert'
+    assert (
+        "fraud_alert" in fincrime_validation.TABLES
+    )  # Sửa 'aml_alert' thành 'fraud_alert'
+
 
 def test_assess_attaches_failed_rule_names(test_spark):
-    schema = StructType([
-        StructField("alert_id", StringType(), True),
-        StructField("score", DoubleType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("alert_id", StringType(), True),
+            StructField("score", DoubleType(), True),
+        ]
+    )
 
-    data = [
-        ("ALT_01", 85.5),
-        ("ALT_02", -5.0),
-        (None, 50.0)
-    ]
+    data = [("ALT_01", 85.5), ("ALT_02", -5.0), (None, 50.0)]
     df_input = test_spark.createDataFrame(data, schema)
 
     mock_rules = {
         "aml_alert": [
             {"name": "alert_id_not_null", "constraint": "alert_id IS NOT NULL"},
-            {"name": "score_positive", "constraint": "score > 0"}
+            {"name": "score_positive", "constraint": "score > 0"},
         ]
     }
 
@@ -141,10 +152,12 @@ def test_assess_attaches_failed_rule_names(test_spark):
 
 def test_assess_table_with_no_rules_configured(test_spark):
     """Verify assess handles tables without any configured quality rules gracefully."""
-    schema = StructType([
-        StructField("case_id", StringType(), True),
-        StructField("status", StringType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("case_id", StringType(), True),
+            StructField("status", StringType(), True),
+        ]
+    )
     df_input = test_spark.createDataFrame([("CASE_100", "OPEN")], schema)
 
     with patch("data_contracts.quality_rules.registry.RULES_BY_TABLE", {}):

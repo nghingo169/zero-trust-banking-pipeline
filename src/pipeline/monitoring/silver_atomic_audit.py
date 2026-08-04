@@ -10,7 +10,8 @@ import sys
 import uuid
 from datetime import datetime
 
-from pyspark.sql import Row, functions as F
+from pyspark.sql import Row
+from pyspark.sql import functions as F
 
 # Databricks Widgets for parameters passed from Workflow Job Task
 dbutils.widgets.text("business_date", "2026-07-10")
@@ -35,7 +36,6 @@ if RULE_PATH and RULE_PATH not in sys.path:
 from data_contracts.audit.writer import write_audit
 from data_contracts.table_catalog import DOMAINS, tables
 
-
 # Primary Keys / Business Keys Mapping for Silver Atomic Model
 SILVER_ATOMIC_KEYS = {
     # Party / Customer Domain
@@ -46,7 +46,6 @@ SILVER_ATOMIC_KEYS = {
     "party_kyc_assessment": "kyc_assessment_key",
     "party_employment": "employment_key",
     "party_service_request": "service_request_key",
-    
     # Account & Card System Domain
     "account": "account_key",
     "party_account_role": "party_account_role_key",
@@ -56,7 +55,6 @@ SILVER_ATOMIC_KEYS = {
     "transaction_channel": "channel_key",
     "merchant": "merchant_key",
     "merchant_location": "merchant_location_key",
-    
     # Financial Event Domain
     "financial_event": "financial_event_key",
     "account_posting": "financial_event_key",
@@ -64,7 +62,6 @@ SILVER_ATOMIC_KEYS = {
     "atm_activity": "financial_event_key",
     "gateway_payment": "financial_event_key",
     "financial_event_status_history": "financial_event_status_history_key",
-    
     # FinCrime & AML Domain
     "financial_event_risk_score": "financial_event_risk_score_key",
     "fraud_alert": "fraud_alert_key",

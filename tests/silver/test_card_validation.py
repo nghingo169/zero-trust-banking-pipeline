@@ -7,18 +7,27 @@ Tests Card Validation Logic:
 - Invocation of schema normalization via data_contracts.normalization
 """
 
-# Databricks notebook source
-from pathlib import Path
+import builtins
 import os
 import sys
-import builtins
+
+# Databricks notebook source
+from pathlib import Path
 from types import ModuleType
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import MagicMock, patch
 
 import pyspark
-from pyspark.sql import SparkSession, functions as F
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, BooleanType
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.types import (
+    BooleanType,
+    DoubleType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 # ------------------------------------------------------------------------------
 # 1. DYNAMIC PATH RESOLUTION
@@ -35,8 +44,7 @@ try:
     test_spark_session = spark  # Databricks Runtime Context
 except NameError:
     test_spark_session = (
-        SparkSession.builder
-        .master("local[1]")
+        SparkSession.builder.master("local[1]")
         .appName("Pipeline-UnitTest")
         .config("spark.sql.shuffle.partitions", "1")
         .config("pipeline.catalog", "workspace")
@@ -75,7 +83,8 @@ if "dlt" not in sys.modules:
     dlt_mock.table = lambda *args, **kwargs: (lambda func: func)
     dlt_mock.temporary_view = lambda *args, **kwargs: (lambda func: func)
     sys.modules["dlt"] = dlt_mock
-    
+
+
 # ------------------------------------------------------------------------------
 # 2. LOCAL / DATABRICKS SPARK SESSION FIXTURE
 # ------------------------------------------------------------------------------
@@ -83,35 +92,45 @@ if "dlt" not in sys.modules:
 def test_spark():
     return test_spark_session
 
+
 # ------------------------------------------------------------------------------
 # 3. IMPORT TARGET MODULE
 # ------------------------------------------------------------------------------
 import card_validation
 
-
 # ==============================================================================
 # SECTION: CARD VALIDATION ASSESS TESTS
 # ==============================================================================
 
+
 def test_assess_all_rules_passing(test_spark):
     """Verify that _failed_rule_names is empty when all card validation rules pass."""
-    schema = StructType([
-        StructField("card_id", StringType(), True),
-        StructField("card_number", StringType(), True),
-        StructField("status", StringType(), True)
-    ])
-    df = test_spark.createDataFrame([("CARD_001", "4532015112830366", "ACTIVE")], schema)
+    schema = StructType(
+        [
+            StructField("card_id", StringType(), True),
+            StructField("card_number", StringType(), True),
+            StructField("status", StringType(), True),
+        ]
+    )
+    df = test_spark.createDataFrame(
+        [("CARD_001", "4532015112830366", "ACTIVE")], schema
+    )
 
     mock_rules = {
         "card_id_not_null": "card_id IS NOT NULL",
         "card_number_valid_length": "length(card_number) >= 15",
-        "status_valid": "status IN ('ACTIVE', 'INACTIVE', 'BLOCKED')"
+        "status_valid": "status IN ('ACTIVE', 'INACTIVE', 'BLOCKED')",
     }
 
-    target_module = "pipeline.silver.card_validation" if "pipeline.silver.card_validation" in sys.modules else "card_validation"
+    target_module = (
+        "pipeline.silver.card_validation"
+        if "pipeline.silver.card_validation" in sys.modules
+        else "card_validation"
+    )
 
-    with patch(f"{target_module}.get_rules", return_value=mock_rules), \
-         patch(f"{target_module}.normalize", side_effect=lambda input_df: input_df):
+    with patch(f"{target_module}.get_rules", return_value=mock_rules), patch(
+        f"{target_module}.normalize", side_effect=lambda input_df: input_df
+    ):
 
         res_df = card_validation.assess(df, "card_master")
         row = res_df.first()
@@ -122,30 +141,37 @@ def test_assess_all_rules_passing(test_spark):
 
 def test_assess_captures_rule_failures(test_spark):
     """Verify failed rules are correctly recorded in the _failed_rule_names array."""
-    schema = StructType([
-        StructField("card_id", StringType(), True),
-        StructField("card_number", StringType(), True),
-        StructField("status", StringType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("card_id", StringType(), True),
+            StructField("card_number", StringType(), True),
+            StructField("status", StringType(), True),
+        ]
+    )
     data = [
-        ("CARD_001", "4532015112830366", "ACTIVE"),   # Valid row
-        (None, "4532015112830366", "ACTIVE"),         # Fails card_id_not_null
-        ("CARD_003", "123", "ACTIVE"),                # Fails card_number_valid_length
-        ("CARD_004", "4532015112830366", "INVALID"),   # Fails status_valid
-        (None, "123", "UNKNOWN")                      # Fails all 3 rules
+        ("CARD_001", "4532015112830366", "ACTIVE"),  # Valid row
+        (None, "4532015112830366", "ACTIVE"),  # Fails card_id_not_null
+        ("CARD_003", "123", "ACTIVE"),  # Fails card_number_valid_length
+        ("CARD_004", "4532015112830366", "INVALID"),  # Fails status_valid
+        (None, "123", "UNKNOWN"),  # Fails all 3 rules
     ]
     df = test_spark.createDataFrame(data, schema)
 
     mock_rules = {
         "card_id_not_null": "card_id IS NOT NULL",
         "card_number_valid_length": "length(card_number) >= 15",
-        "status_valid": "status IN ('ACTIVE', 'INACTIVE', 'BLOCKED')"
+        "status_valid": "status IN ('ACTIVE', 'INACTIVE', 'BLOCKED')",
     }
 
-    target_module = "pipeline.silver.card_validation" if "pipeline.silver.card_validation" in sys.modules else "card_validation"
+    target_module = (
+        "pipeline.silver.card_validation"
+        if "pipeline.silver.card_validation" in sys.modules
+        else "card_validation"
+    )
 
-    with patch(f"{target_module}.get_rules", return_value=mock_rules), \
-         patch(f"{target_module}.normalize", side_effect=lambda input_df: input_df):
+    with patch(f"{target_module}.get_rules", return_value=mock_rules), patch(
+        f"{target_module}.normalize", side_effect=lambda input_df: input_df
+    ):
 
         res_df = card_validation.assess(df, "card_master")
         rows = res_df.collect()
@@ -163,26 +189,35 @@ def test_assess_captures_rule_failures(test_spark):
         assert rows[3]._failed_rule_names == ["status_valid"]
 
         # Row 4: Fail all three
-        assert set(rows[4]._failed_rule_names) == {"card_id_not_null", "card_number_valid_length", "status_valid"}
+        assert set(rows[4]._failed_rule_names) == {
+            "card_id_not_null",
+            "card_number_valid_length",
+            "status_valid",
+        }
 
 
 def test_assess_null_expressions_handled_as_failures(test_spark):
     """Verify constraint expressions evaluating to NULL are coalesced to False and captured."""
-    schema = StructType([
-        StructField("card_id", StringType(), True),
-        StructField("status", StringType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("card_id", StringType(), True),
+            StructField("status", StringType(), True),
+        ]
+    )
     # Evaluating "status = 'ACTIVE'" on NULL status evaluates to SQL NULL
     df = test_spark.createDataFrame([("CARD_001", None)], schema)
 
-    mock_rules = {
-        "status_must_be_active": "status = 'ACTIVE'"
-    }
+    mock_rules = {"status_must_be_active": "status = 'ACTIVE'"}
 
-    target_module = "pipeline.silver.card_validation" if "pipeline.silver.card_validation" in sys.modules else "card_validation"
+    target_module = (
+        "pipeline.silver.card_validation"
+        if "pipeline.silver.card_validation" in sys.modules
+        else "card_validation"
+    )
 
-    with patch(f"{target_module}.get_rules", return_value=mock_rules), \
-         patch(f"{target_module}.normalize", side_effect=lambda input_df: input_df):
+    with patch(f"{target_module}.get_rules", return_value=mock_rules), patch(
+        f"{target_module}.normalize", side_effect=lambda input_df: input_df
+    ):
 
         res_df = card_validation.assess(df, "card_master")
         row = res_df.first()
@@ -195,10 +230,15 @@ def test_assess_empty_rules_for_table(test_spark):
     schema = StructType([StructField("card_id", StringType(), True)])
     df = test_spark.createDataFrame([("CARD_001",)], schema)
 
-    target_module = "pipeline.silver.card_validation" if "pipeline.silver.card_validation" in sys.modules else "card_validation"
+    target_module = (
+        "pipeline.silver.card_validation"
+        if "pipeline.silver.card_validation" in sys.modules
+        else "card_validation"
+    )
 
-    with patch(f"{target_module}.get_rules", return_value={}), \
-         patch(f"{target_module}.normalize", side_effect=lambda input_df: input_df):
+    with patch(f"{target_module}.get_rules", return_value={}), patch(
+        f"{target_module}.normalize", side_effect=lambda input_df: input_df
+    ):
 
         res_df = card_validation.assess(df, "unregistered_table")
         row = res_df.first()
@@ -212,12 +252,19 @@ def test_assess_triggers_normalization(test_spark):
     schema = StructType([StructField("card_id", StringType(), True)])
     df = test_spark.createDataFrame([("CARD_001",)], schema)
 
-    mock_normalize = MagicMock(side_effect=lambda input_df: input_df.withColumn("is_normalized", F.lit(True)))
+    mock_normalize = MagicMock(
+        side_effect=lambda input_df: input_df.withColumn("is_normalized", F.lit(True))
+    )
 
-    target_module = "pipeline.silver.card_validation" if "pipeline.silver.card_validation" in sys.modules else "card_validation"
+    target_module = (
+        "pipeline.silver.card_validation"
+        if "pipeline.silver.card_validation" in sys.modules
+        else "card_validation"
+    )
 
-    with patch(f"{target_module}.get_rules", return_value={}), \
-         patch(f"{target_module}.normalize", mock_normalize):
+    with patch(f"{target_module}.get_rules", return_value={}), patch(
+        f"{target_module}.normalize", mock_normalize
+    ):
 
         res_df = card_validation.assess(df, "card_master")
 
