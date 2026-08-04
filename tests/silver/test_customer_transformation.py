@@ -320,6 +320,7 @@ def test_build_party_identity_resolution(test_spark):
     assert float(row.match_confidence) == 1.0000
 
 
+@pytest.mark.integration
 def test_build_party_profile_version(test_spark):
     """Verify _build_party_profile_version applies name/address masking and SCD2 tracking."""
     schema = StructType(

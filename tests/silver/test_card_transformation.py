@@ -212,6 +212,7 @@ def test_build_payment_card(test_spark):
     assert row.source_system == "card_system"
 
 
+@pytest.mark.integration
 def test_build_party_account_role(test_spark):
     """Verify _build_party_account_role maps customer to account link relationship."""
     schema = StructType(

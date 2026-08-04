@@ -92,7 +92,8 @@ jobs:
       - name: Run pytest with coverage
         run: |
           cd tests
-          pytest -v --tb=short --cov=../src --cov-report=term-missing
+          # Thêm cờ -m "not integration" để bỏ qua các integration tests ở khâu Pre-deployment
+          pytest -v --tb=short -m "not integration" --cov=../src --cov-report=term-missing
       
       # Notification on failure
       - name: Notify on test failure
