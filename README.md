@@ -369,12 +369,12 @@ Located at `.github/workflows/ci-cd.yml`:
 
 ### Available guides
 
-* **[Pipeline runbook](https://www.google.com/search?q=deliverables/Team_Workspace_Pipeline_Technical_Runbook.md)** - Complete setup and operations guide
-* **[Testing guide](https://www.google.com/search?q=tests/README.md)** - Unit and integration testing
+* **[Pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md)** - Complete setup and operations guide
+* **[Testing guide](tests/README.md)** - Unit and integration testing
 * **[Banking silver warehouse](https://www.google.com/search?q=docs/Banking_Silver_Atomic_Warehouse.dbml)** - Data model DBML
-* **[Daily change catalog](https://www.google.com/search?q=docs/banking_daily_change_catalog.md)** - Change detection patterns
-* **[Error injection catalog](https://www.google.com/search?q=docs/banking_error_injection_catalog.md)** - Quality rule catalog
-* **[Customer 360 guide](https://www.google.com/search?q=docs/customer_360_silver_guide.md)** - Customer analytics queries
+* **[Daily change catalog](docs/banking_daily_change_catalog.md)** - Change detection patterns
+* **[Error injection catalog](docs/banking_error_injection_catalog.md)** - Quality rule catalog
+* **[Customer 360 guide](docs/customer_360_silver_guide.md)** - Customer analytics queries
 
 ---
 
