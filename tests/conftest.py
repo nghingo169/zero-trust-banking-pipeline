@@ -22,6 +22,8 @@ def spark():
         .appName("pipeline-tests")
         .config("spark.sql.warehouse.dir", "/tmp/spark-warehouse")
         .config("spark.driver.memory", "2g")
+        .config("spark.sql.catalog.workspace", "org.apache.spark.sql.execution.datasources.v2.jdbc.JDBCTableCatalog") 
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.execution.datasources.v2.jdbc.JDBCTableCatalog")
         .getOrCreate()
     )
 
