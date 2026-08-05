@@ -26,7 +26,7 @@ from pyspark.sql.window import Window
         profile_effective_from TIMESTAMP COMMENT 'Effective date of the current profile version (SCD2).',
         kyc_verification_status STRING COMMENT 'Latest KYC status: VERIFIED / PENDING / REJECTED. NULL when the customer has no KYC assessment.',
         kyc_id_type STRING COMMENT 'ID document type of the latest KYC, e.g. NATIONAL_ID / PASSPORT.',
-        kyc_id_number_token STRING COMMENT 'SHA-256 token of the KYC ID number. PII-safe; never the raw value.',
+        kyc_id_number STRING COMMENT 'SHA-256 token of the KYC ID number. PII-safe; never the raw value.',
         employer_name STRING COMMENT 'Employer from the latest open employment record.',
         job_title STRING COMMENT 'Job title from the latest open employment record.',
         monthly_income_band STRING COMMENT 'Monthly income in VND, banded for PII minimization: <10M, 10-30M, 30-100M, 100M+.',
@@ -187,7 +187,7 @@ def ai_customer_360_context():
             F.col("cpv.effective_from").alias("profile_effective_from"),
             F.col("lk.verification_status").alias("kyc_verification_status"),
             F.col("lk.id_type").alias("kyc_id_type"),
-            F.col("lk.id_number_token").alias("kyc_id_number_token"),
+            F.col("lk.id_number").alias("kyc_id_number"),
             F.col("ce.employer_name"),
             F.col("ce.job_title"),
             F.when(F.col("ce.monthly_income").isNull(), F.lit(None))

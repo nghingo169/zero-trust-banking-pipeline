@@ -506,7 +506,7 @@ def test_ai_customer_360_context_core_scenarios(test_spark):
     assert str(p1.profile_effective_from).startswith("2026-01-01")
     assert p1.kyc_verification_status == "VERIFIED"
     assert p1.kyc_id_type == "NATIONAL_ID"
-    assert p1.kyc_id_number_token == "new_token_hash"
+    assert p1.kyc_id_number == "new_token_hash"
     assert p1.employer_name == "Tech Corp"
     assert p1.monthly_income_band == "30-100M"
     assert p1.active_account_count == 1

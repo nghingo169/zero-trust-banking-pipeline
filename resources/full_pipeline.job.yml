@@ -2,14 +2,23 @@ resources:
   jobs:
     full_pipeline:
       name: full-pipeline
-      description: Load source snapshots to Bronze, validate source tables, transform to Silver Atomic, publish to Gold, and record governance audit. # (Gợi ý update lại description)
+      description: Load source snapshots to Bronze, validate source tables, transform to Silver Atomic (Clean Data), publish to Gold, and enforce Unity Catalog ABAC Dynamic PII Protection.
       max_concurrent_runs: 1
       parameters:
         - name: audit_business_date
           default: "2026-07-10"
       tasks:
+        # =========================================================================
+        # TASK 0: KHỞI TẠO GOVERNANCE ENGINE (NOTEBOOK TASK)
+        # =========================================================================
+        - task_key: setup_abac_governance
+          notebook_task:
+            notebook_path: ../src/pipeline/governance/01_setup_tags_and_udf.py
+
         # 1. Ingest Data từ Landing vào Bronze
         - task_key: ingest_bronze
+          depends_on:
+            - task_key: setup_abac_governance
           pipeline_task:
             pipeline_id: ${resources.pipelines.source_to_bronze.id}
 
@@ -57,7 +66,7 @@ resources:
               run_id: "{{job.run_id}}"
               catalog: ${var.catalog}
 
-        # 6. DLT Pipeline: Transform Silver Validated sang Silver Atomic
+        # 6. DLT Pipeline: Transform Silver Validated sang Silver Atomic (Clean Data Mode)
         - task_key: transform_silver_atomic
           depends_on:
             - task_key: pre_transform_setup  
@@ -78,8 +87,18 @@ resources:
               catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}
 
+        # 8. Transform Gold Data Marts (AI-Ready Context Layer)
         - task_key: transform_gold
           depends_on:
             - task_key: silver_atomic_audit
           pipeline_task:
             pipeline_id: ${resources.pipelines.silver_to_gold.id}
+
+        # =========================================================================
+        # TASK 9: APPLY GOVERNED TAGS & ENFORCE UNITY CATALOG ABAC POLICIES (NOTEBOOK TASK)
+        # =========================================================================
+        - task_key: enforce_abac_policies
+          depends_on:
+            - task_key: transform_gold
+          notebook_task:
+            notebook_path: ../src/pipeline/governance/02_apply_abac_policies.py

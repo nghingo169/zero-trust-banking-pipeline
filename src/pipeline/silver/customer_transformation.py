@@ -8,7 +8,6 @@ import sys
 import time
 import uuid
 
-from nab_tdm_masking import mask_address, mask_name, mask_national_id, mask_phone
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
@@ -17,7 +16,7 @@ from pyspark.sql.window import Window
 def get_catalog() -> str:
     """Returns configured catalog or default to 'workspace' (bỏ qua catalog nếu đang chạy pytest)."""
     if "pytest" in sys.modules:
-        return ""  # Khi chạy unit test, trả về chuỗi rỗng để tên bảng thành dạng "silver_validated.table"
+        return ""
     try:
         return spark.conf.get("pipeline.catalog", "workspace")
     except Exception:
@@ -43,10 +42,6 @@ def get_silver_atomic_schema():
         return spark.conf.get("pipeline.silver_schema", "silver")
     except Exception:
         return "silver"
-
-
-TOKEN_SALT = "NAB_assignment_3"
-AES_KEY = "NAB_SECRET_AES256_KEY_32BYTES!!!"  # Chuẩn 32 bytes cho AES-256
 
 
 def clean_customer_src(table_name: str) -> str:
@@ -100,17 +95,6 @@ def hash_key(*cols) -> F.Column:
     return F.sha2(F.concat_ws("||", *processed), 256)
 
 
-def tokenize_pii(col: str | F.Column) -> F.Column:
-    """NAB PII Masking: Tokenize National ID / Phone / KYC ID."""
-    if isinstance(col, str):
-        col = F.col(col)
-    salt = F.lit(TOKEN_SALT)
-    return F.sha2(
-        F.concat_ws("|", salt, F.coalesce(col.cast("string"), F.lit(""))),
-        256,
-    )
-
-
 SOURCE_SYSTEM_PREFIX_MAP = {"CB": "CORE_BANKING", "CRM": "CRM"}
 
 
@@ -128,17 +112,13 @@ FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 
 def get_pipeline_run_id(df) -> F.Column:
-    """
-    Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery.
-    Xử lý an toàn khi get_catalog() trả về chuỗi rỗng trong môi trường test/pytest.
-    """
+    """Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery."""
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
     cat = get_catalog()
     table_ref = f"{cat}.governance.pipeline_run" if cat else "governance.pipeline_run"
 
-    # Scalar Subquery chuẩn cú pháp SQL
     subquery_expr = f"""
         (SELECT CAST(pipeline_run_id AS STRING) 
          FROM {table_ref} 
@@ -180,9 +160,6 @@ def _build_party():
     )
     core_system = get_source_system(F.col("cust_no"))
 
-    # Dedup: source tables carry one snapshot row per business_date per customer,
-    # but party_key is hashed from (system, id) only -- without this, the same
-    # party appears once per snapshot date and every downstream aggregate fans out.
     w_core = Window.partitionBy("cust_no").orderBy(F.col("business_date").desc())
     df_core = (
         df_core.withColumn("_rn", F.row_number().over(w_core))
@@ -243,11 +220,10 @@ def _build_party_identifier(df):
         ),
         hash_key(source_system, "cust_no").alias("party_key"),
         F.lit("NATIONAL_ID").alias("identifier_type"),
-        mask_national_id(F.trim(F.col("national_id"))).alias("identifier_value_masked"),
-        F.base64(F.aes_encrypt(F.trim(F.col("national_id")), F.lit(AES_KEY))).alias(
-            "identifier_value_encrypted"
-        ),
-        tokenize_pii(F.trim(F.col("national_id"))).alias("identifier_value_token"),
+        
+        # Rule 1.1 NIN/National ID: Lưu dữ liệu sạch nguyên bản
+        F.trim(F.col("national_id")).alias("identifier_value"),
+        
         source_system.alias("source_system"),
         F.lit(True).alias("is_primary"),
         F.col("created_date").cast("timestamp").alias("valid_from"),
@@ -264,11 +240,10 @@ def _build_party_identifier(df):
         ),
         hash_key(source_system, "cust_no").alias("party_key"),
         F.lit("PHONE").alias("identifier_type"),
-        mask_phone(F.trim(F.col("phone"))).alias("identifier_value_masked"),
-        F.base64(F.aes_encrypt(F.trim(F.col("phone")), F.lit(AES_KEY))).alias(
-            "identifier_value_encrypted"
-        ),
-        tokenize_pii(F.trim(F.col("phone"))).alias("identifier_value_token"),
+        
+        # Rule 1.12 Phone Number: Lưu dữ liệu sạch nguyên bản
+        F.trim(F.col("phone")).alias("identifier_value"),
+        
         source_system.alias("source_system"),
         F.lit(False).alias("is_primary"),
         F.col("created_date").cast("timestamp").alias("valid_from"),
@@ -303,7 +278,7 @@ def _build_party_identity_resolution(df):
 
 
 def _build_party_profile_version(df):
-    # ---- Branch 1: core_banking (unchanged; source has no preferred_contact_method) ----
+    # ---- Branch 1: core_banking ----
     source_system = get_source_system(F.col("cust_no"))
     cb = df.select(
         hash_key(
@@ -312,17 +287,16 @@ def _build_party_profile_version(df):
         hash_key(source_system, "cust_no").alias("party_key"),
         source_system.alias("source_system"),
         source_system.alias("profile_source"),
-        mask_name(F.col("full_name")).alias("full_name_masked"),
-        F.base64(F.aes_encrypt(F.col("full_name"), F.lit(AES_KEY))).alias(
-            "full_name_encrypted"
-        ),
-        tokenize_pii(F.col("full_name")).alias("full_name_token"),
+        
+        # Rule 1.2 Individual Name: Lưu dữ liệu sạch nguyên bản
+        F.col("full_name").alias("full_name"),
+        
+        # Rule 1.4 Date of Birth
         F.col("date_of_birth").cast("date").alias("date_of_birth"),
-        mask_address(F.col("address")).alias("address_masked"),
-        F.base64(F.aes_encrypt(F.col("address"), F.lit(AES_KEY))).alias(
-            "address_encrypted"
-        ),
-        tokenize_pii(F.col("address")).alias("address_token"),
+        
+        # Rule 1.11 Address: Lưu dữ liệu sạch nguyên bản
+        F.col("address").alias("address"),
+        
         F.lit(None).cast("string").alias("preferred_contact_method"),
         F.col("business_date").cast("timestamp").alias("effective_from"),
         F.col("__END_AT").cast("timestamp").alias("effective_to"),
@@ -335,29 +309,22 @@ def _build_party_profile_version(df):
         F.current_timestamp().alias("ingested_at"),
     )
 
-    # ---- Branch 2: CRM (the only source carrying preferred_contact_method) ----
+    # ---- Branch 2: CRM ----
     crm_df = spark.read.table(clean_customer_src("crm_customer"))
-    crm_source_system = get_source_system(
-        F.col("party_id")
-    )  # party_id assumed CRM-xxx prefixed -> "CRM"
+    crm_source_system = get_source_system(F.col("party_id"))
     crm = crm_df.select(
         hash_key(
             F.lit("crm"), F.lit("profile_version"), "party_id", "business_date"
         ).alias("party_profile_version_key"),
-        hash_key(crm_source_system, "party_id").alias(
-            "party_key"
-        ),  # MUST match _build_party's CRM formula
+        hash_key(crm_source_system, "party_id").alias("party_key"),
         crm_source_system.alias("source_system"),
         crm_source_system.alias("profile_source"),
-        mask_name(F.col("customer_name")).alias("full_name_masked"),
-        F.base64(F.aes_encrypt(F.col("customer_name"), F.lit(AES_KEY))).alias(
-            "full_name_encrypted"
-        ),
-        tokenize_pii(F.col("customer_name")).alias("full_name_token"),
-        F.lit(None).cast("date").alias("date_of_birth"),  # CRM source has no DOB
-        F.lit(None).cast("string").alias("address_masked"),  # CRM source has no address
-        F.lit(None).cast("string").alias("address_encrypted"),
-        F.lit(None).cast("string").alias("address_token"),
+        
+        # Rule 1.2 Individual Name
+        F.col("customer_name").alias("full_name"),
+        F.lit(None).cast("date").alias("date_of_birth"),
+        F.lit(None).cast("string").alias("address"),
+        
         F.col("preferred_contact_method"),
         F.col("business_date").cast("timestamp").alias("effective_from"),
         F.col("__END_AT").cast("timestamp").alias("effective_to"),
@@ -381,9 +348,10 @@ def _build_party_kyc_assessment(df):
         ),
         hash_key(source_system, "customer_ref").alias("party_key"),
         F.col("id_type"),
-        tokenize_pii(F.coalesce(F.col("id_number"), F.lit(""))).alias(
-            "id_number_token"
-        ),
+        
+        # Rule 1.1 NIN/National ID
+        F.coalesce(F.col("id_number"), F.lit("")).alias("id_number"),
+        
         F.coalesce(F.col("verification_status"), F.lit("VERIFIED")).alias(
             "verification_status"
         ),
@@ -403,6 +371,8 @@ def _build_party_employment(df):
             "employment_key"
         ),
         hash_key(source_system, "customer_ref").alias("party_key"),
+        
+        # Rule 1.3 Organization Names
         F.col("employer_name"),
         F.col("job_title"),
         F.col("monthly_income").cast("decimal(12,2)").alias("monthly_income"),
@@ -428,7 +398,10 @@ def _build_party_service_request(df):
         F.col("request_date").cast("date").alias("request_date"),
         F.col("status").alias("request_status"),
         F.col("resolution_date").cast("date").alias("resolution_date"),
+        
+        # Rule 1.16 Narratives/Description/Comments: Lưu dữ liệu sạch nguyên bản
         F.col("description").alias("request_description"),
+        
         source_system.alias("source_system"),
         F.col("request_id").cast("string").alias("source_business_key"),
         bronze_ref("customer_request", "request_id").alias("bronze_record_ref"),
@@ -449,12 +422,12 @@ def get_table_specs():
         {
             "target": "party_identifier",
             "source": clean_customer_src("core_banking_customer"),
-            "comment": "Canonical Silver Party Identifier Table with PII Tokenization",
+            "comment": "Canonical Silver Party Identifier Table",
             "builder": _build_party_identifier,
             "unique_keys": [
                 "source_system",
                 "identifier_type",
-                "identifier_value_token",
+                "identifier_value",
             ],
         },
         {

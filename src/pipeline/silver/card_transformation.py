@@ -8,8 +8,6 @@ import sys
 import time
 import uuid
 
-# Add library path for NAB TDM masking functions
-from nab_tdm_masking import mask_card_number as nab_mask_card
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
@@ -17,7 +15,7 @@ from pyspark.sql import functions as F
 def get_catalog() -> str:
     """Returns configured catalog or default to 'workspace' (bỏ qua catalog nếu đang chạy pytest)."""
     if "pytest" in sys.modules:
-        return ""  # Khi chạy unit test, trả về chuỗi rỗng để tên bảng thành dạng "silver_validated.table"
+        return ""
     try:
         return spark.conf.get("pipeline.catalog", "workspace")
     except Exception:
@@ -43,10 +41,6 @@ def get_silver_atomic_schema():
         return spark.conf.get("pipeline.silver_schema", "silver")
     except Exception:
         return "silver"
-
-
-TOKEN_SALT = "NAB_assignment_3"
-AES_KEY = "NAB_SECRET_AES256_KEY_32BYTES!!!"  # Chuẩn 32 bytes cho AES-256
 
 
 # ---------------------------------------------------------------------------
@@ -103,32 +97,17 @@ def hash_key(*cols) -> F.Column:
     return F.sha2(F.concat_ws("||", *processed), 256)
 
 
-def tokenize_pii(col: str | F.Column) -> F.Column:
-    """NAB PII Masking: SHA-256 Tokenization for Card Numbers / Sensitive Identifiers."""
-    if isinstance(col, str):
-        col = F.col(col)
-    salt = F.lit(TOKEN_SALT)
-    return F.sha2(
-        F.concat_ws("|", salt, F.coalesce(col.cast("string"), F.lit(""))),
-        256,
-    )
-
-
 FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 
 def get_pipeline_run_id(df) -> F.Column:
-    """
-    Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery.
-    Xử lý an toàn khi get_catalog() trả về chuỗi rỗng trong môi trường test/pytest.
-    """
+    """Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery."""
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
     cat = get_catalog()
     table_ref = f"{cat}.governance.pipeline_run" if cat else "governance.pipeline_run"
 
-    # Scalar Subquery chuẩn cú pháp SQL
     subquery_expr = f"""
         (SELECT CAST(pipeline_run_id AS STRING) 
          FROM {table_ref} 
@@ -164,10 +143,6 @@ def _build_account(df):
 
 
 def _build_party_account_role(df):
-    # customer_account only carries cif_number, but party.party_key is hashed
-    # from cust_no (see customer_transformation.py) -- bridge via
-    # core_banking_customer to fetch cust_no, and use the same UPPERCASE
-    # source-system literal, otherwise the hashes can never match.
     core = spark.read.table(clean_card_src("core_banking_customer"))
     cif_to_cust = core.select("cif_number", "cust_no")
 
@@ -195,13 +170,10 @@ def _build_payment_card(df):
         hash_key(F.lit("card_system"), "card_id").alias("payment_card_key"),
         F.col("card_id").cast("string").alias("source_card_id"),
         hash_key(F.lit("core_banking"), "account_id").alias("account_key"),
-        # Format-preserving masked card (NAB TDM Rule 1.15)
-        nab_mask_card(F.col("card_number")).alias("card_number_masked"),
-        # Reversible encrypted card (AES-256)
-        F.base64(
-            F.aes_encrypt(F.col("card_number").cast("string"), F.lit(AES_KEY))
-        ).alias("card_number_encrypted"),
-        tokenize_pii(F.col("card_number")).alias("card_number_token"),
+        
+        # Rule 1.15 Card Number: Lưu dữ liệu sạch nguyên bản
+        F.col("card_number").cast("string").alias("card_number"),
+        
         F.col("card_type"),
         F.col("issue_date").cast("date").alias("issue_date"),
         F.col("expiry_date").cast("date").alias("expiry_date"),
@@ -284,10 +256,13 @@ def _build_merchant_location(df):
         ),
         hash_key(F.lit("merchant_system"), "merchant_id").alias("merchant_key"),
         F.col("store_id").cast("string").alias("source_store_id"),
+        
+        # Rule 1.30 Store Name & Rule 1.11 Address: Lưu dữ liệu sạch nguyên bản
         F.col("store_name"),
         F.col("store_description"),
         F.col("store_type"),
         F.col("store_address"),
+        
         F.col("risk_rating"),
         F.col("registered_date").cast("date").alias("registered_date"),
         F.lit("merchant_system").alias("source_system"),

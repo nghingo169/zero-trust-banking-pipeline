@@ -110,9 +110,8 @@ SOURCE_SYSTEM_PREFIX_MAP = {"CB": "CORE_BANKING", "CRM": "CRM"}
 
 
 def get_source_system(ref_col) -> F.Column:
-    """Same logic as customer_transformation.py -- customer_ref/cust_no/party_id
-    are polymorphic (CB-xxxx vs CRM-xxx), so the party_key literal prefix must
-    be derived the same way everywhere, not hardcoded per file."""
+    """customer_ref/cust_no/party_id are polymorphic (CB-xxxx vs CRM-xxx), 
+    so the party_key literal prefix must be derived the same way everywhere."""
     if isinstance(ref_col, str):
         ref_col = F.col(ref_col)
     prefix = F.upper(F.split(F.trim(ref_col), "-").getItem(0))
@@ -165,7 +164,7 @@ def silver_financial_event():
         F.lit("VALID").alias("data_quality_status"),
     )
 
-    # 2. Card Transactions (Fix: Alias DataFrame)
+    # 2. Card Transactions
     df_card = (
         spark.read.table(validated_src("card_transaction"))
         .join(card_account, "card_id", "left")
@@ -183,7 +182,7 @@ def silver_financial_event():
         F.lit("CARD_PAYMENT").alias("event_type"),
         F.col("c_tx._card_account_key").alias("account_key"),
         hash_key(F.lit("card_system"), "card_id").alias("payment_card_key"),
-        F.col("ap.party_key").alias("party_key"),  # Chỉ định chính xác lấy từ alias ap
+        F.col("ap.party_key").alias("party_key"),
         F.lit(None).cast("string").alias("merchant_location_key"),
         get_currency_col(df_card),
         F.col("c_tx.txn_timestamp").cast("timestamp").alias("occurred_at"),
@@ -197,7 +196,7 @@ def silver_financial_event():
         F.lit("VALID").alias("data_quality_status"),
     )
 
-    # 3. ATM Activity (Fix: Alias DataFrame)
+    # 3. ATM Activity
     df_atm = (
         spark.read.table(validated_src("log_atm"))
         .join(card_account, "card_id", "left")
@@ -215,7 +214,7 @@ def silver_financial_event():
         F.lit("ATM_ACTIVITY").alias("event_type"),
         F.col("atm._card_account_key").alias("account_key"),
         hash_key(F.lit("card_system"), "card_id").alias("payment_card_key"),
-        F.col("ap.party_key").alias("party_key"),  # Chỉ định chính xác lấy từ alias ap
+        F.col("ap.party_key").alias("party_key"),
         F.lit(None).cast("string").alias("merchant_location_key"),
         get_currency_col(df_atm),
         F.col("atm.log_timestamp").cast("timestamp").alias("occurred_at"),
@@ -229,7 +228,7 @@ def silver_financial_event():
         F.lit("VALID").alias("data_quality_status"),
     )
 
-    # 4. Gateway Payments (Fix: Alias DataFrame)
+    # 4. Gateway Payments
     df_gw = spark.read.table(validated_src("payment_gateway_log"))
     df_acc_txn_lookup = spark.read.table(validated_src("account_transaction")).select(
         "account_txn_id",
@@ -269,7 +268,7 @@ def silver_financial_event():
             F.col("gw.card_txn_id").isNotNull(),
             hash_key(F.lit("card_system"), "card_txn_id"),
         ).alias("payment_card_key"),
-        F.col("ap.party_key").alias("party_key"),  # Chỉ định chính xác lấy từ alias ap
+        F.col("ap.party_key").alias("party_key"),
         F.lit(None).cast("string").alias("merchant_location_key"),
         get_currency_col(df_gw),
         F.col("gw.gateway_timestamp").cast("timestamp").alias("occurred_at"),
@@ -385,7 +384,10 @@ def silver_gateway_payment():
         hash_key(
             F.lit("payment_gateway"), F.lit("GATEWAY_PAYMENT"), "gateway_txn_id"
         ).alias("financial_event_key"),
+        
+        # Rule 1.16 Narratives/Description/Comments: Lưu dữ liệu tham chiếu thanh toán sạch nguyên bản
         F.col("payment_ref").alias("payment_reference"),
+        
         F.col("payment_method"),
         hash_key(F.lit("merchant_system"), "merchant_id").alias("merchant_key"),
         F.col("amount").cast("decimal(12,2)").alias("amount"),
@@ -398,31 +400,6 @@ def silver_gateway_payment():
         get_pipeline_run_id(df).alias("pipeline_run_id"),
         F.current_timestamp().alias("ingested_at"),
     )
-
-
-# ==============================================================================
-# 3.6 FINANCIAL EVENT ASSOCIATION
-# ==============================================================================
-# NOTE: Commented out because source table workspace.silver_validated.financial_event_association does not exist
-# Uncomment when the source table becomes available
-
-# @dp.table(
-#     name=atomic_tgt("financial_event_association"),
-#     comment="Association link between financial events (e.g. SETTLES, REVERSES, RELATES_TO)",
-#     cluster_by=["from_financial_event_key", "to_financial_event_key", "association_type"]
-# )
-# def silver_financial_event_association():
-#     df = spark.read.table(validated_src("financial_event_association"))
-#     return df.select(
-#         hash_key(F.lit("core_banking"), F.lit("assoc"), "association_id").alias("financial_event_association_key"),
-#         hash_key("from_source_system", "from_event_type", "from_source_business_key").alias("from_financial_event_key"),
-#         hash_key("to_source_system", "to_event_type", "to_source_business_key").alias("to_financial_event_key"),
-#         F.col("association_type"),  # SETTLES / REPRESENTS / REVERSES / RELATES_TO
-#         F.coalesce(F.col("source_system"), F.lit("core_banking")).alias("source_system"),
-#         F.concat_ws(":", F.lit("financial_event_association"), F.col("association_id")).alias("bronze_record_ref"),
-#         get_pipeline_run_id(df).alias("pipeline_run_id"),
-#         F.current_timestamp().alias("ingested_at")
-#     )
 
 
 # ==============================================================================

@@ -8,7 +8,6 @@ import sys
 import time
 import uuid
 
-from nab_tdm_masking import mask_phone as nab_mask_phone
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
@@ -16,7 +15,7 @@ from pyspark.sql import functions as F
 def get_catalog() -> str:
     """Returns configured catalog or default to 'workspace' (bỏ qua catalog nếu đang chạy pytest)."""
     if "pytest" in sys.modules:
-        return ""  # Khi chạy unit test, trả về chuỗi rỗng để tên bảng thành dạng "silver_validated.table"
+        return ""
     try:
         return spark.conf.get("pipeline.catalog", "workspace")
     except Exception:
@@ -37,9 +36,6 @@ def get_silver_atomic_schema():
         return spark.conf.get("pipeline.silver_schema", "silver")
     except Exception:
         return "silver"
-
-
-AES_KEY = "NAB_SECRET_AES256_KEY_32BYTES!!!"
 
 
 def validated_src(table_name: str) -> str:
@@ -74,17 +70,13 @@ FALLBACK_MODULE_UUID = str(uuid.uuid4())
 
 
 def get_pipeline_run_id(df) -> F.Column:
-    """
-    Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery.
-    Xử lý an toàn khi get_catalog() trả về chuỗi rỗng trong môi trường test/pytest.
-    """
+    """Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery."""
     if "pipeline_run_id" in df.columns:
         return F.col("pipeline_run_id").cast("string")
 
     cat = get_catalog()
     table_ref = f"{cat}.governance.pipeline_run" if cat else "governance.pipeline_run"
 
-    # Scalar Subquery chuẩn cú pháp SQL
     subquery_expr = f"""
         (SELECT CAST(pipeline_run_id AS STRING) 
          FROM {table_ref} 
@@ -104,9 +96,6 @@ SOURCE_SYSTEM_PREFIX_MAP = {"CB": "CORE_BANKING", "CRM": "CRM"}
 
 
 def get_source_system(ref_col) -> F.Column:
-    """customer_ref is polymorphic (CB-xxxx / CRM-xxx); derive the party_key
-    source-system literal the same way customer_transformation.py does,
-    otherwise the hash never matches silver.party.party_key."""
     if isinstance(ref_col, str):
         ref_col = F.col(ref_col)
     prefix = F.upper(F.split(F.trim(ref_col), "-").getItem(0))
@@ -151,14 +140,13 @@ def silver_fraud_alert():
         F.col("alert_status"),
         F.col("created_date").cast("timestamp").alias("created_at"),
         F.lit("fincrime").alias("source_system"),
-        F.col("alert_id").cast("string").alias("source_business_key"),
+        F.col("alert_id").cast("string").alias("source_business_key"), # <--- ĐÃ SỬA THÀNH alert_id
         F.concat_ws(":", F.lit("fraud_alert"), F.col("alert_id")).alias(
             "bronze_record_ref"
         ),
         get_pipeline_run_id(df).alias("pipeline_run_id"),
         F.current_timestamp().alias("ingested_at"),
     )
-
 
 @dp.table(name=atomic_tgt("financial_event_fraud_alert"))
 def silver_financial_event_fraud_alert():
@@ -407,7 +395,10 @@ def silver_investigation_note():
         .cast("timestamp")
         .alias("source_arrival_timestamp"),
         F.col("note_type"),
+        
+        # Rule 1.16 Narratives/Description/Comments: Lưu dữ liệu sạch nguyên bản
         F.col("note_text"),
+        
         F.lit("fincrime").alias("source_system"),
         F.col("note_id").cast("string").alias("source_business_key"),
         F.concat_ws(":", F.lit("investigation_note"), F.col("note_id")).alias(
@@ -451,7 +442,10 @@ def silver_watchlist_entry():
             "watchlist_entry_key"
         ),
         F.col("watchlist_id").cast("string").alias("source_watchlist_id"),
+        
+        # Rule 1.2 Individual Name / Rule 1.3 Organization Names
         F.col("entity_name"),
+        
         F.col("list_type"),
         F.col("country"),
         F.col("added_date").cast("date").alias("added_date"),
@@ -478,7 +472,10 @@ def silver_sanctions_screening():
         hash_key(F.lit("fincrime"), F.lit("watchlist"), "watchlist_id").alias(
             "watchlist_entry_key"
         ),
+        
+        # Rule 1.2 Individual Name
         F.col("screened_name"),
+        
         F.col("match_score").cast("decimal(5,2)").alias("match_score"),
         F.col("screening_date").cast("date").alias("screening_date"),
         F.col("result").alias("screening_result"),
@@ -626,21 +623,15 @@ def silver_call_center_contact():
         hash_key(F.lit("fincrime"), F.lit("investigation_case"), "case_id").alias(
             "investigation_case_key"
         ),
-        # Format-Preserving Masked Phone (NAB TDM Rule 1.13)
-        nab_mask_phone(F.col("caller_phone")).alias("caller_phone_masked"),
-        # Reversible Encrypted Phone (AES-256)
-        F.base64(
-            F.aes_encrypt(
-                F.coalesce(F.col("caller_phone"), F.lit("")).cast("string"),
-                F.lit(AES_KEY),
-            )
-        ).alias("caller_phone_encrypted"),
-        # Legacy SHA-256 Token
-        F.sha2(F.coalesce(F.col("caller_phone"), F.lit("")), 256).alias(
-            "caller_phone_token"
-        ),
+        
+        # Rule 1.12 Phone Number: Lưu dữ liệu sạch nguyên bản
+        F.coalesce(F.col("caller_phone"), F.lit("")).cast("string").alias("caller_phone"),
+        
         F.col("call_timestamp").cast("timestamp").alias("call_timestamp"),
+        
+        # Rule 1.16 Narratives/Description/Comments
         F.col("call_reason"),
+        
         F.col("agent_id"),
         F.col("call_duration_seconds").cast("bigint").alias("call_duration_seconds"),
         F.lit("fincrime").alias("source_system"),
