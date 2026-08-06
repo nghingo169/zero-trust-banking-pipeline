@@ -182,7 +182,11 @@ the Permissions API.
 
 Reference: [manage and share workspace objects](https://docs.databricks.com/aws/en/workspace/workspace-objects).
 
-### 10. Run bootstrap once
+### 10. Run the bootstrap Job once per environment
+
+Run this Job after the first deployment and before the first data-pipeline run.
+It prepares the schemas, grants, masking UDFs, governed tags, and ABAC policy.
+It does not process the source data.
 
 ```bash
 databricks bundle run banking_investigation_bootstrap \
@@ -190,7 +194,14 @@ databricks bundle run banking_investigation_bootstrap \
   --profile <cli-profile>
 ```
 
-### 11. Run Source-to-Gold
+After initial setup, rerun bootstrap only when governance, UDF, tag, group, or
+catalog permissions change.
+
+### 11. Run the recurring data-pipeline Job
+
+Run the parent Job below. Do not run the SDP pipeline resource directly. The
+Job initializes the run context, triggers one Source-to-Gold SDP update,
+applies governed tags and monitoring views, and finalizes the run status.
 
 ```bash
 databricks bundle run banking_investigation_pipeline_orchestration \
@@ -220,7 +231,7 @@ The Job runs as `banking-pipeline-service`, not as the teammate who starts it.
 
 ## What to rerun
 
-| Change | Bootstrap Job | Source-to-Gold Job |
+| Change | Bootstrap Job | Data Pipeline Job |
 |---|---:|---:|
 | First deployment | Run once | Run afterward |
 | New source data | No | Run |
