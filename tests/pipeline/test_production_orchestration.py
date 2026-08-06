@@ -69,7 +69,7 @@ def test_silver_and_gold_keep_the_pipeline_run_lineage_column():
     )
     for filename in transformations:
         content = read(ROOT / "src" / "pipeline" / "silver" / filename)
-        assert 'get_pipeline_run_id(' in content
+        assert "get_pipeline_run_id(" in content
         assert '.alias("pipeline_run_id")' in content
 
     gold_sources = (
@@ -88,7 +88,10 @@ def test_bundle_has_one_physical_sdp_and_one_parent_pipeline_task():
     job_text = read(JOB)
     assert pipeline_text.count("banking_investigation_pipeline:") == 1
     assert "name: banking-investigation-pipeline" in pipeline_text
-    assert "service_principal_name: ${var.pipeline_service_principal_name}" in pipeline_text
+    assert (
+        "service_principal_name: ${var.pipeline_service_principal_name}"
+        in pipeline_text
+    )
     assert "level: CAN_RUN" in pipeline_text
     assert job_text.count("pipeline_task:") == 1
     assert "name: banking-investigation-pipeline-orchestration" in job_text
@@ -114,7 +117,9 @@ def test_abac_exceptions_and_run_as_are_variable_driven_without_personal_email()
     governance_text = "\n".join(
         read(path) for path in (ROOT / "src" / "pipeline" / "governance").glob("*.py")
     )
-    policy_text = read(ROOT / "src" / "pipeline" / "governance" / "02_setup_abac_policy.py")
+    policy_text = read(
+        ROOT / "src" / "pipeline" / "governance" / "02_setup_abac_policy.py"
+    )
     combined = bundle_text + resource_text + governance_text
     assert "pipeline_service_principal_name" in combined
     assert "pii_dq_operator_group" in combined
@@ -130,7 +135,10 @@ def test_staging_target_uses_dedicated_catalog_and_s3_secrets():
     staging = bundle_text[bundle_text.index("  staging:") :]
     assert "mode: development" in staging
     assert "https://dbc-192e31d5-ba9d.cloud.databricks.com/" in staging
-    assert "/Workspace/banking-staging/${workspace.current_user.userName}/.bundle/" in staging
+    assert (
+        "/Workspace/banking-staging/${workspace.current_user.userName}/.bundle/"
+        in staging
+    )
     assert "catalog: banking_investigation" in staging
     assert "source_mode: s3" in staging
     assert "s3://nab-src-dataset/banking/snapshots/" in staging
@@ -150,15 +158,53 @@ def test_recurring_setup_validates_prebootstrapped_catalog_without_metastore_cre
 
 def test_native_sdp_identity_and_national_id_masking_are_configured():
     pipeline_text = read(PIPELINE)
+    job_text = read(JOB)
     writer_text = read(ROOT / "src" / "data_contracts" / "audit" / "writer.py")
-    udf_text = read(ROOT / "src" / "pipeline" / "governance" / "01_setup_tags_and_udf.py")
+    finalizer_text = read(
+        ROOT / "src" / "pipeline" / "monitoring" / "finalize_pipeline_run.py"
+    )
+    udf_text = read(
+        ROOT / "src" / "pipeline" / "governance" / "01_setup_tags_and_udf.py"
+    )
     tags_text = read(
         ROOT / "src" / "pipeline" / "governance" / "03_apply_and_verify_pii_tags.py"
     )
     assert "banking_investigation_pipeline_event_log" in pipeline_text
     assert "pipeline_update_id STRING" in writer_text
     assert "pipeline_id STRING" in writer_text
+    assert (
+        job_text.count(
+            "pipeline_id: ${resources.pipelines.banking_investigation_pipeline.id}"
+        )
+        == 3  # SDP task plus success and failure finalizers
+    )
+    assert "origin.pipeline_name" not in finalizer_text
+    assert "CAST(origin.pipeline_id AS STRING)" in finalizer_text
     assert "pii_type = 'national_id'" in udf_text
     assert "GRANT EXECUTE ON FUNCTION" in udf_text
     assert "TO `account users`" in udf_text
     assert '"national_id"' in tags_text
+
+
+def test_crm_schema_evolution_is_optional_versioned_and_silver_safe():
+    bronze_text = read(
+        ROOT / "src" / "pipeline" / "bronze" / "source_to_bronze_ingestion.py"
+    )
+    silver_text = read(
+        ROOT / "src" / "pipeline" / "silver" / "customer_transformation.py"
+    )
+    contract_text = read(
+        ROOT
+        / "src"
+        / "data_contracts"
+        / "schemas"
+        / "Customer_domain_datacontract.yaml"
+    )
+    assert '"preferred_contact_method"' in bronze_text
+    assert '"introduced_on": "2026-07-06"' in bronze_text
+    assert '"nullable": True' in bronze_text
+    assert "apply_source_schema_contract(snapshot_df, table)" in bronze_text
+    assert "optional_source_column(" in silver_text
+    assert "version: 1.1.0" in contract_text
+    assert "schemaEvolutionMode" in contract_text
+    assert "additive_optional" in contract_text

@@ -119,15 +119,25 @@ def get_pipeline_run_id(df) -> F.Column:
         F,
         df,
         catalog=get_catalog(),
-        governance_schema=spark.conf.get("pipeline.governance_schema", "governance")
-        if "pytest" not in sys.modules
-        else "governance",
-        pipeline_name=spark.conf.get(
-            "pipeline.pipeline_name", CANONICAL_PIPELINE_NAME
-        )
-        if "pytest" not in sys.modules
-        else CANONICAL_PIPELINE_NAME,
+        governance_schema=(
+            spark.conf.get("pipeline.governance_schema", "governance")
+            if "pytest" not in sys.modules
+            else "governance"
+        ),
+        pipeline_name=(
+            spark.conf.get("pipeline.pipeline_name", CANONICAL_PIPELINE_NAME)
+            if "pytest" not in sys.modules
+            else CANONICAL_PIPELINE_NAME
+        ),
     )
+
+
+def optional_source_column(df, column_name: str, data_type: str) -> F.Column:
+    """Read a nullable source-contract field without breaking graph analysis."""
+
+    if column_name in df.columns:
+        return F.col(column_name).cast(data_type)
+    return F.lit(None).cast(data_type)
 
 
 def _latest_transaction_by_customer():
@@ -216,10 +226,8 @@ def _build_party_identifier(df):
         ),
         hash_key(source_system, "cust_no").alias("party_key"),
         F.lit("NATIONAL_ID").alias("identifier_type"),
-        
         # Rule 1.1 NIN/National ID: Lưu dữ liệu sạch nguyên bản
         F.trim(F.col("national_id")).alias("identifier_value"),
-        
         source_system.alias("source_system"),
         F.lit(True).alias("is_primary"),
         F.col("created_date").cast("timestamp").alias("valid_from"),
@@ -236,10 +244,8 @@ def _build_party_identifier(df):
         ),
         hash_key(source_system, "cust_no").alias("party_key"),
         F.lit("PHONE").alias("identifier_type"),
-        
         # Rule 1.12 Phone Number: Lưu dữ liệu sạch nguyên bản
         F.trim(F.col("phone")).alias("identifier_value"),
-        
         source_system.alias("source_system"),
         F.lit(False).alias("is_primary"),
         F.col("created_date").cast("timestamp").alias("valid_from"),
@@ -283,16 +289,12 @@ def _build_party_profile_version(df):
         hash_key(source_system, "cust_no").alias("party_key"),
         source_system.alias("source_system"),
         source_system.alias("profile_source"),
-        
         # Rule 1.2 Individual Name: Lưu dữ liệu sạch nguyên bản
         F.col("full_name").alias("full_name"),
-        
         # Rule 1.4 Date of Birth
         F.col("date_of_birth").cast("date").alias("date_of_birth"),
-        
         # Rule 1.11 Address: Lưu dữ liệu sạch nguyên bản
         F.col("address").alias("address"),
-        
         F.lit(None).cast("string").alias("preferred_contact_method"),
         F.col("business_date").cast("timestamp").alias("effective_from"),
         F.col("__END_AT").cast("timestamp").alias("effective_to"),
@@ -315,13 +317,13 @@ def _build_party_profile_version(df):
         hash_key(crm_source_system, "party_id").alias("party_key"),
         crm_source_system.alias("source_system"),
         crm_source_system.alias("profile_source"),
-        
         # Rule 1.2 Individual Name
         F.col("customer_name").alias("full_name"),
         F.lit(None).cast("date").alias("date_of_birth"),
         F.lit(None).cast("string").alias("address"),
-        
-        F.col("preferred_contact_method"),
+        optional_source_column(crm_df, "preferred_contact_method", "string").alias(
+            "preferred_contact_method"
+        ),
         F.col("business_date").cast("timestamp").alias("effective_from"),
         F.col("__END_AT").cast("timestamp").alias("effective_to"),
         F.when(F.col("__END_AT").isNull(), F.lit(True))
@@ -344,10 +346,8 @@ def _build_party_kyc_assessment(df):
         ),
         hash_key(source_system, "customer_ref").alias("party_key"),
         F.col("id_type"),
-        
         # Rule 1.1 NIN/National ID
         F.coalesce(F.col("id_number"), F.lit("")).alias("id_number"),
-        
         F.coalesce(F.col("verification_status"), F.lit("VERIFIED")).alias(
             "verification_status"
         ),
@@ -367,7 +367,6 @@ def _build_party_employment(df):
             "employment_key"
         ),
         hash_key(source_system, "customer_ref").alias("party_key"),
-        
         # Rule 1.3 Organization Names
         F.col("employer_name"),
         F.col("job_title"),
@@ -394,10 +393,8 @@ def _build_party_service_request(df):
         F.col("request_date").cast("date").alias("request_date"),
         F.col("status").alias("request_status"),
         F.col("resolution_date").cast("date").alias("resolution_date"),
-        
         # Rule 1.16 Narratives/Description/Comments: Lưu dữ liệu sạch nguyên bản
         F.col("description").alias("request_description"),
-        
         source_system.alias("source_system"),
         F.col("request_id").cast("string").alias("source_business_key"),
         bronze_ref("customer_request", "request_id").alias("bronze_record_ref"),

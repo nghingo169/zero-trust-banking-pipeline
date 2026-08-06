@@ -6,7 +6,7 @@ apiVersion: v3.1.0
 kind: DataContract
 id: urn:datacontract:banking:bronze-customer
 name: banking_bronze_customer
-version: 1.0.0
+version: 1.1.0
 status: active
 domain: banking
 tenant: BankingDataPipelineProgram
@@ -418,6 +418,19 @@ schema:
     description: Record creation date in CRM.
     required: true
     classification: internal
+  - id: crm_customer__preferred_contact_method
+    name: preferred_contact_method
+    logicalType: string
+    physicalType: STRING
+    description: Optional CRM contact channel introduced in the 2026-07-06 source snapshot. Historical
+      snapshots are normalized to a typed NULL.
+    required: false
+    classification: internal
+    customProperties:
+    - property: introducedOn
+      value: '2026-07-06'
+    - property: schemaEvolutionMode
+      value: additive_optional
   tags:
   - customer-master-data
 - id: customer_kyc__obj

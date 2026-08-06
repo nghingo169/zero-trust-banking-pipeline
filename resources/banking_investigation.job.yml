@@ -106,6 +106,7 @@ resources:
             base_parameters:
               run_id: "{{job.run_id}}"
               pipeline_name: banking-investigation-pipeline
+              pipeline_id: ${resources.pipelines.banking_investigation_pipeline.id}
               status: SUCCEEDED
               catalog: ${var.catalog}
               governance_schema: ${var.governance_schema}
@@ -120,6 +121,7 @@ resources:
             base_parameters:
               run_id: "{{job.run_id}}"
               pipeline_name: banking-investigation-pipeline
+              pipeline_id: ${resources.pipelines.banking_investigation_pipeline.id}
               status: FAILED
               catalog: ${var.catalog}
               governance_schema: ${var.governance_schema}

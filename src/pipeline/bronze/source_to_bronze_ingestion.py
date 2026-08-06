@@ -55,6 +55,21 @@ TECHNICAL_METADATA_COLUMNS = [
     "EXTRACT_DTE",
 ]
 
+# Stable, versioned fields that downstream contracts may consume even when an
+# older source snapshot predates the field. These are deliberately separate
+# from schema hints: hints cast fields that already exist, while this contract
+# also creates missing optional fields as typed NULLs so whole-graph SDP
+# analysis sees one compatible schema across every snapshot version.
+SOURCE_SCHEMA_CONTRACTS: Dict[str, Dict[str, Dict[str, Any]]] = {
+    "crm_customer": {
+        "preferred_contact_method": {
+            "data_type": "STRING",
+            "nullable": True,
+            "introduced_on": "2026-07-06",
+        },
+    },
+}
+
 CACHED_BUSINESS_DATES: Optional[List[int]] = None
 
 
@@ -427,6 +442,28 @@ def apply_schema_hints(df: DataFrame, hints: str) -> DataFrame:
     return df
 
 
+def apply_source_schema_contract(df: DataFrame, table_name: str) -> DataFrame:
+    """Return a stable source schema across historical snapshot versions.
+
+    A field declared here is structurally available to downstream SDP nodes
+    from the first graph analysis. Historical snapshots that predate an
+    optional field receive a typed NULL; snapshots that contain it preserve
+    the source value with the declared type.
+    """
+
+    for column_name, field_contract in SOURCE_SCHEMA_CONTRACTS.get(
+        table_name, {}
+    ).items():
+        data_type = field_contract["data_type"]
+        if column_name in df.columns:
+            value = F.col(column_name).cast(data_type)
+        else:
+            value = F.lit(None).cast(data_type)
+        df = df.withColumn(column_name, value)
+
+    return df
+
+
 def add_derived_event_keys(df: DataFrame, table_name: str) -> DataFrame:
     """Add the non-null parent reference needed by payment-gateway events."""
     if table_name != "payment_gateway_status_event":
@@ -529,6 +566,7 @@ def build_snapshot_flow(
                 )
 
                 snapshot_df = apply_schema_hints(snapshot_df, hints)
+                snapshot_df = apply_source_schema_contract(snapshot_df, table)
                 snapshot_df = add_derived_event_keys(snapshot_df, table)
                 snapshot_df = remove_confirmed_snapshot_replays(
                     snapshot_df,
