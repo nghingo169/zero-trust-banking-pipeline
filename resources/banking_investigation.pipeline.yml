@@ -8,6 +8,9 @@ resources:
       continuous: false
       run_as:
         service_principal_name: ${var.pipeline_service_principal_name}
+      permissions:
+        - service_principal_name: ${var.pipeline_service_principal_name}
+          level: CAN_RUN
       event_log:
         catalog: ${var.catalog}
         schema: ${var.governance_schema}

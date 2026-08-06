@@ -42,7 +42,15 @@ if SOURCE_PATH and SOURCE_PATH not in sys.path:
 
 from data_contracts.audit.writer import ensure_audit_tables
 
-spark.sql(f"CREATE CATALOG IF NOT EXISTS {CATALOG}")
+# Catalog creation is a one-time deployment-admin bootstrap. Databricks checks
+# CREATE CATALOG even for IF NOT EXISTS, which would otherwise require this
+# recurring governance principal to create arbitrary catalogs in the metastore.
+catalog_matches = spark.sql(f"SHOW CATALOGS LIKE '{CATALOG}'").collect()
+if len(catalog_matches) != 1:
+    raise RuntimeError(
+        f"Required catalog {CATALOG!r} is missing; run the deployment-admin "
+        "catalog bootstrap before executing this job."
+    )
 for schema in (
     SOURCE_LANDING_SCHEMA,
     BRONZE_SCHEMA,

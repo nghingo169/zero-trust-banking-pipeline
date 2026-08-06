@@ -88,6 +88,8 @@ def test_bundle_has_one_physical_sdp_and_one_parent_pipeline_task():
     job_text = read(JOB)
     assert pipeline_text.count("banking_investigation_pipeline:") == 1
     assert "name: banking-investigation-pipeline" in pipeline_text
+    assert "service_principal_name: ${var.pipeline_service_principal_name}" in pipeline_text
+    assert "level: CAN_RUN" in pipeline_text
     assert job_text.count("pipeline_task:") == 1
     assert "name: banking-investigation-pipeline-orchestration" in job_text
 
@@ -128,12 +130,22 @@ def test_staging_target_uses_dedicated_catalog_and_s3_secrets():
     staging = bundle_text[bundle_text.index("  staging:") :]
     assert "mode: development" in staging
     assert "https://dbc-192e31d5-ba9d.cloud.databricks.com/" in staging
+    assert "/Workspace/banking-staging/${workspace.current_user.userName}/.bundle/" in staging
     assert "catalog: banking_investigation" in staging
     assert "source_mode: s3" in staging
     assert "s3://nab-src-dataset/banking/snapshots/" in staging
     assert "{{secrets/banking-s3-ingestion/access-key-id}}" in staging
     assert "{{secrets/banking-s3-ingestion/secret-access-key}}" in staging
     assert "@gmail.com" not in staging
+
+
+def test_recurring_setup_validates_prebootstrapped_catalog_without_metastore_create():
+    setup_text = read(
+        ROOT / "src" / "pipeline" / "governance" / "00_setup_catalog_and_schemas.py"
+    )
+    assert "SHOW CATALOGS LIKE" in setup_text
+    assert "CREATE CATALOG IF NOT EXISTS" not in setup_text
+    assert "catalog bootstrap" in setup_text
 
 
 def test_native_sdp_identity_and_national_id_masking_are_configured():

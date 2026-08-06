@@ -84,6 +84,7 @@ targets:
     workspace:
       host: https://dbc-192e31d5-ba9d.cloud.databricks.com/
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+      file_path: /Workspace/banking-staging/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
     variables:
       catalog: banking_investigation
       source_mode: s3
