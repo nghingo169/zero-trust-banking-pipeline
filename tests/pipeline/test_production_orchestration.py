@@ -11,6 +11,10 @@ JOB = ROOT / "resources" / "banking_investigation.job.yml"
 BOOTSTRAP_JOB = ROOT / "resources" / "banking_investigation_bootstrap.job.yml"
 TAG_JOB = ROOT / "resources" / "apply_and_verify_pii_tags.job.yml"
 PIPELINE = ROOT / "resources" / "banking_investigation.pipeline.yml"
+CATALOG_DELEGATION_SQL = (
+    ROOT / "sql" / "infrastructure" / "01_create_catalog_and_delegate.sql"
+)
+RUNBOOK = ROOT / "docs" / "Team_Workspace_Pipeline_Technical_Runbook.md"
 
 
 def read(path: Path) -> str:
@@ -212,9 +216,27 @@ def test_bootstrap_setup_validates_precreated_catalog_without_metastore_create()
     setup_text = read(
         ROOT / "src" / "pipeline" / "governance" / "00_setup_catalog_and_schemas.py"
     )
+    delegation_sql = read(CATALOG_DELEGATION_SQL)
+    runbook_text = read(RUNBOOK)
+
     assert "SHOW CATALOGS LIKE" in setup_text
     assert "CREATE CATALOG IF NOT EXISTS" not in setup_text
     assert "catalog bootstrap" in setup_text
+    assert "CREATE CATALOG IF NOT EXISTS `<demo-catalog>`" in delegation_sql
+    assert (
+        "GRANT USE CATALOG, CREATE SCHEMA, APPLY TAG, MANAGE" in delegation_sql
+    )
+    assert "CREATE SCHEMA IF NOT EXISTS" not in delegation_sql
+    assert "<pipeline-service-principal-application-id>" in delegation_sql
+    assert "<governance-service-principal-application-id>" in delegation_sql
+    assert "GRANT SELECT ON ANY FILE" in delegation_sql
+    assert "SHOW GRANTS ON CATALOG `<demo-catalog>`" in delegation_sql
+    assert "01_create_catalog_and_delegate.sql" in runbook_text
+    assert "applicationId" in runbook_text
+    assert "CREATE SCHEMA IF NOT EXISTS" in setup_text
+    assert not (
+        ROOT / "sql" / "infrastructure" / "01_workspace_bootstrap.sql"
+    ).exists()
 
 
 def test_native_sdp_identity_and_national_id_masking_are_configured():

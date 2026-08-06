@@ -185,8 +185,9 @@ databricks current-user me --profile <demo-profile>
 
 - Create or reuse the two runtime service principals and the
   `governance-admins`, `data-engineers`, and `pii-dq-operator` account groups.
-- Create the isolated catalog and required schemas with the owner SQL in the
-  runbook. The bootstrap Job intentionally does not create arbitrary catalogs.
+- Create the isolated catalog and delegate catalog-level bootstrap authority
+  using `sql/infrastructure/01_create_catalog_and_delegate.sql`. The bootstrap
+  Job creates the schemas and intentionally cannot create arbitrary catalogs.
 - Configure the `banking-s3-ingestion` secret scope through interactive CLI
   prompts and grant it only to the pipeline service principal.
 - Grant the runtime service principals access to the deployed Bundle files path.

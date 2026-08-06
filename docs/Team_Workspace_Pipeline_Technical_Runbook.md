@@ -77,7 +77,39 @@ Then:
 
 Do not create workspace-local versions of these groups. Do not place owner or teammate emails in this repository.
 
-Record both service-principal application IDs; they are not the numeric principal IDs.
+#### Find the service-principal application IDs
+
+The Bundle and catalog SQL require each service principal's `applicationId`
+UUID. Do not use the numeric Databricks principal `id`.
+
+In the workspace UI:
+
+1. Select your username in the top bar and open **Settings**.
+2. Open **Identity and access**.
+3. Next to **Service principals**, select **Manage**.
+4. Open `banking-pipeline-service` and record its **Application ID**.
+5. Open `banking-governance-service` and record its **Application ID**.
+
+Alternatively, use the authenticated workspace profile to perform an exact-name
+lookup:
+
+```bash
+databricks service-principals list \
+  --profile <demo-profile> \
+  --filter 'displayName eq "banking-pipeline-service"' \
+  --attributes applicationId,displayName,id,active \
+  --output json
+
+databricks service-principals list \
+  --profile <demo-profile> \
+  --filter 'displayName eq "banking-governance-service"' \
+  --attributes applicationId,displayName,id,active \
+  --output json
+```
+
+Each lookup must return exactly one active principal. Copy `applicationId`, not
+`id`. Databricks also documents that Bundle `service_principal_name` values use
+the application ID in its [run identity guidance](https://docs.databricks.com/aws/en/dev-tools/bundles/run-as).
 
 ### 3. Grant governed-tag authority
 
@@ -89,38 +121,31 @@ In **Catalog > Govern > Governed Tags > Account Permissions**, grant `banking-go
 
 Do not grant these account-level permissions to `data-engineers` or the pipeline service principal.
 
-### 4. Create the catalog and schemas once
+### 4. Create the catalog and delegate bootstrap authority
 
 Choose an isolated catalog name, for example `banking_investigation`. Stop if that catalog already contains unrelated objects.
 
-Run as the demo owner on a serverless SQL warehouse:
+Use the tracked
+[`sql/infrastructure/01_create_catalog_and_delegate.sql`](../sql/infrastructure/01_create_catalog_and_delegate.sql)
+template:
 
-```sql
-CREATE CATALOG IF NOT EXISTS <demo-catalog>
-COMMENT 'Dedicated catalog for the banking investigation demo';
+1. Open the file locally and copy it into a new Databricks SQL Editor query.
+2. Connect the query to a serverless SQL warehouse.
+3. Replace every `<demo-catalog>` placeholder with the selected catalog name.
+4. Replace `<pipeline-service-principal-application-id>` and
+   `<governance-service-principal-application-id>` with the two exact
+   `applicationId` values recorded in step 2.
+5. Run the complete query as the demo owner.
+6. In the `SHOW GRANTS` result, verify that the governance application-ID principal has
+   `USE CATALOG`, `CREATE SCHEMA`, `APPLY TAG`, and `MANAGE`.
+7. Confirm that the pipeline application-ID principal received the demo-only
+   `SELECT ON ANY FILE` grant.
 
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.source_landing;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.bronze;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.silver_validated;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.silver;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.gold;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.governance;
-
-GRANT USE CATALOG, CREATE SCHEMA, APPLY TAG, MANAGE
-ON CATALOG <demo-catalog>
-TO `<governance-service-principal-application-id>`;
-```
-
-For each of `source_landing`, `bronze`, `silver_validated`, `silver`, `gold`, and `governance`, run:
-
-```sql
-GRANT USE SCHEMA, CREATE TABLE, CREATE FUNCTION,
-      CREATE MATERIALIZED VIEW, MODIFY, SELECT, APPLY TAG, MANAGE
-ON SCHEMA <demo-catalog>.<schema-name>
-TO `<governance-service-principal-application-id>`;
-```
-
-The catalog is intentionally created by the owner. Bootstrap does not need metastore-wide `CREATE CATALOG`.
+Do not add schema creation or per-schema grants to the manual query. The
+governance service principal creates and owns `source_landing`, `bronze`,
+`silver_validated`, `silver`, `gold`, and `governance` through the idempotent
+bootstrap Job. The catalog remains an administrator-created prerequisite, so
+bootstrap never receives metastore-wide `CREATE CATALOG`.
 
 If no managed storage is configured, stop and configure approved metastore default storage or a catalog `MANAGED LOCATION`.
 
@@ -153,13 +178,10 @@ databricks secrets put-acl banking-s3-ingestion \
 
 Never put AWS values in command arguments, chat, Git, notebooks, or Bundle overrides.
 
-The direct-S3 demo also requires this demo-only workspace concession:
-
-```sql
-GRANT SELECT ON ANY FILE TO `<pipeline-service-principal-application-id>`;
-```
-
-Production deployments should replace keys and `ANY FILE` with an IAM role, Unity Catalog storage credential, external location, and `READ FILES`.
+The catalog-delegation SQL applies the direct-S3 demo's `SELECT ON ANY FILE`
+concession to the pipeline service principal. Production deployments should
+replace keys and `ANY FILE` with an IAM role, Unity Catalog storage credential,
+external location, and `READ FILES`.
 
 ### 6. Create the local Bundle override
 
@@ -312,7 +334,7 @@ The latest record must be `SUCCEEDED` with non-null `pipeline_id` and `pipeline_
 | Failure | Check first |
 |---|---|
 | A teammate sees no Jobs or pipelines | Confirm their account-level `data-engineers` membership, workspace assignment, and the deployed Job/pipeline ACLs. Refresh the UI and select **All**, not **Owned by me**. |
-| Bootstrap says catalog is missing | The owner must run the one-time catalog/schema SQL before bootstrap. |
+| Bootstrap says catalog is missing | The owner must run `sql/infrastructure/01_create_catalog_and_delegate.sql` before bootstrap. |
 | Unity Catalog cannot resolve a group | Use account-level groups assigned to the workspace, not workspace-local groups. |
 | Notebook or Python access denied | Grant both runtime service principals `CAN READ` on the demo Bundle `files` directory. |
 | S3 `AccessDenied` | Check the scope ACL, key names, narrow AWS IAM prefix, region, and demo `SELECT ON ANY FILE`. Never print secret values. |
