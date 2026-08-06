@@ -125,9 +125,11 @@ Do not grant these account-level permissions to `data-engineers` or the pipeline
 
 Choose an isolated catalog name, for example `banking_investigation`. Stop if that catalog already contains unrelated objects.
 
-Use the tracked
-[`sql/infrastructure/01_create_catalog_and_delegate.sql`](../sql/infrastructure/01_create_catalog_and_delegate.sql)
-template:
+Run the tracked SQL template
+[01_create_catalog_and_delegate.sql](../sql/infrastructure/01_create_catalog_and_delegate.sql).
+This file is the source of truth for the required manual catalog creation and
+catalog-level grants; do not recreate those statements from memory or from an
+older runbook:
 
 1. Open the file locally and copy it into a new Databricks SQL Editor query.
 2. Connect the query to a serverless SQL warehouse.
