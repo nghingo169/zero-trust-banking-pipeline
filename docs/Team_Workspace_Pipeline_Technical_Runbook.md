@@ -21,28 +21,29 @@ catalog ABAC, governed tags, and a serverless SQL warehouse.
 
 ### 2. Create identities and groups
 
-1. Open the workspace selector and select **Manage account**.
-2. Open **User management > Service principals**.
-3. Create or reuse `banking-pipeline-service` and
+1. Select your profile icon in the top-right corner.
+2. Select **Settings**.
+3. Open **Identity and access**.
+4. Next to **Service principals**, select **Manage > Add service principal**.
+5. Create or reuse `banking-pipeline-service` and
    `banking-governance-service`.
-4. Open **User management > Users** and add each teammate email if it does not
-   already exist.
-5. Open **User management > Groups**.
-6. Create or reuse `governance-admins`, `data-engineers`, and
-   `pii-dq-operator` as account groups.
-7. Open `governance-admins` and add the demo owner.
-8. Open `data-engineers` and add the teammate users.
-9. Leave `pii-dq-operator` empty.
-10. Open **Workspaces**, select the demo workspace, and open **Permissions**.
-11. Select **Add permissions**, add both service principals and all three
-    groups, and grant **User** workspace access.
-12. Return to **User management > Service principals** and open each service
-    principal.
-13. Open **Permissions > Grant access**, select the demo owner, grant
-    **Service principal: User**, and save.
+6. Next to **Users**, select **Manage > Add user** and add each teammate email.
+7. Next to **Groups**, select **Manage > Add group**.
+8. Create or reuse `governance-admins`, `data-engineers`, and
+   `pii-dq-operator`.
+9. Open `governance-admins`, select **Add members**, and add the demo owner.
+10. Open `data-engineers`, select **Add members**, and add the teammates.
+11. Leave `pii-dq-operator` empty.
+12. Return to **Identity and access > Service principals > Manage**.
+13. Open each service principal, select **Permissions > Grant access**, add the
+    demo owner with **Service principal: User**, and save.
 
 Do not create workspace-local copies of the groups. Do not grant teammates
 direct permissions; they inherit access from `data-engineers`.
+
+References: [manage users](https://docs.databricks.com/aws/en/admin/users-groups/users),
+[manage service principals](https://docs.databricks.com/aws/en/admin/users-groups/manage-service-principals),
+and [manage groups](https://docs.databricks.com/aws/en/admin/users-groups/manage-groups).
 
 ### 3. Get the service-principal application IDs
 
@@ -157,13 +158,13 @@ an existing legacy pipeline deployment.
 ### 9. Grant access to deployed Bundle files
 
 1. In the workspace sidebar, open **Workspace**.
-2. Navigate to:
+2. Navigate to and select the `files` folder:
 
 ```text
 /Workspace/banking-demo/<demo-owner>/.bundle/zero-trust-banking-pipeline/demo/files
 ```
 
-3. Select the `files` folder and open **Permissions** from its kebab menu.
+3. Select **Share**.
 4. Select **Add**, search for `banking-pipeline-service`, and grant
    **Can view**.
 5. Repeat for `banking-governance-service`.
@@ -172,6 +173,8 @@ an existing legacy pipeline deployment.
 
 The UI label **Can view** is the folder permission represented as `CAN READ` by
 the Permissions API.
+
+Reference: [manage and share workspace objects](https://docs.databricks.com/aws/en/workspace/workspace-objects).
 
 ### 10. Run bootstrap once
 
