@@ -130,8 +130,8 @@ zero-trust-banking-pipeline/
 ├── configs/
 │   └── demo.variable-overrides.example.json
 │                                # Non-secret portable target template
-├── deliverables/               # Runbooks, implementation plans, and evidence
-├── docs/                       # Data models and architecture documentation
+├── docs/                       # Runbook, data models, and architecture documentation
+│   └── Team_Workspace_Pipeline_Technical_Runbook.md
 ├── sql/                        # Analytics and exploration queries
 ├── scripts/                    # Source and deployment utilities
 ├── databricks.yml              # Bundle variables and deployment targets
@@ -155,7 +155,7 @@ zero-trust-banking-pipeline/
 
 The portable Bundle target is `demo`. Each demo owner chooses their own CLI
 profile, workspace, catalog, and teammate memberships. Follow the
-[team workspace runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md)
+[team workspace runbook](docs/Team_Workspace_Pipeline_Technical_Runbook.md)
 for the complete identity, catalog, S3-secret, permission, and acceptance-test
 procedure.
 
@@ -377,7 +377,7 @@ Located at `.github/workflows/ci-cd.yml`:
 
 ### Available guides
 
-* **[Pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md)** - Complete setup and operations guide
+* **[Pipeline runbook](docs/Team_Workspace_Pipeline_Technical_Runbook.md)** - Complete setup and operations guide
 * **[Testing guide](tests/README.md)** - Unit and integration testing
 * **[Banking silver warehouse](https://www.google.com/search?q=docs/Banking_Silver_Atomic_Warehouse.dbml)** - Data model DBML
 * **[Daily change catalog](docs/banking_daily_change_catalog.md)** - Change detection patterns
