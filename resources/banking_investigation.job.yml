@@ -1,0 +1,127 @@
+resources:
+  jobs:
+    banking_investigation_pipeline_orchestration:
+      name: banking-investigation-pipeline-orchestration
+      description: One Source-to-Gold SDP update with governance-owned setup and post-update monitoring.
+      max_concurrent_runs: 1
+      run_as:
+        service_principal_name: ${var.pipeline_service_principal_name}
+      parameters:
+        - name: audit_business_date
+          default: "2026-07-10"
+      tasks:
+        - task_key: setup_catalog_and_schemas
+          run_job_task:
+            job_id: ${resources.jobs.setup_catalog_and_schemas.id}
+
+        - task_key: setup_masking_udf
+          depends_on:
+            - task_key: setup_catalog_and_schemas
+          run_job_task:
+            job_id: ${resources.jobs.setup_masking_udf.id}
+
+        - task_key: setup_abac_policy
+          depends_on:
+            - task_key: setup_masking_udf
+          run_job_task:
+            job_id: ${resources.jobs.setup_abac_policy.id}
+
+        - task_key: initialize_pipeline_run
+          depends_on:
+            - task_key: setup_abac_policy
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/pre_transform_setup.py
+            base_parameters:
+              business_date: "{{job.parameters.audit_business_date}}"
+              run_id: "{{job.run_id}}"
+              pipeline_name: banking-investigation-pipeline
+              catalog: ${var.catalog}
+              governance_schema: ${var.governance_schema}
+              source_path: ${workspace.file_path}/src
+
+        - task_key: banking_investigation_pipeline
+          depends_on:
+            - task_key: initialize_pipeline_run
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.banking_investigation_pipeline.id}
+
+        - task_key: bronze_audit
+          depends_on:
+            - task_key: banking_investigation_pipeline
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/bronze_ingestion_audit.py
+            base_parameters: &audit_parameters
+              business_date: "{{job.parameters.audit_business_date}}"
+              run_id: "{{job.run_id}}"
+              pipeline_name: banking-investigation-pipeline
+              quality_rules_path: ${workspace.file_path}/src
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              validated_schema: ${var.silver_validated_schema}
+              governance_schema: ${var.governance_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+
+        - task_key: validated_and_quarantine_audit
+          depends_on:
+            - task_key: banking_investigation_pipeline
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/validated_quality_audit.py
+            base_parameters: *audit_parameters
+
+        - task_key: atomic_silver_audit
+          depends_on:
+            - task_key: banking_investigation_pipeline
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/silver_atomic_audit.py
+            base_parameters: *audit_parameters
+
+        - task_key: gold_audit
+          depends_on:
+            - task_key: banking_investigation_pipeline
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/gold_publication_audit.py
+            base_parameters: *audit_parameters
+
+        - task_key: apply_and_verify_pii_tags
+          depends_on:
+            - task_key: banking_investigation_pipeline
+          run_job_task:
+            job_id: ${resources.jobs.apply_and_verify_pii_tags.id}
+
+        - task_key: finalize_success
+          depends_on: &post_pipeline_tasks
+            - task_key: bronze_audit
+            - task_key: validated_and_quarantine_audit
+            - task_key: atomic_silver_audit
+            - task_key: gold_audit
+            - task_key: apply_and_verify_pii_tags
+          run_if: ALL_SUCCESS
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/finalize_pipeline_run.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+              pipeline_name: banking-investigation-pipeline
+              status: SUCCEEDED
+              catalog: ${var.catalog}
+              governance_schema: ${var.governance_schema}
+              event_log_table: banking_investigation_pipeline_event_log
+              fail_after_recording: "false"
+
+        - task_key: finalize_failure
+          depends_on: *post_pipeline_tasks
+          run_if: AT_LEAST_ONE_FAILED
+          notebook_task:
+            notebook_path: ../src/pipeline/monitoring/finalize_pipeline_run.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+              pipeline_name: banking-investigation-pipeline
+              status: FAILED
+              catalog: ${var.catalog}
+              governance_schema: ${var.governance_schema}
+              event_log_table: banking_investigation_pipeline_event_log
+              fail_after_recording: "true"

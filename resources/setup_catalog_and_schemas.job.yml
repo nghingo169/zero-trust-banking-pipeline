@@ -1,0 +1,28 @@
+resources:
+  jobs:
+    setup_catalog_and_schemas:
+      name: banking-governance-setup-catalog-and-schemas
+      run_as:
+        service_principal_name: ${var.governance_service_principal_name}
+      permissions:
+        - service_principal_name: ${var.pipeline_service_principal_name}
+          level: CAN_MANAGE_RUN
+      tasks:
+        - task_key: setup_catalog_and_schemas
+          notebook_task:
+            notebook_path: ../src/pipeline/governance/00_setup_catalog_and_schemas.py
+            base_parameters:
+              catalog: ${var.catalog}
+              source_landing_schema: ${var.source_landing_schema}
+              source_landing_volume: ${var.source_landing_volume}
+              source_mode: ${var.source_mode}
+              bronze_schema: ${var.bronze_schema}
+              silver_validated_schema: ${var.silver_validated_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+              governance_schema: ${var.governance_schema}
+              pipeline_service_principal_name: ${var.pipeline_service_principal_name}
+              governance_admin_group: ${var.governance_admin_group}
+              data_engineer_group: ${var.data_engineer_group}
+              pii_dq_operator_group: ${var.pii_dq_operator_group}
+              source_path: ${workspace.file_path}/src

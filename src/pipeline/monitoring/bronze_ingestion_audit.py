@@ -15,10 +15,11 @@ from pyspark.sql import functions as F
 
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
-dbutils.widgets.text("pipeline_name", "full-pipeline")
+dbutils.widgets.text("pipeline_name", "banking-investigation-pipeline")
 dbutils.widgets.text("quality_rules_path", "")
 dbutils.widgets.text("catalog", "workspace")
 dbutils.widgets.text("bronze_schema", "bronze")
+dbutils.widgets.text("governance_schema", "governance")
 
 BUSINESS_DATE = dbutils.widgets.get("business_date")
 RUN_ID = dbutils.widgets.get("run_id")
@@ -26,6 +27,7 @@ PIPELINE_NAME = dbutils.widgets.get("pipeline_name")
 RULE_PATH = dbutils.widgets.get("quality_rules_path")
 CATALOG = dbutils.widgets.get("catalog")
 BRONZE_SCHEMA = dbutils.widgets.get("bronze_schema")
+GOVERNANCE_SCHEMA = dbutils.widgets.get("governance_schema")
 
 if not RUN_ID:
     raise ValueError("run_id is required")
@@ -184,7 +186,8 @@ for domain in DOMAINS:
         pipeline_run_id=RUN_ID,
         pipeline_name=PIPELINE_NAME,
         business_date=BUSINESS_DATE,
-        execution_status="SUCCEEDED",
+        execution_status="RUNNING",
         table_metrics=[metric.asDict() for metric in metrics],
         rule_audits=rule_audits,
+        governance_schema=GOVERNANCE_SCHEMA,
     )

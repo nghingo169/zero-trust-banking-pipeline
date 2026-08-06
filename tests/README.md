@@ -164,7 +164,7 @@ pytest -v -m "not integration" tests/
 | **Validate bundle** | `databricks bundle validate -t dev` | `databricks bundle validate -t team` |
 | **Deploy bundle** | `databricks bundle deploy -t dev` | `databricks bundle deploy -t team` |
 | **Run integration tests** | `databricks bundle run run_integration_tests -t dev` | `databricks bundle run run_integration_tests -t team` |
-| **Run full pipeline** | `databricks bundle run full_pipeline -t dev` | `databricks bundle run full_pipeline -t team` |
+| **Run full pipeline** | `databricks bundle run banking_investigation_pipeline_orchestration -t dev` | `databricks bundle run banking_investigation_pipeline_orchestration -t team` |
 
 ---
 

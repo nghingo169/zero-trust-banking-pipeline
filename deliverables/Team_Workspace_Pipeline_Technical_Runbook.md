@@ -2,18 +2,19 @@
 
 This runbook describes how another engineering team can reproduce the complete banking pipeline demo in the shared Databricks team workspace. The `team` Bundle target reads source snapshots directly from Amazon S3; it does not use a source landing schema, Volume, or file-upload step.
 
-The end-to-end workflow is `full_pipeline`, with Bundle resource key `full_source_to_gold`. The earlier `full-pipeline` job remains available for compatibility, but this runbook uses the explicitly named source-to-Gold job:
+The end-to-end workflow is `banking_investigation_pipeline_orchestration`. It invokes the single physical SDP resource `banking_investigation_pipeline`:
 
 ```text
 S3 source snapshots
-  -> Bronze ingestion (41 source tables)
-  -> Bronze ingestion audit
-  -> validated Silver or centralized quarantine
-  -> validated-Silver audit
-  -> run-context setup
-  -> Silver Atomic transformation
-  -> Gold context tables
-  -> Silver Atomic audit
+  -> governance-owned setup
+  -> run-context initialization
+  -> one Source-to-Gold SDP update
+       -> Bronze
+       -> validated Silver or centralized quarantine
+       -> Silver Atomic
+       -> Gold contexts
+  -> post-update audits and governed-tag verification
+  -> success/failure finalizer
 ```
 
 Use a new or intentionally isolated catalog for the cleanest demonstration. Existing pipeline state makes later executions incremental, so an unchanged S3 source can correctly produce zero new Bronze changes and zero new quarantine records.
@@ -195,33 +196,33 @@ databricks bundle deploy \
   --profile <team-profile>
 ```
 
-Validation checks the Bundle graph and resource configuration. Deployment uploads the source code and creates or updates the four pipelines and both orchestration jobs. Use `full_pipeline` for the complete demo; `full-pipeline` is retained only for compatibility. The Bundle does not own or remove the catalog and schemas preloaded above.
+Validation checks the Bundle graph and resource configuration. Deployment creates or updates one SDP pipeline, the parent orchestration job, and the governance-owned child jobs. Follow the separate greenfield deployment plan before executing these commands in a new account or workspace.
 
 ## 3. How to run the pipeline
 
 Run the complete job instead of starting individual pipelines. The audit date should identify a business date present below the configured S3 root; the committed demo default and latest snapshot date is `2026-07-10`.
 
 ```bash
-databricks bundle run full_pipeline \
+databricks bundle run banking_investigation_pipeline_orchestration \
   --target team \
   --profile <team-profile> \
   --params audit_business_date=2026-07-10
 ```
 
-The command waits for the workflow to finish. In the team workspace, open **Jobs & Pipelines > full_pipeline** to inspect task logs and durations.
+The command waits for the workflow to finish. In the team workspace, open **Jobs & Pipelines > banking-investigation-pipeline-orchestration** to inspect task logs and durations.
 
 The workflow runs these task dependencies:
 
 | Order | Task key | Purpose |
 |---:|---|---|
-| 1 | `ingest_bronze` | Discover all business-date folders under the S3 root and ingest 41 source tables into Bronze. |
-| 2 | `audit_bronze_ingestion` | Check Bronze table existence, snapshot presence, key uniqueness, lineage, rescued data, and SCD2 intervals. |
-| 3 | `validate_and_route` | Normalize Bronze CDF changes and route passing records to validated Silver and failures to centralized quarantine. |
-| 4 | `silver_validation_audit` | Run post-validation checks and assign the job run ID to new quarantine records. |
-| 5 | `pre_transform_setup` | Write the active run context and mark the Silver transformation as running. |
-| 6 | `transform_silver_atomic` | Transform source-aligned validated data into the canonical Silver Atomic model. |
-| 7 | `transform_gold` | Publish three AI-ready Gold context tables after Silver Atomic succeeds. |
-| 7 | `silver_atomic_audit` | Audit Silver Atomic in parallel with Gold after the Silver transformation succeeds. |
+| 1 | `setup_catalog_and_schemas` | Run the governance-owned catalog/schema child job. |
+| 2 | `setup_masking_udf` | Run the governance-owned tag/UDF child job. |
+| 3 | `setup_abac_policy` | Create the variable-driven catalog ABAC policy. |
+| 4 | `initialize_pipeline_run` | Persist the parent Job run ID as the one active operational context. |
+| 5 | `banking_investigation_pipeline` | Execute the complete internal Source-to-Gold SDP graph once. |
+| 6 | audit tasks | Observe Bronze, validated/quarantine, atomic Silver, and Gold with `ALL_DONE`. |
+| 7 | `apply_and_verify_pii_tags` | Apply governed tags after a successful SDP update. |
+| 8 | finalizer | Persist `SUCCEEDED` or `FAILED` plus native SDP identifiers. |
 
 `audit_business_date` controls the date evaluated by audit tasks. It does not restrict ingestion to that date: Bronze discovers every `business_date=...` folder under the S3 source root and processes available snapshots in order.
 
@@ -257,7 +258,7 @@ databricks bundle run dev_centralized_quarantine \
 databricks bundle run validated_to_transform_silver \
   --target team --profile <team-profile> --validate-only
 
-databricks bundle run silver_to_gold \
+databricks bundle run banking_investigation_pipeline_orchestration \
   --target team --profile <team-profile> --validate-only
 ```
 
@@ -273,7 +274,7 @@ SELECT
   start_time,
   end_time
 FROM workspace.governance.pipeline_run
-WHERE pipeline_name = 'full_pipeline'
+WHERE pipeline_name = 'banking-investigation-pipeline'
 ORDER BY end_time DESC;
 ```
 

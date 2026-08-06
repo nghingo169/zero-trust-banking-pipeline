@@ -16,10 +16,11 @@ from pyspark.sql import functions as F
 # Databricks Widgets for parameters passed from Workflow Job Task
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
-dbutils.widgets.text("pipeline_name", "full-pipeline")
+dbutils.widgets.text("pipeline_name", "banking-investigation-pipeline")
 dbutils.widgets.text("quality_rules_path", "")
 dbutils.widgets.text("catalog", "workspace")
 dbutils.widgets.text("silver_schema", "silver")
+dbutils.widgets.text("governance_schema", "governance")
 
 BUSINESS_DATE = dbutils.widgets.get("business_date")
 RUN_ID = dbutils.widgets.get("run_id")
@@ -27,6 +28,7 @@ PIPELINE_NAME = dbutils.widgets.get("pipeline_name")
 RULE_PATH = dbutils.widgets.get("quality_rules_path")
 CATALOG = dbutils.widgets.get("catalog")
 SILVER_SCHEMA = dbutils.widgets.get("silver_schema")
+GOVERNANCE_SCHEMA = dbutils.widgets.get("governance_schema")
 
 if not RUN_ID:
     raise ValueError("run_id is required")
@@ -151,14 +153,14 @@ for domain in DOMAINS:
                 | (F.col("pipeline_run_id") != F.lit(RUN_ID))
             ).count()
             if "pipeline_run_id" in silver_df.columns
-            else total_rows
+            else max(total_rows, 1)
         )
 
         # 4. Ingested Timestamp Validity Check
         missing_ingested_at = (
             silver_df.filter(F.col("ingested_at").isNull()).count()
             if "ingested_at" in silver_df.columns
-            else 0
+            else max(total_rows, 1)
         )
 
         # Append Rule Evaluations
@@ -208,21 +210,8 @@ for domain in DOMAINS:
         pipeline_run_id=RUN_ID,
         pipeline_name=PIPELINE_NAME,
         business_date=BUSINESS_DATE,
-        execution_status="SUCCEEDED",
+        execution_status="RUNNING",
         table_metrics=[metric.asDict() for metric in metrics],
         rule_audits=rule_audits,
+        governance_schema=GOVERNANCE_SCHEMA,
     )
-
-# Update governance execution log status to SUCCEEDED for transform_silver_atomic step
-UPDATE_LOG_SQL = f"""
-UPDATE {CATALOG}.governance.pipeline_run
-SET execution_status = 'SUCCEEDED',
-    end_time = current_timestamp()
-WHERE pipeline_run_id = '{RUN_ID}' 
-  AND pipeline_name = 'full-pipeline'
-"""
-try:
-    spark.sql(UPDATE_LOG_SQL)
-    print(f"Governance execution log updated to SUCCEEDED for run_id: {RUN_ID}")
-except Exception as e:
-    print(f"Governance table status update skipped/failed: {e}")

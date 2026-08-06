@@ -41,6 +41,22 @@ variables:
   silver_schema:
     description: Production-style schema for Silver atomic model tables.
     default: silver
+  gold_schema:
+    description: Production-style schema for Gold investigation contexts.
+    default: gold
+  pipeline_service_principal_name:
+    description: Application ID of the service principal that runs the parent job and SDP pipeline.
+  governance_service_principal_name:
+    description: Application ID of the service principal that owns governance setup operations.
+  data_engineer_group:
+    description: Account group receiving masked Silver/Gold and redacted DQ evidence access.
+    default: data-engineers
+  governance_admin_group:
+    description: Account group permitted to manage governance objects without implicit raw-data access.
+    default: governance-admins
+  pii_dq_operator_group:
+    description: JIT-only account group exempted from PII masks for time-bound DQ investigations.
+    default: pii-dq-operator
 
 targets:
   dev:
@@ -56,7 +72,7 @@ targets:
       source_root: "s3://nab-src-dataset/banking/snapshots/simulation_id=banking-20260705-20260710/snapshot_type=full"
     resources:
       pipelines:
-        source_to_bronze:
+        banking_investigation_pipeline:
           configuration:
             spark.hadoop.fs.s3a.aws.credentials.provider: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
             spark.hadoop.fs.s3a.access.key: "{{secrets/banking-s3-ingestion/access-key-id}}"

@@ -10,13 +10,21 @@ from pyspark.sql import functions as F
 
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
-dbutils.widgets.text("pipeline_name", "full-pipeline")
+dbutils.widgets.text("pipeline_name", "banking-investigation-pipeline")
 dbutils.widgets.text("quality_rules_path", "")
+dbutils.widgets.text("catalog", "workspace")
+dbutils.widgets.text("bronze_schema", "bronze")
+dbutils.widgets.text("validated_schema", "silver_validated")
+dbutils.widgets.text("governance_schema", "governance")
 
 BUSINESS_DATE = dbutils.widgets.get("business_date")
 RUN_ID = dbutils.widgets.get("run_id")
 PIPELINE_NAME = dbutils.widgets.get("pipeline_name")
 RULE_PATH = dbutils.widgets.get("quality_rules_path")
+CATALOG = dbutils.widgets.get("catalog")
+BRONZE_SCHEMA = dbutils.widgets.get("bronze_schema")
+VALIDATED_SCHEMA = dbutils.widgets.get("validated_schema")
+GOVERNANCE_SCHEMA = dbutils.widgets.get("governance_schema")
 if not RUN_ID:
     raise ValueError("run_id is required")
 if RULE_PATH not in sys.path:
@@ -26,10 +34,6 @@ from data_contracts.audit.writer import write_audit
 from data_contracts.quality_rules.registry import RULES_BY_TABLE
 from data_contracts.table_catalog import DOMAINS, tables
 
-CATALOG = "workspace"
-BRONZE_SCHEMA = "bronze"
-VALIDATED_SCHEMA = "silver_validated"
-GOVERNANCE_SCHEMA = "governance"
 audit_rows = []
 
 
@@ -51,30 +55,28 @@ def quarantine_count(domain, table_name):
     )
 
 
-quarantine_table = qualified(GOVERNANCE_SCHEMA, "silver_quarantine_record")
-if spark.catalog.tableExists(quarantine_table):
-    # This task depends on the successful validation-and-routing update. A
-    # clean test run starts with no unassigned records, so only this run's
-    # centralized quarantine rows are stamped with the job run identifier.
-    spark.sql(f"""UPDATE {quarantine_table}
-            SET pipeline_run_id = '{RUN_ID}'
-            WHERE pipeline_run_id IS NULL""")
-
-
 for domain in DOMAINS:
     metrics = []
     rule_audits = []
     for table_name, business_key in tables(domain).items():
-        bronze = spark.table(qualified(BRONZE_SCHEMA, table_name))
-        validated = spark.table(qualified(VALIDATED_SCHEMA, table_name))
+        bronze_table = qualified(BRONZE_SCHEMA, table_name)
+        validated_table = qualified(VALIDATED_SCHEMA, table_name)
+        bronze_exists = spark.catalog.tableExists(bronze_table)
+        validated_exists = spark.catalog.tableExists(validated_table)
+        bronze = spark.table(bronze_table) if bronze_exists else None
+        validated = spark.table(validated_table) if validated_exists else None
         is_scd2 = table_name in DOMAINS[domain]["scd2"]
-        current = bronze.filter("__END_AT IS NULL") if is_scd2 else bronze
+        current = (
+            bronze.filter("__END_AT IS NULL") if bronze_exists and is_scd2 else bronze
+        )
         duplicate_count = (
             current.groupBy(business_key).count().filter("count > 1").count()
+            if current is not None
+            else 0
         )
         interval_count = (
             bronze.filter("__END_AT IS NOT NULL AND __START_AT >= __END_AT").count()
-            if is_scd2
+            if bronze_exists and is_scd2
             else 0
         )
         rules = RULES_BY_TABLE.get(table_name, [])
@@ -83,11 +85,13 @@ for domain in DOMAINS:
         )
         validated_rule_failures = (
             validated.filter(f"NOT ({rule_expression})").count()
-            if rule_expression
+            if validated_exists and rule_expression
             else 0
         )
-        checked = validated.count()
+        checked = validated.count() if validated_exists else 0
         for rule_name, failed_count in (
+            ("bronze_table_exists", int(not bronze_exists)),
+            ("validated_table_exists", int(not validated_exists)),
             ("current_business_keys_unique", duplicate_count),
             ("scd2_intervals_valid", interval_count),
             ("validated_rows_pass_all_rules", validated_rule_failures),
@@ -110,7 +114,7 @@ for domain in DOMAINS:
                 business_date=BUSINESS_DATE,
                 table_name=table_name,
                 landing_rows=0,
-                bronze_change_rows=bronze.count(),
+                bronze_change_rows=bronze.count() if bronze_exists else 0,
                 clean_current_rows=checked,
                 quarantined_rows=quarantine_count(domain, table_name),
                 recorded_at=datetime.utcnow(),
@@ -123,7 +127,8 @@ for domain in DOMAINS:
         pipeline_run_id=RUN_ID,
         pipeline_name=PIPELINE_NAME,
         business_date=BUSINESS_DATE,
-        execution_status="SUCCEEDED",
+        execution_status="RUNNING",
         table_metrics=[row.asDict() for row in metrics],
         rule_audits=rule_audits,
+        governance_schema=GOVERNANCE_SCHEMA,
     )

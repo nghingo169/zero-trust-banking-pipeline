@@ -1,0 +1,53 @@
+resources:
+  pipelines:
+    banking_investigation_pipeline:
+      name: banking-investigation-pipeline
+      catalog: ${var.catalog}
+      schema: ${var.bronze_schema}
+      serverless: true
+      continuous: false
+      run_as:
+        service_principal_name: ${var.pipeline_service_principal_name}
+      event_log:
+        catalog: ${var.catalog}
+        schema: ${var.governance_schema}
+        name: banking_investigation_pipeline_event_log
+      libraries:
+        - file:
+            path: ../src/pipeline/run_context.py
+        - file:
+            path: ../src/pipeline/bronze/source_to_bronze_ingestion.py
+        - file:
+            path: ../src/pipeline/silver/bronze_to_validated_silver.py
+        - file:
+            path: ../src/pipeline/silver/customer_transformation.py
+        - file:
+            path: ../src/pipeline/silver/card_transformation.py
+        - file:
+            path: ../src/pipeline/silver/transaction_transformation.py
+        - file:
+            path: ../src/pipeline/silver/fincrime_transformation.py
+        - file:
+            path: ../src/pipeline/gold/gold_common.py
+        - file:
+            path: ../src/pipeline/gold/fraud_transaction_context.py
+        - file:
+            path: ../src/pipeline/gold/customer_360_context.py
+        - file:
+            path: ../src/pipeline/gold/aml_investigation_context.py
+      configuration:
+        pipeline.pipeline_name: banking-investigation-pipeline
+        pipeline.source_path: ${workspace.file_path}/src
+        pipeline.target_catalog: ${var.catalog}
+        pipeline.target_schema: ${var.bronze_schema}
+        pipeline.source_mode: ${var.source_mode}
+        pipeline.source_root: ${var.source_root}
+        pipeline.catalog: ${var.catalog}
+        pipeline.bronze_schema: ${var.bronze_schema}
+        pipeline.validated_schema: ${var.silver_validated_schema}
+        pipeline.silver_validated: ${var.silver_validated_schema}
+        pipeline.silver_validated_schema: ${var.silver_validated_schema}
+        pipeline.silver_schema: ${var.silver_schema}
+        pipeline.gold_schema: ${var.gold_schema}
+        pipeline.governance_schema: ${var.governance_schema}
+        pipeline.quality_rules_path: ${workspace.file_path}/src

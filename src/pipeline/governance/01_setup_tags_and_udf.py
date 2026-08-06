@@ -7,6 +7,9 @@
 # -----------------------------------------------------------------------------
 # BƯỚC 0: TẠO GOVERNED TAG KEY (BẮT BUỘC TRƯỚC KHI GÁN TAGS)
 # -----------------------------------------------------------------------------
+dbutils.widgets.text("catalog", "workspace")
+catalog = dbutils.widgets.get("catalog")
+
 print("Creating governed tag: pii_type...")
 try:
     spark.sql("""
@@ -30,19 +33,7 @@ except Exception as e:
     else:
         # Re-raise if it's a different error (e.g., permission denied)
         raise
-# Lấy Catalog từ Spark Config (mặc định 'workspace' nếu chạy đơn lẻ)
-try:
-    catalog = spark.conf.get("pipeline.catalog", "workspace")
-except Exception:
-    catalog = "workspace"
-
 print(f"Executing Governance Setup on Catalog: {catalog}")
-
-# 1. Khởi tạo Schema Quản trị dữ liệu
-spark.sql(f"""
-CREATE SCHEMA IF NOT EXISTS {catalog}.governance
-COMMENT 'Dedicated schema for Data Governance, Audit Logs, and Security Masking UDFs'
-""")
 
 # 3. Đóng gói trọn bộ 39 NAB TDM Masking Rules thành SQL UDF
 udf_script = f"""
@@ -59,8 +50,8 @@ RETURN CASE
   -- ---------------------------------------------------------------------------
   -- GROUP 1: PERSONAL IDENTIFIERS & NAMES
   -- ---------------------------------------------------------------------------
-  -- Rule 1.1: NIN (National Identification Number)
-  WHEN pii_type = 'nin' THEN 
+  -- Rule 1.1: National Identification Number
+  WHEN pii_type = 'national_id' THEN
     CONCAT('011', RIGHT(REGEXP_REPLACE(val, '[^0-9]', ''), 7))
 
   -- Rule 1.2: Individual Name -> J. MASKED_8F3A12
@@ -205,4 +196,8 @@ END;
 """
 
 spark.sql(udf_script)
+spark.sql(
+    f"GRANT EXECUTE ON FUNCTION {catalog}.governance.tdm_masking_engine "
+    "TO `account users`"
+)
 print("Successfully initialized 39 TDM Rules Engine.")

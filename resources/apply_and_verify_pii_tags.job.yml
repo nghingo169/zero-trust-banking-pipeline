@@ -1,0 +1,19 @@
+resources:
+  jobs:
+    apply_and_verify_pii_tags:
+      name: banking-governance-apply-and-verify-pii-tags
+      run_as:
+        service_principal_name: ${var.governance_service_principal_name}
+      permissions:
+        - service_principal_name: ${var.pipeline_service_principal_name}
+          level: CAN_MANAGE_RUN
+      tasks:
+        - task_key: apply_and_verify_pii_tags
+          notebook_task:
+            notebook_path: ../src/pipeline/governance/03_apply_and_verify_pii_tags.py
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+              governance_schema: ${var.governance_schema}
+              data_engineer_group: ${var.data_engineer_group}

@@ -209,11 +209,11 @@ databricks bundle deploy -t team -p <your-profile>
 
 6. **Run the pipeline:**
 ```bash
-# Run full_pipeline job in dev target
-databricks bundle run full_pipeline -t dev -p <your-profile>
+# Run the Source-to-Gold orchestration job in dev
+databricks bundle run banking_investigation_pipeline_orchestration -t dev -p <your-profile>
 
-# Run full_pipeline job in team target (recommended)
-databricks bundle run full_pipeline -t team -p <your-profile>
+# Run the Source-to-Gold orchestration job in team (recommended)
+databricks bundle run banking_investigation_pipeline_orchestration -t team -p <your-profile>
 
 ```
 
@@ -239,7 +239,7 @@ databricks bundle run run_integration_tests -t team -p <your-profile>
 | **Validate bundle** | `databricks bundle validate -t dev -p <your-profile>` | `databricks bundle validate -t team -p <your-profile>` |
 | **Deploy bundle** | `databricks bundle deploy -t dev -p <your-profile>` | `databricks bundle deploy -t team -p <your-profile>` |
 | **Run integration tests** | `databricks bundle run run_integration_tests -t dev -p <your-profile>` | `databricks bundle run run_integration_tests -t team -p <your-profile>` |
-| **Run full pipeline** | `databricks bundle run full_pipeline -t dev -p <your-profile>` | `databricks bundle run full_pipeline -t team -p <your-profile>` |
+| **Run full pipeline** | `databricks bundle run banking_investigation_pipeline_orchestration -t dev -p <your-profile>` | `databricks bundle run banking_investigation_pipeline_orchestration -t team -p <your-profile>` |
 
 ---
 

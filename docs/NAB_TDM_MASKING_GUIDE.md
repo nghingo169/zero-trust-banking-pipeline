@@ -333,7 +333,7 @@ from pyspark.sql import functions as F
 import sys
 
 # Import NAB TDM masking library
-sys.path.insert(0, "/Workspace/Users/nghi.ngotieu@gmail.com/draft/transformations/lib")
+sys.path.insert(0, "/Workspace/Shared/banking/transformations/lib")
 from nab_tdm_masking import mask_card_number
 
 def _build_payment_card_production(df):
@@ -485,12 +485,12 @@ Execute the reference table setup SQL to create TDM mapping tables:
 ```bash
 # From Databricks SQL Editor or CLI
 databricks sql execute \
-  --file /Workspace/Users/nghi.ngotieu@gmail.com/draft/transformations/setup_tdm_reference_tables.sql
+  --file /Workspace/Shared/banking/transformations/setup_tdm_reference_tables.sql
 ```
 
 Or run directly in SQL Editor:
 ```sql
-SOURCE /Workspace/Users/nghi.ngotieu@gmail.com/draft/transformations/setup_tdm_reference_tables.sql;
+SOURCE /Workspace/Shared/banking/transformations/setup_tdm_reference_tables.sql;
 ```
 
 **Verify:**
@@ -512,7 +512,7 @@ Execute UC masking policies as a catalog owner or admin:
 ```bash
 # From Databricks SQL Editor or CLI
 databricks sql execute \
-  --file /Workspace/Users/nghi.ngotieu@gmail.com/draft/transformations/uc_masking_policies.sql
+  --file /Workspace/Shared/banking/transformations/uc_masking_policies.sql
 ```
 
 **Verify:**

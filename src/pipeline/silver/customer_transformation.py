@@ -6,11 +6,17 @@ Domain        : Customer / Enterprise Party Domain
 
 import sys
 import time
-import uuid
 
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
+
+if "pytest" not in sys.modules:
+    _SOURCE_PATH = spark.conf.get("pipeline.source_path", "")
+    if _SOURCE_PATH and _SOURCE_PATH not in sys.path:
+        sys.path.insert(0, _SOURCE_PATH)
+
+from pipeline.run_context import CANONICAL_PIPELINE_NAME, pipeline_run_id_column
 
 
 def get_catalog() -> str:
@@ -108,29 +114,19 @@ def get_source_system(ref_col) -> F.Column:
     return F.coalesce(resolved, F.lit("UNKNOWN"))
 
 
-FALLBACK_MODULE_UUID = str(uuid.uuid4())
-
-
 def get_pipeline_run_id(df) -> F.Column:
-    """Lấy pipeline_run_id mới nhất từ bảng governance.pipeline_run bằng Scalar Subquery."""
-    if "pipeline_run_id" in df.columns:
-        return F.col("pipeline_run_id").cast("string")
-
-    cat = get_catalog()
-    table_ref = f"{cat}.governance.pipeline_run" if cat else "governance.pipeline_run"
-
-    subquery_expr = f"""
-        (SELECT CAST(pipeline_run_id AS STRING) 
-         FROM {table_ref} 
-         WHERE pipeline_name = 'full-pipeline' 
-         ORDER BY start_time DESC 
-         LIMIT 1)
-    """
-
-    return (
-        F.coalesce(F.expr(subquery_expr), F.lit(FALLBACK_MODULE_UUID))
-        .cast("string")
-        .alias("pipeline_run_id")
+    return pipeline_run_id_column(
+        F,
+        df,
+        catalog=get_catalog(),
+        governance_schema=spark.conf.get("pipeline.governance_schema", "governance")
+        if "pytest" not in sys.modules
+        else "governance",
+        pipeline_name=spark.conf.get(
+            "pipeline.pipeline_name", CANONICAL_PIPELINE_NAME
+        )
+        if "pytest" not in sys.modules
+        else CANONICAL_PIPELINE_NAME,
     )
 
 
