@@ -45,7 +45,7 @@
 |---|---|
 | `party_key`, `party_type`, `party_status` | `party` |
 | `preferred_contact_method`, `profile_effective_from` | `party_profile_version` (`is_current = true`) |
-| `kyc_verification_status`, `kyc_id_type`, `kyc_id_number_token` | `party_kyc_assessment` (most recent by `verified_date`) |
+| `kyc_verification_status`, `kyc_id_type`, `kyc_id_number` | `party_kyc_assessment` (most recent by `verified_date`) |
 | `employer_name`, `job_title`, `monthly_income_band` | `party_employment` (`effective_to IS NULL`), income banded |
 | `active_account_count`, `total_current_balance`, `active_card_count` | `party_account_role` ⋈ `account` ⋈ `account_balance_snapshot` (latest by `balance_date`, filtered to the trailing 30 days *before* ranking, for performance on this very large table — accounts with no snapshot in that window show `NULL` balance) ⋈ a **pre-aggregated card count per account** (`payment_card` grouped by `account_key` *before* joining, to avoid multiplying `closing_balance` by the number of cards on an account) |
 | `open_service_request_count` | `party_service_request`, excluding `RESOLVED` and `REJECTED` (real values: `RESOLVED` / `OPEN` / `REJECTED` / `IN_PROGRESS` — there is no `CLOSED` state here) |

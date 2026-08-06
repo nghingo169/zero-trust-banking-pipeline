@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import builtins
+import os
 import sys
 import unittest
+from pathlib import Path
+from types import ModuleType
+from unittest.mock import MagicMock, patch
 
+import pyspark
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SRC_DIR = str(PROJECT_ROOT / "src")
+
+if os.path.exists(SRC_DIR) and SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
 
 from data_contracts.quality_rules.registry import (
     get_domain_rules,
@@ -84,9 +97,13 @@ class QualityRulesTests(unittest.TestCase):
         rules = get_rules_as_list_of_dict()
         self.assertEqual(len(get_domain_rules("card")), 36)
         self.assertGreater(len(rules), 36)
-        self.assertTrue(all(set(rule) == {"name", "constraint", "table"} for rule in rules))
+        self.assertTrue(
+            all(set(rule) == {"name", "constraint", "table"} for rule in rules)
+        )
 
-    def test_customer_transaction_and_fincrime_injections_have_quarantine_rules(self) -> None:
+    def test_customer_transaction_and_fincrime_injections_have_quarantine_rules(
+        self,
+    ) -> None:
         expected_rules = {
             "core_banking_customer": {
                 "core_banking_customer__phone__not_placeholder": "(phone <> '0000000000')",
@@ -106,30 +123,45 @@ class QualityRulesTests(unittest.TestCase):
             for name, constraint in expected.items():
                 self.assertEqual(get_rules(table)[name], constraint)
 
-    def test_every_catalog_quarantine_table_is_covered_by_its_domain_registry(self) -> None:
+    def test_every_catalog_quarantine_table_is_covered_by_its_domain_registry(
+        self,
+    ) -> None:
         # These are the tables whose injected defects are explicitly marked
         # QUARANTINE_FIELD or QUARANTINE_RECORD in the error catalog.
         expected_tables = {
             "customer": {
-                "core_banking_customer", "crm_customer", "customer_kyc",
-                "customer_employment", "customer_request", "account",
+                "core_banking_customer",
+                "crm_customer",
+                "customer_kyc",
+                "customer_employment",
+                "customer_request",
+                "account",
                 "customer_account",
             },
             "transaction": {
-                "account_transaction", "account_transaction_status_event",
-                "merchant_store", "log_atm", "atm_transaction_status_event",
-                "payment_gateway_log", "payment_gateway_status_event",
+                "account_transaction",
+                "account_transaction_status_event",
+                "merchant_store",
+                "log_atm",
+                "atm_transaction_status_event",
+                "payment_gateway_log",
+                "payment_gateway_status_event",
                 "balance_snapshot",
             },
             "fincrime": {
-                "account_transaction_risk_score", "fraud_alert",
+                "account_transaction_risk_score",
+                "fraud_alert",
                 "transaction_monitoring_alert",
                 "transaction_monitoring_alert_account_transaction",
                 "transaction_monitoring_alert_card_transaction",
-                "investigation_case_transaction_monitoring_alert", "aml_case",
-                "sanction_screening", "suspicious_activity_report", "chargeback",
+                "investigation_case_transaction_monitoring_alert",
+                "aml_case",
+                "sanction_screening",
+                "suspicious_activity_report",
+                "chargeback",
                 "investigation_case_account_transaction",
-                "investigation_case_card_transaction", "investigation_case_fraud_alert",
+                "investigation_case_card_transaction",
+                "investigation_case_fraud_alert",
                 "investigation_case_sanction_screening",
             },
         }
@@ -140,27 +172,35 @@ class QualityRulesTests(unittest.TestCase):
     def test_non_quarantine_catalog_handling_is_not_a_row_quarantine_rule(self) -> None:
         # Status reconciliation, replay deduplication, and stale-reference
         # flagging require history or monitoring, not a single-row predicate.
-        self.assertNotIn("transaction_monitoring_alert__alert_status", get_rules("transaction_monitoring_alert"))
-        self.assertNotIn("watchlist", [rule["table"] for rule in get_domain_rules("fincrime")])
+        self.assertNotIn(
+            "transaction_monitoring_alert__alert_status",
+            get_rules("transaction_monitoring_alert"),
+        )
+        self.assertNotIn(
+            "watchlist", [rule["table"] for rule in get_domain_rules("fincrime")]
+        )
 
     def test_silver_validation_imports_the_shared_rule_module(self) -> None:
-        root = Path(__file__).resolve().parents[1] / "src/pipeline/silver"
+        root = Path(__file__).resolve().parents[2] / "src/pipeline/silver"
         pipeline_source = (root / "bronze_to_validated_silver.py").read_text()
         card_assessment = (root / "card_validation.py").read_text()
         self.assertIn('spark.conf.get("pipeline.quality_rules_path")', pipeline_source)
-        self.assertIn("from data_contracts.quality_rules.registry import get_rules", card_assessment)
+        self.assertIn(
+            "from data_contracts.quality_rules.registry import get_rules",
+            card_assessment,
+        )
         self.assertNotIn("RULES_BY_TABLE =", card_assessment)
 
     def test_silver_validation_quarantines_null_rule_evaluations(self) -> None:
         pipeline_source = (
-            Path(__file__).resolve().parents[1]
+            Path(__file__).resolve().parents[2]
             / "src/pipeline/silver/card_validation.py"
         ).read_text()
         self.assertIn("~F.coalesce(F.expr(rule), F.lit(False))", pipeline_source)
 
     def test_quality_pipelines_use_cdf_for_quarantine_history(self) -> None:
         source = (
-            Path(__file__).resolve().parents[1]
+            Path(__file__).resolve().parents[2]
             / "src/pipeline/silver/bronze_to_validated_silver.py"
         ).read_text()
         self.assertIn('option("readChangeFeed", "true")', source)
@@ -168,7 +208,7 @@ class QualityRulesTests(unittest.TestCase):
 
     def test_silver_validation_retains_scd2_history(self) -> None:
         source = (
-            Path(__file__).resolve().parents[1]
+            Path(__file__).resolve().parents[2]
             / "src/pipeline/silver/bronze_to_validated_silver.py"
         ).read_text()
         self.assertIn("_change_type IN ('insert', 'update_postimage')", source)

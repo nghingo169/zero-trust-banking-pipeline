@@ -10,12 +10,13 @@ import sys
 import uuid
 from datetime import datetime
 
-from pyspark.sql import Row, functions as F
+from pyspark.sql import Row
+from pyspark.sql import functions as F
 
 # Databricks Widgets for parameters passed from Workflow Job Task
 dbutils.widgets.text("business_date", "2026-07-10")
 dbutils.widgets.text("run_id", "")
-dbutils.widgets.text("pipeline_name", "full-source-to-validated-silver")
+dbutils.widgets.text("pipeline_name", "full-pipeline")
 dbutils.widgets.text("quality_rules_path", "")
 dbutils.widgets.text("catalog", "workspace")
 dbutils.widgets.text("silver_schema", "silver")
@@ -35,7 +36,6 @@ if RULE_PATH and RULE_PATH not in sys.path:
 from data_contracts.audit.writer import write_audit
 from data_contracts.table_catalog import DOMAINS, tables
 
-
 # Primary Keys / Business Keys Mapping for Silver Atomic Model
 SILVER_ATOMIC_KEYS = {
     # Party / Customer Domain
@@ -46,7 +46,6 @@ SILVER_ATOMIC_KEYS = {
     "party_kyc_assessment": "kyc_assessment_key",
     "party_employment": "employment_key",
     "party_service_request": "service_request_key",
-    
     # Account & Card System Domain
     "account": "account_key",
     "party_account_role": "party_account_role_key",
@@ -56,7 +55,6 @@ SILVER_ATOMIC_KEYS = {
     "transaction_channel": "channel_key",
     "merchant": "merchant_key",
     "merchant_location": "merchant_location_key",
-    
     # Financial Event Domain
     "financial_event": "financial_event_key",
     "account_posting": "financial_event_key",
@@ -64,7 +62,6 @@ SILVER_ATOMIC_KEYS = {
     "atm_activity": "financial_event_key",
     "gateway_payment": "financial_event_key",
     "financial_event_status_history": "financial_event_status_history_key",
-    
     # FinCrime & AML Domain
     "financial_event_risk_score": "financial_event_risk_score_key",
     "fraud_alert": "fraud_alert_key",
@@ -217,16 +214,15 @@ for domain in DOMAINS:
     )
 
 # Update governance execution log status to SUCCEEDED for transform_silver_atomic step
-UPDATE_EXECUTION_LOG_SQL = f"""
-UPDATE {CATALOG}.governance.pipeline_execution_log
-SET status = 'SUCCEEDED',
-    ended_at = current_timestamp()
-WHERE run_id = '{RUN_ID}' 
-  AND pipeline_name = 'transform_silver_atomic'
+UPDATE_LOG_SQL = f"""
+UPDATE {CATALOG}.governance.pipeline_run
+SET execution_status = 'SUCCEEDED',
+    end_time = current_timestamp()
+WHERE pipeline_run_id = '{RUN_ID}' 
+  AND pipeline_name = 'full-pipeline'
 """
-
 try:
-    spark.sql(UPDATE_EXECUTION_LOG_SQL)
-    print(f"✅ Governance execution log updated to SUCCEEDED for run_id: {RUN_ID}")
+    spark.sql(UPDATE_LOG_SQL)
+    print(f"Governance execution log updated to SUCCEEDED for run_id: {RUN_ID}")
 except Exception as e:
-    print(f"⚠️ Governance table status update skipped/failed: {e}")
+    print(f"Governance table status update skipped/failed: {e}")

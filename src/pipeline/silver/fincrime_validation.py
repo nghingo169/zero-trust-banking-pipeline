@@ -1,11 +1,11 @@
 """Reusable Financial Crime validation logic for the source-bound Silver pipeline."""
 
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 
 from data_contracts.normalization import normalize
 from data_contracts.quality_rules.registry import RULES_BY_TABLE
 from data_contracts.table_catalog import DOMAINS
-
 
 TABLES = {**DOMAINS["fincrime"]["scd2"], **DOMAINS["fincrime"]["append"]}
 

@@ -6,25 +6,42 @@ by the Lakeflow graph loader) by the 3 view files, so it does NOT get `spark`
 injected into its own module namespace the way a top-level library file does.
 """
 
-
-def get_catalog(spark) -> str:
-    return spark.conf.get("pipeline.catalog", "workspace")
+import time
 
 
-def get_silver_schema(spark) -> str:
-    return spark.conf.get("pipeline.silver_schema", "silver")
+def get_catalog(spark=None) -> str:
+    try:
+        from pyspark.sql import SparkSession
+
+        s = spark or SparkSession.getActiveSession()
+        return s.conf.get("pipeline.catalog", "workspace")
+    except Exception:
+        return "workspace"
 
 
-def get_gold_schema(spark) -> str:
-    return spark.conf.get("pipeline.gold_schema", "gold")
+def get_silver_schema(spark=None) -> str:
+    try:
+        from pyspark.sql import SparkSession
+
+        s = spark or SparkSession.getActiveSession()
+        return s.conf.get("pipeline.silver_schema", "silver")
+    except Exception:
+        return "silver"
+
+
+def get_gold_schema(spark=None) -> str:
+    try:
+        from pyspark.sql import SparkSession
+
+        s = spark or SparkSession.getActiveSession()
+        return s.conf.get("pipeline.gold_schema", "gold")
+    except Exception:
+        return "gold"
 
 
 def silver_ref(spark, table_name: str) -> str:
-    """Fully-qualified Silver source table."""
     return f"{get_catalog(spark)}.{get_silver_schema(spark)}.{table_name}"
 
 
 def gold_target_name(spark, table_name: str) -> str:
-    """Target name for a Gold view/table (schema-qualified if GOLD_SCHEMA is set)."""
-    gold_schema = get_gold_schema(spark)
-    return f"{gold_schema}.{table_name}" if gold_schema else table_name
+    return f"{get_catalog(spark)}.{get_gold_schema(spark)}.{table_name}"

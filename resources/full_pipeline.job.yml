@@ -1,17 +1,28 @@
 resources:
   jobs:
-    full_source_to_gold:
-      name: full-source-to-gold
-      description: Ingest S3 source snapshots, validate and quarantine source records, transform Silver Atomic, publish Gold contexts, and record governance audits.
+    full_pipeline:
+      name: full-pipeline
+      description: Load source snapshots to Bronze, validate source tables, transform to Silver Atomic (Clean Data), publish to Gold, and enforce Unity Catalog ABAC Dynamic PII Protection.
       max_concurrent_runs: 1
       parameters:
         - name: audit_business_date
           default: "2026-07-10"
       tasks:
+        # =========================================================================
+        # TASK 0: KHỞI TẠO GOVERNANCE ENGINE (NOTEBOOK TASK)
+        # =========================================================================
+        - task_key: setup_abac_governance
+          notebook_task:
+            notebook_path: ../src/pipeline/governance/01_setup_tags_and_udf.py
+
+        # 1. Ingest Data từ Landing vào Bronze
         - task_key: ingest_bronze
+          depends_on:
+            - task_key: setup_abac_governance
           pipeline_task:
             pipeline_id: ${resources.pipelines.source_to_bronze.id}
 
+        # 2. Audit chất lượng dữ liệu tầng Bronze
         - task_key: audit_bronze_ingestion
           depends_on:
             - task_key: ingest_bronze
@@ -20,17 +31,19 @@ resources:
             base_parameters:
               business_date: "{{job.parameters.audit_business_date}}"
               run_id: "{{job.run_id}}"
-              pipeline_name: full-source-to-gold
+              pipeline_name: full-pipeline
               quality_rules_path: ${workspace.file_path}/src
               catalog: ${var.catalog}
               bronze_schema: ${var.bronze_schema}
 
+        # 3. Validate & Route dữ liệu từ Bronze sang Validated Silver / Quarantine
         - task_key: validate_and_route
           depends_on:
             - task_key: audit_bronze_ingestion
           pipeline_task:
             pipeline_id: ${resources.pipelines.dev_centralized_quarantine.id}
 
+        # 4. Audit chất lượng tầng Validated Silver
         - task_key: silver_validation_audit
           depends_on:
             - task_key: validate_and_route
@@ -39,9 +52,10 @@ resources:
             base_parameters:
               business_date: "{{job.parameters.audit_business_date}}"
               run_id: "{{job.run_id}}"
-              pipeline_name: full-source-to-gold
+              pipeline_name: full-pipeline
               quality_rules_path: ${workspace.file_path}/src
 
+        # 5. Pre-Transform Setup
         - task_key: pre_transform_setup
           depends_on:
             - task_key: silver_validation_audit
@@ -52,18 +66,14 @@ resources:
               run_id: "{{job.run_id}}"
               catalog: ${var.catalog}
 
+        # 6. DLT Pipeline: Transform Silver Validated sang Silver Atomic (Clean Data Mode)
         - task_key: transform_silver_atomic
           depends_on:
-            - task_key: pre_transform_setup
+            - task_key: pre_transform_setup  
           pipeline_task:
             pipeline_id: ${resources.pipelines.validated_to_transform_silver.id}
 
-        - task_key: transform_gold
-          depends_on:
-            - task_key: transform_silver_atomic
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.silver_to_gold.id}
-
+        # 7. Audit & Nghiệm thu chất lượng tầng Silver Atomic
         - task_key: silver_atomic_audit
           depends_on:
             - task_key: transform_silver_atomic
@@ -72,7 +82,23 @@ resources:
             base_parameters:
               business_date: "{{job.parameters.audit_business_date}}"
               run_id: "{{job.run_id}}"
-              pipeline_name: full-source-to-gold
+              pipeline_name: full-pipeline
               quality_rules_path: ${workspace.file_path}/src
               catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}
+
+        # 8. Transform Gold Data Marts (AI-Ready Context Layer)
+        - task_key: transform_gold
+          depends_on:
+            - task_key: silver_atomic_audit
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.silver_to_gold.id}
+
+        # =========================================================================
+        # TASK 9: APPLY GOVERNED TAGS & ENFORCE UNITY CATALOG ABAC POLICIES (NOTEBOOK TASK)
+        # =========================================================================
+        - task_key: enforce_abac_policies
+          depends_on:
+            - task_key: transform_gold
+          notebook_task:
+            notebook_path: ../src/pipeline/governance/02_apply_abac_policies.py

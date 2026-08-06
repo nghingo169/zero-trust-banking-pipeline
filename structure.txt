@@ -1,0 +1,6 @@
+Folder PATH listing for volume OS
+Volume serial number is 000001A5 5823:1F11
+C:\USERS\ADMIN\ONEDRIVE\TÀI LIệU\ZERO-TRUST-BANKING-PIPELINE\-F
+Invalid path - \USERS\ADMIN\ONEDRIVE\TÀI LIệU\ZERO-TRUST-BANKING-PIPELINE\-F
+No subfolders exist 
+

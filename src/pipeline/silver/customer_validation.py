@@ -1,11 +1,11 @@
 """Reusable Customer validation logic for the source-bound Silver pipeline."""
 
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 
 from data_contracts.normalization import normalize
 from data_contracts.quality_rules.registry import get_rules
 from data_contracts.table_catalog import DOMAINS
-
 
 TABLES = {**DOMAINS["customer"]["scd2"], **DOMAINS["customer"]["append"]}
 IDENTITY_TABLES = {"core_banking_customer", "crm_customer"}
@@ -37,9 +37,7 @@ def assess(
     failed_rule_names = F.filter(
         F.array(
             *[
-                F.when(
-                    ~F.coalesce(F.expr(rule), F.lit(False)), F.lit(name)
-                )
+                F.when(~F.coalesce(F.expr(rule), F.lit(False)), F.lit(name))
                 for name, rule in rules.items()
             ]
         ),
@@ -48,7 +46,9 @@ def assess(
 
     if duplicate_ids is not None:
         normalized = normalized.join(
-            F.broadcast(duplicate_ids.withColumn("_duplicate_national_id", F.lit(True))),
+            F.broadcast(
+                duplicate_ids.withColumn("_duplicate_national_id", F.lit(True))
+            ),
             "national_id",
             "left",
         )

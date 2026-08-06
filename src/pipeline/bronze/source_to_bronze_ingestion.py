@@ -5,32 +5,43 @@ from pyspark import pipelines as dp
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-
 # ==============================================================================
-# PIPELINE CONFIGURATION
+# PIPELINE CONFIGURATION HELPERS & RETRIEVAL
 # ==============================================================================
 
-spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
-spark.conf.set("spark.databricks.delta.typeWidening.enabled", "true")
 
-SOURCE_MODE = spark.conf.get("pipeline.source_mode", "s3").lower()
+def safe_conf_get(key: str, default: str = "") -> str:
+    """Safely fetch Spark configuration in PySpark Connect / Serverless mode."""
+    try:
+        return spark.conf.get(key, default)
+    except Exception:
+        return default
+
+
+# Note: Global schema autoMerge is not supported in Serverless compute.
+# Schema evolution is handled via .option("mergeSchema", "true") in readers/writers.
+try:
+    spark.conf.set("spark.databricks.delta.typeWidening.enabled", "true")
+except Exception:
+    pass
+
+SOURCE_MODE = safe_conf_get("pipeline.source_mode", "s3").lower()
 
 if SOURCE_MODE == "s3":
-    # Production: direct source access. The pipeline identity needs S3
-    # ListBucket and GetObject permissions for the configured snapshot root.
-    SOURCE_ROOT = spark.conf.get("pipeline.source_root", "").rstrip("/")
-    if not SOURCE_ROOT:
-        raise ValueError("pipeline.source_root is required when source_mode=s3.")
+    # Production: direct source access. Default path used as fallback during testing.
+    SOURCE_ROOT = safe_conf_get(
+        "pipeline.source_root", "s3://landing-bucket/banking"
+    ).rstrip("/")
 elif SOURCE_MODE == "volume":
-    # Development: files uploaded from a local machine into a UC Volume.
-    SOURCE_ROOT = spark.conf.get("pipeline.source_root", "").rstrip("/")
-    if not SOURCE_ROOT:
-        raise ValueError("pipeline.source_root is required when source_mode=volume.")
+    # Development: files uploaded into a UC Volume. Default path used as fallback during testing.
+    SOURCE_ROOT = safe_conf_get(
+        "pipeline.source_root", "/Volumes/main/default/landing"
+    ).rstrip("/")
 else:
     raise ValueError("pipeline.source_mode must be either 's3' or 'volume'.")
 
-TARGET_CATALOG = spark.conf.get("pipeline.target_catalog", "workspace")
-TARGET_SCHEMA = spark.conf.get("pipeline.target_schema", "bronze")
+TARGET_CATALOG = safe_conf_get("pipeline.target_catalog", "workspace")
+TARGET_SCHEMA = safe_conf_get("pipeline.target_schema", "bronze")
 
 SCHEMA_DB = f"{TARGET_CATALOG}.{TARGET_SCHEMA}"
 
@@ -53,6 +64,7 @@ CACHED_BUSINESS_DATES: Optional[List[int]] = None
 # SCD1 = immutable facts/events replayed in later full snapshots.
 # SCD2 = business entities whose attributes or lifecycle can change over time.
 # ==============================================================================
+
 
 def table_configs(
     domain: str,
@@ -96,7 +108,7 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
             "customer_request": (
                 ["request_id"],
-                "request_date DATE, resolution_date DATE",
+                "resolution_date DATE, resolution_date DATE",
             ),
             "customer_account": (
                 ["link_id"],
@@ -108,7 +120,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Transaction tables, except explicit status events → SCD2
     # --------------------------------------------------------------------------
@@ -160,14 +171,8 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Explicit transaction status events → SCD1
-    #
-    # Important:
-    # - ATM composite key was verified: status_event_id + account_txn_id.
-    # - Validate the other three status-event key combinations against source
-    #   data before first production load.
     # --------------------------------------------------------------------------
     **table_configs(
         "customer_transaction",
@@ -200,7 +205,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Financial-crime lifecycle/state records → SCD2
     # --------------------------------------------------------------------------
@@ -247,7 +251,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Financial-crime facts and relationship rows → SCD2
     # --------------------------------------------------------------------------
@@ -308,7 +311,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Card tables, except the explicit status event → SCD2
     # --------------------------------------------------------------------------
@@ -337,7 +339,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-
     # --------------------------------------------------------------------------
     # Explicit card status event → SCD1
     # --------------------------------------------------------------------------
@@ -361,6 +362,7 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
 # ==============================================================================
 # SOURCE AND METADATA HELPERS
 # ==============================================================================
+
 
 def source_path(
     domain: str,
@@ -395,9 +397,7 @@ def get_available_business_dates() -> List[int]:
             )
 
             if match:
-                dates.add(
-                    int(f"{match.group(1)}{match.group(2)}{match.group(3)}")
-                )
+                dates.add(int(f"{match.group(1)}{match.group(2)}{match.group(3)}"))
 
         CACHED_BUSINESS_DATES = sorted(dates)
         print(f"[INFO] Discovered snapshot versions: {CACHED_BUSINESS_DATES}")
@@ -421,7 +421,7 @@ def apply_schema_hints(df: DataFrame, hints: str) -> DataFrame:
         if column_name in df.columns:
             df = df.withColumn(
                 column_name,
-                F.col(column_name).cast(data_type),
+                F.expr(f"try_cast({column_name} AS {data_type})"),
             )
 
     return df
@@ -437,10 +437,12 @@ def add_derived_event_keys(df: DataFrame, table_name: str) -> DataFrame:
         F.when(
             F.col("account_txn_id").isNotNull(),
             F.concat(F.lit("ACCOUNT:"), F.col("account_txn_id").cast("string")),
-        ).when(
+        )
+        .when(
             F.col("card_txn_id").isNotNull(),
             F.concat(F.lit("CARD:"), F.col("card_txn_id").cast("string")),
-        ).otherwise(F.lit("<MISSING_PARENT>")),
+        )
+        .otherwise(F.lit("<MISSING_PARENT>")),
     )
 
 
@@ -449,14 +451,7 @@ def remove_confirmed_snapshot_replays(
     table_name: str,
     keys: List[str],
 ) -> DataFrame:
-    """Remove exact duplicate rows the source repeats within one full snapshot.
-
-    ``account_transaction_status_event`` contains duplicate copies of the
-    same composite event in individual snapshots.  Snapshot CDC requires one
-    row per key, while the checked duplicates have identical business payload.
-    Other tables are deliberately left untouched so a new source-key conflict
-    fails visibly instead of being silently discarded.
-    """
+    """Remove exact duplicate rows the source repeats within one full snapshot."""
     if table_name == "account_transaction_status_event":
         return df.dropDuplicates(keys)
     return df
@@ -471,9 +466,6 @@ def add_operational_metadata(
     load_timestamp = F.current_timestamp()
 
     return (
-        # These source-directory fields are only file-layout metadata. They
-        # are not Bronze business columns; business_date is added explicitly
-        # below for the snapshot processed by this callback.
         df.drop("simulation_id", "snapshot_type")
         .withColumn("business_date", F.to_date(F.lit(business_date)))
         .withColumn("domain", F.lit(domain))
@@ -491,6 +483,7 @@ def add_operational_metadata(
 # ==============================================================================
 # SNAPSHOT CDC BUILDER
 # ==============================================================================
+
 
 def build_snapshot_flow(
     table_name: str,
@@ -531,10 +524,8 @@ def build_snapshot_flow(
             business_date = f"{value[:4]}-{value[4:6]}-{value[6:]}"
 
             try:
-                snapshot_df = (
-                    spark.read
-                    .option("mergeSchema", "true")
-                    .parquet(source_path(table_domain, table, business_date))
+                snapshot_df = spark.read.option("mergeSchema", "true").parquet(
+                    source_path(table_domain, table, business_date)
                 )
 
                 snapshot_df = apply_schema_hints(snapshot_df, hints)
@@ -555,10 +546,7 @@ def build_snapshot_flow(
                 )
 
             except Exception as error:
-                if (
-                    "PATH_NOT_FOUND" in str(error)
-                    or "not found" in str(error).lower()
-                ):
+                if "PATH_NOT_FOUND" in str(error) or "not found" in str(error).lower():
                     print(
                         f"[WARN] Snapshot not found: "
                         f"{table} for {business_date}; skipping."
@@ -576,12 +564,8 @@ def build_snapshot_flow(
         "stored_as_scd_type": stored_as_scd_type,
     }
 
-    # Prevent ingestion timestamps and snapshot metadata from generating SCD2
-    # business-history versions.
     if stored_as_scd_type == "2":
-        flow_arguments[
-            "track_history_except_column_list"
-        ] = TECHNICAL_METADATA_COLUMNS
+        flow_arguments["track_history_except_column_list"] = TECHNICAL_METADATA_COLUMNS
 
     dp.create_auto_cdc_from_snapshot_flow(**flow_arguments)
 
