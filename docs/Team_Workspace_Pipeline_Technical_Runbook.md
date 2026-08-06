@@ -21,21 +21,28 @@ catalog ABAC, governed tags, and a serverless SQL warehouse.
 
 ### 2. Create identities and groups
 
-In the Databricks account/workspace administration UI, create or reuse:
+1. Open the workspace selector and select **Manage account**.
+2. Open **User management > Service principals**.
+3. Create or reuse `banking-pipeline-service` and
+   `banking-governance-service`.
+4. Open **User management > Users** and add each teammate email if it does not
+   already exist.
+5. Open **User management > Groups**.
+6. Create or reuse `governance-admins`, `data-engineers`, and
+   `pii-dq-operator` as account groups.
+7. Open `governance-admins` and add the demo owner.
+8. Open `data-engineers` and add the teammate users.
+9. Leave `pii-dq-operator` empty.
+10. Open **Workspaces**, select the demo workspace, and open **Permissions**.
+11. Select **Add permissions**, add both service principals and all three
+    groups, and grant **User** workspace access.
+12. Return to **User management > Service principals** and open each service
+    principal.
+13. Open **Permissions > Grant access**, select the demo owner, grant
+    **Service principal: User**, and save.
 
-- service principals: `banking-pipeline-service`, `banking-governance-service`;
-- account groups: `governance-admins`, `data-engineers`, `pii-dq-operator`.
-
-Then:
-
-1. Assign both service principals and all three groups to the workspace.
-2. Add the demo owner to `governance-admins`.
-3. Add teammate users only to `data-engineers`.
-4. Leave `pii-dq-operator` empty.
-5. Allow the demo owner to use both service principals.
-
-Do not create workspace-local copies of the groups. Group membership can also
-be managed through the Databricks SCIM/API.
+Do not create workspace-local copies of the groups. Do not grant teammates
+direct permissions; they inherit access from `data-engineers`.
 
 ### 3. Get the service-principal application IDs
 
@@ -149,12 +156,22 @@ an existing legacy pipeline deployment.
 
 ### 9. Grant access to deployed Bundle files
 
-In the workspace folder permissions UI, grant both runtime service principals
-`CAN READ` on:
+1. In the workspace sidebar, open **Workspace**.
+2. Navigate to:
 
 ```text
 /Workspace/banking-demo/<demo-owner>/.bundle/zero-trust-banking-pipeline/demo/files
 ```
+
+3. Select the `files` folder and open **Permissions** from its kebab menu.
+4. Select **Add**, search for `banking-pipeline-service`, and grant
+   **Can view**.
+5. Repeat for `banking-governance-service`.
+6. Save and confirm that both service principals appear in the folder's
+   permission list.
+
+The UI label **Can view** is the folder permission represented as `CAN READ` by
+the Permissions API.
 
 ### 10. Run bootstrap once
 
