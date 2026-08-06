@@ -161,6 +161,49 @@ def test_schema_hints_malformed_value_casts_to_null_rather_than_raising(test_spa
     assert out.collect()[0]["amount"] is None
 
 
+def test_source_contract_adds_typed_null_for_pre_evolution_crm_snapshot(test_spark):
+    df = test_spark.createDataFrame(
+        [Row(party_id="CRM-1", customer_name="Before evolution")]
+    )
+
+    out = source_to_bronze_ingestion.apply_source_schema_contract(df, "crm_customer")
+
+    assert isinstance(out.schema["preferred_contact_method"].dataType, StringType)
+    assert out.collect()[0]["preferred_contact_method"] is None
+
+
+def test_source_contract_preserves_post_evolution_crm_value(test_spark):
+    df = test_spark.createDataFrame(
+        [
+            Row(
+                party_id="CRM-2",
+                customer_name="After evolution",
+                preferred_contact_method="EMAIL",
+            )
+        ]
+    )
+
+    out = source_to_bronze_ingestion.apply_source_schema_contract(df, "crm_customer")
+
+    assert out.collect()[0]["preferred_contact_method"] == "EMAIL"
+
+
+def test_source_contract_is_versioned_optional_and_table_scoped(test_spark):
+    contract = source_to_bronze_ingestion.SOURCE_SCHEMA_CONTRACTS["crm_customer"][
+        "preferred_contact_method"
+    ]
+    unrelated = test_spark.createDataFrame([Row(account_id="A-1")])
+
+    out = source_to_bronze_ingestion.apply_source_schema_contract(unrelated, "account")
+
+    assert contract == {
+        "data_type": "STRING",
+        "nullable": True,
+        "introduced_on": "2026-07-06",
+    }
+    assert out.columns == ["account_id"]
+
+
 # ==============================================================================
 # SECTION 2: DATA TRANSFORMATION
 # add_derived_event_keys(df, table_name)

@@ -20,6 +20,10 @@ if RULE_PATH not in sys.path:
     sys.path.insert(0, RULE_PATH)
 
 from data_contracts.table_catalog import DOMAINS, tables
+from pipeline.run_context import (
+    CANONICAL_PIPELINE_NAME,
+    pipeline_run_id_column,
+)
 from pipeline.silver import (
     card_validation,
     customer_validation,
@@ -31,6 +35,7 @@ CATALOG = spark.conf.get("pipeline.catalog")
 VALIDATED_SCHEMA = spark.conf.get("pipeline.validated_schema")
 GOVERNANCE_SCHEMA = spark.conf.get("pipeline.governance_schema")
 BRONZE_SCHEMA = spark.conf.get("pipeline.bronze_schema")
+PIPELINE_NAME = spark.conf.get("pipeline.pipeline_name", CANONICAL_PIPELINE_NAME)
 
 
 def qualified(schema: str, table_name: str) -> str:
@@ -274,12 +279,13 @@ def quarantine_events(domain: str, table_name: str, business_key: str) -> DataFr
             ),
             256,
         ).alias("quarantine_key"),
-        # Python Lakeflow code cannot read a job-run pipeline parameter.
-        # The dependent audit task stamps its own RUN_ID immediately after
-        # this successful pipeline update.
-        F.lit(spark.conf.get("pipeline.run_id", None))
-        .cast("string")
-        .alias("pipeline_run_id"),
+        pipeline_run_id_column(
+            F,
+            assessed,
+            catalog=CATALOG,
+            governance_schema=GOVERNANCE_SCHEMA,
+            pipeline_name=PIPELINE_NAME,
+        ),
         F.lit(table_name).alias("source_table_name"),
         source_business_key.alias("source_business_key"),
         bronze_record_ref.alias("bronze_record_ref"),

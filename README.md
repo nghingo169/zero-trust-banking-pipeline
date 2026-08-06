@@ -2,7 +2,7 @@
 
 A production-grade Databricks lakehouse pipeline for ingesting banking source snapshots with comprehensive data quality validation, SCD Type 2 history tracking, and automated quarantine management.
 
-The project uses Databricks Declarative Automation Bundles (DABs) so the same codebase can be deployed seamlessly across engineer workspaces and target environments (`dev`, `staging`, `prod`/`team`). The `main` branch is reserved for production-ready releases; ongoing integration work belongs on the `dev` branch.
+The project uses Databricks Declarative Automation Bundles (DABs) so the same codebase can be deployed across engineer workspaces and target environments (`dev`, `staging`, and team/production). The `main` branch is reserved for production-ready releases; ongoing integration work belongs on the `dev` branch.
 
 ---
 
@@ -12,7 +12,7 @@ This project implements a zero-trust data pipeline that:
 * Processes 41 banking source tables across Customer, Card, Transaction, and Financial Crime domains.
 * Implements SCD Type 2 for historical snapshot entities and SCD Type 1 for immutable events.
 * Enforces row-level data quality rules with automatic quarantine routing.
-* Provides full audit logging and quality metrics tracking.
+* Publishes native SDP event-log metrics through dashboard-ready monitoring views.
 * Uses Databricks Declarative Automation Bundles for multi-environment deployment.
 * Includes an automated CI/CD pipeline with parallel testing and deployment triggers.
 
@@ -84,7 +84,7 @@ This project implements a zero-trust data pipeline that:
 Cross-layer capabilities for data quality, lineage, and compliance:
 
 * **Quarantine table:** Centralized tracking for failed validation rules. Stores one record per failed rule, preserving the original Bronze payload for root cause analysis and remediation.
-* **Audit logs:** Full lineage and execution metadata, tracking performance, metrics, and compliance logs across all pipeline stages.
+* **Monitoring views:** Pipeline status, row counts, duration, dropped rows, and rule failures derived from the native SDP event log and quarantine records.
 * **Infrastructure lifecycle:** Unity Catalog schemas and governance state tables represent persistent infrastructure. They are preloaded once via SQL scripts, while application bundles deploy and own pipelines, jobs, and source code updates without destroying existing catalogs.
 
 ---
@@ -96,60 +96,46 @@ zero-trust-banking-pipeline/
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml           # GitHub Actions CI/CD pipeline
+├── resources/                  # Databricks Bundle resources
+│   ├── banking_investigation.pipeline.yml
+│   │                            # One Source-to-Gold SDP pipeline
+│   ├── banking_investigation_bootstrap.job.yml
+│   │                            # One-time governance/bootstrap Job
+│   ├── banking_investigation.job.yml
+│   │                            # Recurring pipeline orchestration Job
+│   ├── apply_and_verify_pii_tags.job.yml
+│   │                            # Governance-owned internal tagging Job
+│   └── run_integration_tests.yml
 ├── src/
-│   ├── pipeline/               # Core pipeline modules
-│   │   ├── source_landing/    # Auto Loader ingestion
-│   │   ├── bronze/             # SCD Type 2/1 bronze layer logic
-│   │   ├── silver/             # Validation and normalization
-│   │   ├── monitoring/         # Audit and metrics
-│   │   └── README.md          # Detailed pipeline runbook
-│   └── data_contracts/         # Schemas and rules
+│   ├── pipeline/
+│   │   ├── bronze/             # Source-to-Bronze ingestion
+│   │   ├── silver/             # Validation, quarantine, and atomic Silver
+│   │   ├── gold/               # Gold investigation contexts
+│   │   ├── governance/         # Schema, UDF, ABAC, grants, and PII tags
+│   │   ├── monitoring/         # Run-context initialization and finalization
+│   │   ├── source_landing/     # Source landing guidance
+│   │   ├── run_context.py      # Canonical fail-closed run identity
+│   │   └── README.md           # Pipeline source overview
+│   └── data_contracts/         # Authoritative schemas and quality rules
 │       ├── schemas/            # Table schema definitions
 │       ├── quality_rules/      # Data quality rule registry
-│       ├── audit/              # Audit logging modules
+│       ├── audit/              # Operational lineage table setup
+│       ├── monitoring/         # Native event-log monitoring views
 │       ├── table_catalog.py    # Table metadata and keys
 │       └── normalization.py    # Data normalization functions
 ├── tests/
-│   ├── bronze/                 # Tests for Bronze layer ingestion & metadata
-│   │   └── test_bronze.py
-│   ├── silver/                 # Silver domain transformation & quality tests
-│   │   ├── test_card_transformation.py
-│   │   ├── test_card_validation.py
-│   │   ├── test_customer_transformation.py
-│   │   ├── test_customer_validation.py
-│   │   ├── test_fincrime_transformation.py
-│   │   ├── test_fincrime_validation.py
-│   │   ├── test_nab_tdm_masking.py
-│   │   ├── test_quality_rules.py
-│   │   ├── test_transaction_transformation.py
-│   │   └── test_transaction_validation.py
-│   ├── gold/                   # Gold layer aggregation & context tests
-│   │   ├── test_ai_aml_investigation_context.py
-│   │   ├── test_customer_360_context.py
-│   │   └── test_fraud_transaction_context.py
-│   ├── conftest.py             # Pytest fixtures & shared test configurations
-│   ├── run_unit_tests.py       # Test execution script
-│   └── README.md               # Testing guide
-├── resources/                  # Databricks Bundle resources
-│   ├── pipelines.yml           # DLT pipeline definitions
-│   ├── jobs.yml                # Job definitions
-│   └── volumes.yml             # UC Volume definitions
-├── deliverables/               # Implementation evidence and runbooks
+│   ├── bronze/                 # Bronze ingestion and metadata tests
+│   ├── silver/                 # Transformation, validation, and masking tests
+│   ├── gold/                   # Gold context tests
+│   └── pipeline/               # Production orchestration contract tests
+├── configs/
+│   └── environment.variable-overrides.example.json
+│                                # Non-secret environment override template
+├── docs/                       # Runbook, data models, and architecture documentation
 │   └── Team_Workspace_Pipeline_Technical_Runbook.md
-├── docs/                       # Architecture documentation
-│   ├── Banking_Silver_Atomic_Warehouse.dbml
-│   ├── banking_daily_change_catalog.md
-│   ├── banking_error_injection_catalog.md
-│   ├── customer_360_silver_guide.md
-│   └── error_injection_rule_mapping.md
-├── sql/                        # SQL queries and exploration
-│   └── customer_360/           # Customer 360 exploration SQL
-├── scripts/                    # Utility scripts
-│   └── source_landing/         # Data upload helpers
-├── notebooks/                  # Ad-hoc analysis notebooks
-├── configs/                    # Configuration files
-├── data/                       # Sample/test data
-├── databricks.yml              # Bundle configuration
+├── sql/                        # Analytics and exploration queries
+├── scripts/                    # Source and deployment utilities
+├── databricks.yml              # Bundle variables and deployment targets
 ├── requirements.txt            # Python dependencies
 ├── .gitignore
 └── README.md                   # Root documentation
@@ -162,84 +148,113 @@ zero-trust-banking-pipeline/
 
 ### Prerequisites
 
-* Python 3.10+ installed locally
-* Databricks CLI installed and configured
-* Unity Catalog enabled workspace with appropriate schema/volume permissions
-* Git for version control
+- Python 3.10+ and Git
+- Databricks CLI with Bundle support
+- A Unity Catalog workspace with serverless SDP, governed tags, and ABAC support
+- A serverless SQL warehouse for the one-time catalog setup
+- Permission to create or assign the required account groups and service principals
 
-### Initial setup (5 minutes)
+Use `staging` for the current shared workspace. Other environment owners define
+their own Bundle target and choose their own CLI profile, workspace, catalog,
+and teammate memberships. Follow the
+[team workspace runbook](docs/Team_Workspace_Pipeline_Technical_Runbook.md)
+for the complete identity, catalog, S3-secret, permission, and acceptance-test
+procedure.
 
-1. **Clone the repository:**
+### Initial setup
+
+1. **Clone the repository and install dependencies:**
+
 ```bash
 git clone <repository-url>
 cd zero-trust-banking-pipeline
-
-```
-
-
-2. **Install dependencies:**
-```bash
+python -m venv .venv
+. .venv/bin/activate
 pip install -r requirements.txt
-
 ```
 
+2. **Authenticate to the selected workspace:**
 
-3. **Configure Databricks CLI:**
 ```bash
-databricks auth login --host <workspace-url>
-# Or configure profile via: databricks configure
+databricks auth login \
+  --host <workspace-url> \
+  --profile <cli-profile>
 
+databricks current-user me --profile <cli-profile>
 ```
 
+3. **Prepare the workspace once:**
 
-4. **Preload Unity Catalog infrastructure:**
-Execute the preload SQL script to set up schemas, volumes, and governance tables. Refer to the Pipeline runbook for full SQL statements.
-5. **Validate and deploy bundle:**
+- Create or reuse the two runtime service principals and the
+  `governance-admins`, `data-engineers`, and `pii-dq-operator` account groups.
+- Create the isolated catalog and delegate catalog-level bootstrap authority
+  using `sql/infrastructure/01_create_catalog_and_delegate.sql`. The bootstrap
+  Job creates the schemas and intentionally cannot create arbitrary catalogs.
+- Configure the `banking-s3-ingestion` secret scope through interactive CLI
+  prompts and grant it only to the pipeline service principal.
+- Grant the runtime service principals access to the deployed Bundle files path.
+
+4. **Create the gitignored local Bundle override:**
+
 ```bash
-# Validate and deploy bundle in dev target
-databricks bundle validate -t dev -p <your-profile>
-databricks bundle deploy -t dev -p <your-profile>
+mkdir -p .databricks/bundle/<bundle-target>
+cp configs/environment.variable-overrides.example.json \
+  .databricks/bundle/<bundle-target>/variable-overrides.json
 
-# Validate and deploy bundle in team target (recommended)
-databricks bundle validate -t team -p <your-profile>
-databricks bundle deploy -t team -p <your-profile>
-
+git check-ignore .databricks/bundle/<bundle-target>/variable-overrides.json
 ```
 
+Set the chosen catalog, service-principal application IDs, and group names in
+that local file. Do not commit workspace URLs, personal emails, IDs, or secrets.
 
-6. **Run the pipeline:**
+5. **Test, validate, review, and deploy:**
+
 ```bash
-# Run full_pipeline job in dev target
-databricks bundle run full_pipeline -t dev -p <your-profile>
+.venv/bin/pytest -q tests/pipeline/test_production_orchestration.py
 
-# Run full_pipeline job in team target (recommended)
-databricks bundle run full_pipeline -t team -p <your-profile>
-
+databricks bundle validate --target <bundle-target> --profile <cli-profile>
+databricks bundle plan --target <bundle-target> --profile <cli-profile>
+databricks bundle deploy --target <bundle-target> --profile <cli-profile> \
+  --fail-on-active-runs
 ```
 
+6. **Run bootstrap once:**
 
-7. **Run the automated testing:**
 ```bash
-# Run automated testing in dev target
-databricks bundle run run_integration_tests -t dev -p <your-profile>
-
-# Run automated testing in team target (recommended)
-databricks bundle run run_integration_tests -t team -p <your-profile>
-
+databricks bundle run banking_investigation_bootstrap \
+  --target <bundle-target> \
+  --profile <cli-profile>
 ```
 
+Run bootstrap again only after an approved governance, tag, masking, group, or
+catalog-grant change.
 
+7. **Run the recurring Source-to-Gold Job:**
+
+```bash
+databricks bundle run banking_investigation_pipeline_orchestration \
+  --target <bundle-target> \
+  --profile <cli-profile> \
+  --params business_date=2026-07-10
+```
+
+For new source data or an ordinary retry, rerun only
+`banking_investigation_pipeline_orchestration`. Authorized Data Engineers may
+start it, but it always executes as the pipeline service principal.
 
 ---
 
 ## Environment Commands Summary
 
-| Task | Dev Environment (`-t dev`) | Team Environment (`-t team`) (recommended) |
-| --- | --- | --- |
-| **Validate bundle** | `databricks bundle validate -t dev -p <your-profile>` | `databricks bundle validate -t team -p <your-profile>` |
-| **Deploy bundle** | `databricks bundle deploy -t dev -p <your-profile>` | `databricks bundle deploy -t team -p <your-profile>` |
-| **Run integration tests** | `databricks bundle run run_integration_tests -t dev -p <your-profile>` | `databricks bundle run run_integration_tests -t team -p <your-profile>` |
-| **Run full pipeline** | `databricks bundle run full_pipeline -t dev -p <your-profile>` | `databricks bundle run full_pipeline -t team -p <your-profile>` |
+Use `staging` for the current shared deployment, or replace `<bundle-target>`
+with the target defined for another workspace.
+
+| Task | Command |
+| --- | --- |
+| **Validate bundle** | `databricks bundle validate -t <bundle-target> -p <cli-profile>` |
+| **Deploy bundle** | `databricks bundle deploy -t <bundle-target> -p <cli-profile> --fail-on-active-runs` |
+| **Run integration tests** | `databricks bundle run run_integration_tests -t <bundle-target> -p <cli-profile>` |
+| **Run full pipeline** | `databricks bundle run banking_investigation_pipeline_orchestration -t <bundle-target> -p <cli-profile>` |
 
 ---
 
@@ -369,7 +384,7 @@ Located at `.github/workflows/ci-cd.yml`:
 
 ### Available guides
 
-* **[Pipeline runbook](deliverables/Team_Workspace_Pipeline_Technical_Runbook.md)** - Complete setup and operations guide
+* **[Pipeline runbook](docs/Team_Workspace_Pipeline_Technical_Runbook.md)** - Complete setup and operations guide
 * **[Testing guide](tests/README.md)** - Unit and integration testing
 * **[Banking silver warehouse](https://www.google.com/search?q=docs/Banking_Silver_Atomic_Warehouse.dbml)** - Data model DBML
 * **[Daily change catalog](docs/banking_daily_change_catalog.md)** - Change detection patterns

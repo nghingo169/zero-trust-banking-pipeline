@@ -67,9 +67,11 @@ TableGroup financial_crime_and_compliance {
 
 TableGroup data_governance_and_ops {
   pipeline_run
-  data_quality_audit_log
   silver_quarantine_record
   pii_masking_log
+  monitoring_pipeline_updates
+  monitoring_table_metrics
+  monitoring_rule_metrics
 }
 
 
@@ -665,19 +667,13 @@ Table call_center_contact {
 Table pipeline_run {
   pipeline_run_id varchar [pk]
   pipeline_name varchar
+  domain varchar
+  business_date date
   start_time timestamp
   end_time timestamp
-  execution_status varchar [note: 'SUCCESS / FAILED / PARTIAL_SUCCESS']
-}
-
-Table data_quality_audit_log {
-  log_id varchar [pk]
-  pipeline_run_id varchar [ref: > pipeline_run.pipeline_run_id]
-  target_table_name varchar
-  rule_name varchar
-  records_checked bigint
-  records_failed bigint
-  evaluated_at timestamp
+  execution_status varchar [note: 'RUNNING / SUCCEEDED / FAILED / ABANDONED']
+  pipeline_update_id varchar [note: 'Native SDP update ID']
+  pipeline_id varchar [note: 'Stable SDP pipeline resource ID']
 }
 
 Table silver_quarantine_record {
@@ -701,6 +697,40 @@ Table pii_masking_log {
   masking_policy varchar [note: 'SHA256_TOKENIZATION / ANONYMIZATION / REDACTION']
   records_transformed integer
   executed_at timestamp
+}
+
+Table monitoring_pipeline_updates [note: 'View over the native SDP event log joined to pipeline_run'] {
+  pipeline_run_id varchar
+  pipeline_update_id varchar
+  pipeline_id varchar
+  pipeline_update_status varchar
+  start_time timestamp
+  end_time timestamp
+  duration_seconds bigint
+}
+
+Table monitoring_table_metrics [note: 'View over native SDP flow_progress events'] {
+  pipeline_run_id varchar
+  pipeline_update_id varchar
+  layer varchar
+  table_name varchar
+  flow_status varchar
+  output_rows bigint
+  dropped_rows bigint
+  duration_seconds bigint
+}
+
+Table monitoring_rule_metrics [note: 'View combining native expectation metrics and Silver quarantine counts'] {
+  pipeline_run_id varchar
+  pipeline_update_id varchar
+  layer varchar
+  dataset_name varchar
+  rule_name varchar
+  metric_source varchar
+  passed_records bigint
+  failed_records bigint
+  rejected_records bigint
+  evaluated_at timestamp
 }
 
 
