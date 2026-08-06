@@ -27,6 +27,24 @@ There are two operator-facing Jobs:
 
 The recurring Job automatically calls the internal governance tag Job. Nobody runs that child Job manually.
 
+## First-time setup at a glance
+
+Complete these steps in order. The detailed commands are in the matching
+sections below.
+
+| Order | Action | Performed by | Result |
+|---:|---|---|---|
+| 1 | Create or reuse account groups and service principals; add users to groups | Demo owner, using the admin UI or SCIM/API | Databricks identities exist and are assigned to the workspace. |
+| 2 | Grant account-level governed-tag authority | Demo owner, using the Governed Tags account-permissions UI | `banking-governance-service` can create and assign governed tags. |
+| 3 | Run [01_create_catalog_and_delegate.sql](../sql/infrastructure/01_create_catalog_and_delegate.sql) | Demo owner, using Databricks SQL Editor | The catalog exists and the two runtime service principals have their prerequisite catalog/source privileges. |
+| 4 | Configure secrets and the local Bundle override, then deploy | Demo owner, using the CLI | The Jobs and the single Source-to-Gold SDP pipeline exist. |
+| 5 | Run `banking_investigation_bootstrap` once | Governance service principal, started by the demo owner | Schemas, group data grants, masking UDFs, governed tags, and ABAC policies exist. |
+| 6 | Run `banking_investigation_pipeline_orchestration` | Demo owner or an approved Data Engineer | The Source-to-Gold pipeline processes the demo data. |
+
+The SQL file is not a replacement for identity setup or bootstrap. It is the
+one-time bridge that creates the catalog and delegates enough authority for
+bootstrap to complete the automated governance setup.
+
 ## Owner setup
 
 ### 1. Choose and authenticate to a workspace
@@ -51,9 +69,10 @@ The workspace must have:
 
 Run all remaining commands from the repository root.
 
-### 2. Create identities and invite teammates
+### 2. Create identities and assign group membership
 
-In the Databricks account/workspace administration UI, create or reuse these exact account-level identities:
+Using the Databricks account/workspace administration UI or the supported
+SCIM/API, create or reuse these exact account-level identities:
 
 Service principals:
 
@@ -111,7 +130,7 @@ Each lookup must return exactly one active principal. Copy `applicationId`, not
 `id`. Databricks also documents that Bundle `service_principal_name` values use
 the application ID in its [run identity guidance](https://docs.databricks.com/aws/en/dev-tools/bundles/run-as).
 
-### 3. Grant governed-tag authority
+### 3. Grant governed-tag authority (manual, non-SQL prerequisite)
 
 In **Catalog > Govern > Governed Tags > Account Permissions**, grant `banking-governance-service`:
 
@@ -121,7 +140,11 @@ In **Catalog > Govern > Governed Tags > Account Permissions**, grant `banking-go
 
 Do not grant these account-level permissions to `data-engineers` or the pipeline service principal.
 
-### 4. Create the catalog and delegate bootstrap authority
+These are account-level governed-tag permissions, not Unity Catalog SQL
+privileges. They cannot be added to the catalog-delegation SQL. This initial
+grant must exist before the governance service principal runs bootstrap.
+
+### 4. Create the catalog and delegate bootstrap authority (one-time SQL)
 
 Choose an isolated catalog name, for example `banking_investigation`. Stop if that catalog already contains unrelated objects.
 
@@ -148,6 +171,10 @@ governance service principal creates and owns `source_landing`, `bronze`,
 `silver_validated`, `silver`, `gold`, and `governance` through the idempotent
 bootstrap Job. The catalog remains an administrator-created prerequisite, so
 bootstrap never receives metastore-wide `CREATE CATALOG`.
+
+This SQL does not create identities, add users to groups, grant account-level
+governed-tag authority, or create application schemas. Those actions belong to
+steps 2, 3, and 9 respectively.
 
 If no managed storage is configured, stop and configure approved metastore default storage or a catalog `MANAGED LOCATION`.
 
@@ -245,6 +272,8 @@ databricks bundle run banking_investigation_bootstrap \
 ```
 
 Bootstrap validates the catalog, creates operational objects and grants, creates the masking UDF/governed tag, and installs the catalog ABAC policy.
+It does not create the catalog, service principals, groups, user memberships,
+or its own account-level governed-tag authority.
 
 ### 10. Run the Source-to-Gold demo
 
