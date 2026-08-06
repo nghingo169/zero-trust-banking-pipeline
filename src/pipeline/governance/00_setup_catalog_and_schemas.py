@@ -32,6 +32,7 @@ SILVER_SCHEMA = identifier(widget("silver_schema", "silver"))
 GOLD_SCHEMA = identifier(widget("gold_schema", "gold"))
 GOVERNANCE_SCHEMA = identifier(widget("governance_schema", "governance"))
 PIPELINE_SP = principal(widget("pipeline_service_principal_name", ""))
+GOVERNANCE_SP = principal(widget("governance_service_principal_name", ""))
 GOVERNANCE_ADMINS = principal(widget("governance_admin_group", "governance-admins"))
 DATA_ENGINEERS = principal(widget("data_engineer_group", "data-engineers"))
 PII_DQ_OPERATORS = principal(widget("pii_dq_operator_group", "pii-dq-operator"))
@@ -40,7 +41,7 @@ SOURCE_PATH = widget("source_path", "")
 if SOURCE_PATH and SOURCE_PATH not in sys.path:
     sys.path.insert(0, SOURCE_PATH)
 
-from data_contracts.audit.writer import ensure_audit_tables
+from data_contracts.audit.writer import ensure_governance_tables
 
 # Catalog creation is a one-time deployment-admin bootstrap. Databricks checks
 # CREATE CATALOG even for IF NOT EXISTS, which would otherwise require this
@@ -68,7 +69,16 @@ if SOURCE_MODE == "volume":
 elif SOURCE_MODE != "s3":
     raise ValueError("source_mode must be 'volume' or 's3'")
 
-ensure_audit_tables(spark, CATALOG, GOVERNANCE_SCHEMA)
+ensure_governance_tables(spark, CATALOG, GOVERNANCE_SCHEMA)
+
+# The governance principal defines secure views over pipeline-owned event-log
+# and quarantine tables. Schema-level SELECT is inherited by those objects;
+# Data Engineers receive SELECT only on the redacted/aggregated views.
+spark.sql(f"GRANT USE CATALOG ON CATALOG {CATALOG} TO {GOVERNANCE_SP}")
+spark.sql(
+    f"GRANT USE SCHEMA, SELECT ON SCHEMA "
+    f"{CATALOG}.{GOVERNANCE_SCHEMA} TO {GOVERNANCE_SP}"
+)
 
 spark.sql(f"GRANT USE CATALOG ON CATALOG {CATALOG} TO {PIPELINE_SP}")
 for schema in (

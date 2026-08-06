@@ -25,9 +25,9 @@ if not RUN_ID:
 if SOURCE_PATH and SOURCE_PATH not in sys.path:
     sys.path.insert(0, SOURCE_PATH)
 
-from data_contracts.audit.writer import ensure_audit_tables
+from data_contracts.audit.writer import ensure_governance_tables
 
-ensure_audit_tables(spark, CATALOG, GOVERNANCE_SCHEMA)
+ensure_governance_tables(spark, CATALOG, GOVERNANCE_SCHEMA)
 table = f"{CATALOG}.{GOVERNANCE_SCHEMA}.pipeline_run"
 run_id = literal(RUN_ID)
 pipeline_name = literal(PIPELINE_NAME)

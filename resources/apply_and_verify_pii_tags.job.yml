@@ -17,3 +17,5 @@ resources:
               gold_schema: ${var.gold_schema}
               governance_schema: ${var.governance_schema}
               data_engineer_group: ${var.data_engineer_group}
+              event_log_table: banking_investigation_pipeline_event_log
+              source_path: ${workspace.file_path}/src

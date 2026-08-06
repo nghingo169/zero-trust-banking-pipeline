@@ -24,6 +24,7 @@ resources:
               gold_schema: ${var.gold_schema}
               governance_schema: ${var.governance_schema}
               pipeline_service_principal_name: ${var.pipeline_service_principal_name}
+              governance_service_principal_name: ${var.governance_service_principal_name}
               governance_admin_group: ${var.governance_admin_group}
               data_engineer_group: ${var.data_engineer_group}
               pii_dq_operator_group: ${var.pii_dq_operator_group}

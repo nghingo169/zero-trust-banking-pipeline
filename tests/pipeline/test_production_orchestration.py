@@ -4,6 +4,10 @@ from pathlib import Path
 
 import pytest
 
+from data_contracts.monitoring.views import (
+    create_monitoring_views,
+    monitoring_view_statements,
+)
 from pipeline.run_context import CANONICAL_PIPELINE_NAME, active_run_id_sql
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -60,10 +64,11 @@ def test_quarantine_resolves_the_same_canonical_active_run_context():
     )
     assert "pipeline_run_id_column(" in content
     assert "pipeline_name=PIPELINE_NAME" in content
-    validated_audit = read(
-        ROOT / "src" / "pipeline" / "monitoring" / "validated_quality_audit.py"
+    monitoring_sources = "\n".join(
+        read(path)
+        for path in (ROOT / "src" / "pipeline" / "monitoring").glob("*.py")
     )
-    assert "WHERE pipeline_run_id IS NULL" not in validated_audit
+    assert "WHERE pipeline_run_id IS NULL" not in monitoring_sources
 
 
 def test_silver_and_gold_keep_the_pipeline_run_lineage_column():
@@ -154,18 +159,84 @@ def test_bootstrap_and_recurring_jobs_are_separate_entry_points():
         assert not (ROOT / "resources" / legacy_job_file).exists()
 
 
-def test_all_audits_follow_the_single_pipeline_with_all_done():
+def test_recurring_job_has_no_post_pipeline_layer_audit_tasks():
     job_text = read(JOB)
-    audit_order = (
-        ("bronze_audit", "validated_and_quarantine_audit"),
-        ("validated_and_quarantine_audit", "atomic_silver_audit"),
-        ("atomic_silver_audit", "gold_audit"),
-        ("gold_audit", "apply_and_verify_pii_tags"),
+    task_keys = [
+        line.split(":", 1)[1].strip()
+        for line in job_text.splitlines()
+        if line.startswith("        - task_key:")
+    ]
+    assert task_keys == [
+        "initialize_pipeline_run",
+        "banking_investigation_pipeline",
+        "apply_and_verify_pii_tags",
+        "finalize_success",
+        "finalize_failure",
+    ]
+    assert "run_if: ALL_DONE" not in job_text
+    assert "depends_on: &completion_tasks" in job_text
+    assert "- task_key: banking_investigation_pipeline" in job_text
+    assert "- task_key: apply_and_verify_pii_tags" in job_text
+    assert "run_if: ALL_SUCCESS" in job_text
+    assert "run_if: AT_LEAST_ONE_FAILED" in job_text
+    for notebook in (
+        "bronze_ingestion_audit.py",
+        "validated_quality_audit.py",
+        "silver_atomic_audit.py",
+        "gold_publication_audit.py",
+    ):
+        assert not (ROOT / "src" / "pipeline" / "monitoring" / notebook).exists()
+
+
+def test_native_event_log_views_supply_dashboard_monitoring_without_raw_access():
+    statements = monitoring_view_statements(
+        "workspace", "governance", "banking_investigation_pipeline_event_log"
     )
-    for task_key, next_task_key in audit_order:
-        block = task_block(job_text, task_key, next_task_key)
-        assert "task_key: banking_investigation_pipeline" in block
-        assert "run_if: ALL_DONE" in block
+    assert set(statements) == {
+        "monitoring_pipeline_updates",
+        "monitoring_table_metrics",
+        "monitoring_rule_metrics",
+    }
+    assert "event_type = 'update_progress'" in statements["monitoring_pipeline_updates"]
+    assert "details:flow_progress.metrics.num_output_rows" in statements[
+        "monitoring_table_metrics"
+    ]
+    assert "details:flow_progress.data_quality.dropped_records" in statements[
+        "monitoring_table_metrics"
+    ]
+    assert "SILVER_QUARANTINE" in statements["monitoring_rule_metrics"]
+    assert "quarantine_data_payload" not in statements["monitoring_rule_metrics"]
+
+    writer_text = read(ROOT / "src" / "data_contracts" / "audit" / "writer.py")
+    tag_text = read(
+        ROOT / "src" / "pipeline" / "governance" / "03_apply_and_verify_pii_tags.py"
+    )
+    setup_text = read(
+        ROOT / "src" / "pipeline" / "governance" / "00_setup_catalog_and_schemas.py"
+    )
+    assert "table_quality_metrics" not in writer_text
+    assert "data_quality_audit_log" not in writer_text
+    assert "create_monitoring_views(" in tag_text
+    assert "monitoring view setup did not complete" in tag_text
+    assert "banking_investigation_pipeline_event_log" not in setup_text
+    assert "GRANT USE SCHEMA, SELECT ON SCHEMA" in setup_text
+    assert 'widget("governance_service_principal_name", "")' in setup_text
+
+
+def test_monitoring_view_setup_failures_are_non_gating():
+    class FailingSpark:
+        def sql(self, statement):
+            raise RuntimeError("simulated monitoring failure")
+
+    failures = create_monitoring_views(
+        FailingSpark(),
+        catalog="workspace",
+        governance_schema="governance",
+        event_log_table="banking_investigation_pipeline_event_log",
+        data_engineer_group="data-engineers",
+    )
+    assert len(failures) == 3
+    assert all("simulated monitoring failure" in failure for failure in failures)
 
 
 def test_abac_exceptions_and_run_as_are_variable_driven_without_personal_email():
@@ -187,29 +258,34 @@ def test_abac_exceptions_and_run_as_are_variable_driven_without_personal_email()
     assert "EXCEPT {PIPELINE_SP}, {GOVERNANCE_ADMINS}, {PII_DQ_OPERATOR}" in policy_text
 
 
-def test_demo_target_is_portable_and_uses_dedicated_catalog_and_s3_secrets():
+def test_staging_target_preserves_existing_deployment_identity_and_s3_secrets():
     bundle_text = read(ROOT / "databricks.yml")
-    demo = bundle_text[bundle_text.index("  demo:") :]
-    assert "  staging:" not in bundle_text
-    assert "mode: development" in demo
+    staging = bundle_text[bundle_text.index("  staging:") :]
+    assert "  demo:" not in bundle_text
+    assert "mode: development" in staging
     assert "dbc-192e31d5-ba9d.cloud.databricks.com" not in bundle_text
     assert (
-        "/Workspace/banking-demo/${workspace.current_user.userName}/.bundle/"
-        in demo
+        "/Workspace/banking-staging/${workspace.current_user.userName}/.bundle/"
+        in staging
     )
-    assert "catalog: banking_investigation" in demo
-    assert "source_mode: s3" in demo
-    assert "s3://nab-src-dataset/banking/snapshots/" in demo
-    assert "{{secrets/banking-s3-ingestion/access-key-id}}" in demo
-    assert "{{secrets/banking-s3-ingestion/secret-access-key}}" in demo
-    assert "@gmail.com" not in demo
+    assert "catalog: banking_investigation" in staging
+    assert "source_mode: s3" in staging
+    assert "s3://nab-src-dataset/banking/snapshots/" in staging
+    assert "{{secrets/banking-s3-ingestion/access-key-id}}" in staging
+    assert "{{secrets/banking-s3-ingestion/secret-access-key}}" in staging
+    assert "@gmail.com" not in staging
 
     override_template = read(
-        ROOT / "configs" / "demo.variable-overrides.example.json"
+        ROOT / "configs" / "environment.variable-overrides.example.json"
     )
     assert "<pipeline-service-principal-application-id>" in override_template
     assert "<governance-service-principal-application-id>" in override_template
     assert "@gmail.com" not in override_template
+    runbook_text = read(RUNBOOK)
+    assert "<bundle-target>" in runbook_text
+    assert "environment.variable-overrides.example.json" in runbook_text
+    assert "--fail-on-active-runs" in runbook_text
+    assert "--target demo" not in runbook_text
 
 
 def test_bootstrap_setup_validates_precreated_catalog_without_metastore_create():
@@ -222,7 +298,7 @@ def test_bootstrap_setup_validates_precreated_catalog_without_metastore_create()
     assert "SHOW CATALOGS LIKE" in setup_text
     assert "CREATE CATALOG IF NOT EXISTS" not in setup_text
     assert "catalog bootstrap" in setup_text
-    assert "CREATE CATALOG IF NOT EXISTS `<demo-catalog>`" in delegation_sql
+    assert "CREATE CATALOG IF NOT EXISTS `<catalog-name>`" in delegation_sql
     assert (
         "GRANT USE CATALOG, CREATE SCHEMA, APPLY TAG, MANAGE" in delegation_sql
     )
@@ -230,7 +306,7 @@ def test_bootstrap_setup_validates_precreated_catalog_without_metastore_create()
     assert "<pipeline-service-principal-application-id>" in delegation_sql
     assert "<governance-service-principal-application-id>" in delegation_sql
     assert "GRANT SELECT ON ANY FILE" in delegation_sql
-    assert "SHOW GRANTS ON CATALOG `<demo-catalog>`" in delegation_sql
+    assert "SHOW GRANTS ON CATALOG `<catalog-name>`" in delegation_sql
     assert "01_create_catalog_and_delegate.sql" in runbook_text
     assert "applicationId" in runbook_text
     assert "CREATE SCHEMA IF NOT EXISTS" in setup_text

@@ -1,5 +1,7 @@
 # Databricks notebook source
-"""Apply governed PII tags after publication and expose redacted DQ evidence."""
+"""Apply PII tags and expose redacted, dashboard-ready governance views."""
+
+import sys
 
 
 def widget(name: str, default: str) -> str:
@@ -17,7 +19,17 @@ CATALOG = widget("catalog", "workspace")
 SILVER = widget("silver_schema", "silver")
 GOLD = widget("gold_schema", "gold")
 GOVERNANCE = widget("governance_schema", "governance")
-DATA_ENGINEERS = principal(widget("data_engineer_group", "data-engineers"))
+DATA_ENGINEER_GROUP = widget("data_engineer_group", "data-engineers")
+DATA_ENGINEERS = principal(DATA_ENGINEER_GROUP)
+EVENT_LOG_TABLE = widget(
+    "event_log_table", "banking_investigation_pipeline_event_log"
+)
+SOURCE_PATH = widget("source_path", "")
+
+if SOURCE_PATH and SOURCE_PATH not in sys.path:
+    sys.path.insert(0, SOURCE_PATH)
+
+from data_contracts.monitoring.views import create_monitoring_views
 
 TAGS = (
     (SILVER, "party_profile_version", "full_name", "individual_name"),
@@ -63,14 +75,22 @@ spark.sql(
 
 for object_name in (
     "pipeline_run",
-    "table_quality_metrics",
-    "data_quality_audit_log",
     "pii_masking_log",
     "silver_quarantine_redacted_evidence",
 ):
     spark.sql(
         f"GRANT SELECT ON TABLE {CATALOG}.{GOVERNANCE}.{object_name} TO {DATA_ENGINEERS}"
     )
+
+monitoring_failures = create_monitoring_views(
+    spark,
+    catalog=CATALOG,
+    governance_schema=GOVERNANCE,
+    event_log_table=EVENT_LOG_TABLE,
+    data_engineer_group=DATA_ENGINEER_GROUP,
+)
+for failure in monitoring_failures:
+    print(f"WARNING: monitoring view setup did not complete: {failure}")
 
 expected = len(TAGS)
 actual = spark.sql(
@@ -83,4 +103,7 @@ actual = spark.sql(
 ).first()["tagged_columns"]
 if actual < expected:
     raise RuntimeError(f"Expected at least {expected} PII tags, found {actual}")
-print(f"Verified {actual} PII-tagged columns and the redacted quarantine view.")
+print(
+    f"Verified {actual} PII-tagged columns, redacted quarantine evidence, "
+    "and requested native event-log monitoring views."
+)

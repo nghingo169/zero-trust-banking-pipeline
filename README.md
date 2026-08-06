@@ -2,7 +2,7 @@
 
 A production-grade Databricks lakehouse pipeline for ingesting banking source snapshots with comprehensive data quality validation, SCD Type 2 history tracking, and automated quarantine management.
 
-The project uses Databricks Declarative Automation Bundles (DABs) so the same codebase can be deployed across engineer workspaces and target environments (`dev`, portable `demo`, and team/production). The `main` branch is reserved for production-ready releases; ongoing integration work belongs on the `dev` branch.
+The project uses Databricks Declarative Automation Bundles (DABs) so the same codebase can be deployed across engineer workspaces and target environments (`dev`, `staging`, and team/production). The `main` branch is reserved for production-ready releases; ongoing integration work belongs on the `dev` branch.
 
 ---
 
@@ -12,7 +12,7 @@ This project implements a zero-trust data pipeline that:
 * Processes 41 banking source tables across Customer, Card, Transaction, and Financial Crime domains.
 * Implements SCD Type 2 for historical snapshot entities and SCD Type 1 for immutable events.
 * Enforces row-level data quality rules with automatic quarantine routing.
-* Provides full audit logging and quality metrics tracking.
+* Publishes native SDP event-log metrics through dashboard-ready monitoring views.
 * Uses Databricks Declarative Automation Bundles for multi-environment deployment.
 * Includes an automated CI/CD pipeline with parallel testing and deployment triggers.
 
@@ -84,7 +84,7 @@ This project implements a zero-trust data pipeline that:
 Cross-layer capabilities for data quality, lineage, and compliance:
 
 * **Quarantine table:** Centralized tracking for failed validation rules. Stores one record per failed rule, preserving the original Bronze payload for root cause analysis and remediation.
-* **Audit logs:** Full lineage and execution metadata, tracking performance, metrics, and compliance logs across all pipeline stages.
+* **Monitoring views:** Pipeline status, row counts, duration, dropped rows, and rule failures derived from the native SDP event log and quarantine records.
 * **Infrastructure lifecycle:** Unity Catalog schemas and governance state tables represent persistent infrastructure. They are preloaded once via SQL scripts, while application bundles deploy and own pipelines, jobs, and source code updates without destroying existing catalogs.
 
 ---
@@ -112,14 +112,15 @@ zero-trust-banking-pipeline/
 │   │   ├── silver/             # Validation, quarantine, and atomic Silver
 │   │   ├── gold/               # Gold investigation contexts
 │   │   ├── governance/         # Schema, UDF, ABAC, grants, and PII tags
-│   │   ├── monitoring/         # Layer audits and run finalizers
+│   │   ├── monitoring/         # Run-context initialization and finalization
 │   │   ├── source_landing/     # Source landing guidance
 │   │   ├── run_context.py      # Canonical fail-closed run identity
 │   │   └── README.md           # Pipeline source overview
 │   └── data_contracts/         # Authoritative schemas and quality rules
 │       ├── schemas/            # Table schema definitions
 │       ├── quality_rules/      # Data quality rule registry
-│       ├── audit/              # Audit logging modules
+│       ├── audit/              # Operational lineage table setup
+│       ├── monitoring/         # Native event-log monitoring views
 │       ├── table_catalog.py    # Table metadata and keys
 │       └── normalization.py    # Data normalization functions
 ├── tests/
@@ -128,8 +129,8 @@ zero-trust-banking-pipeline/
 │   ├── gold/                   # Gold context tests
 │   └── pipeline/               # Production orchestration contract tests
 ├── configs/
-│   └── demo.variable-overrides.example.json
-│                                # Non-secret portable target template
+│   └── environment.variable-overrides.example.json
+│                                # Non-secret environment override template
 ├── docs/                       # Runbook, data models, and architecture documentation
 │   └── Team_Workspace_Pipeline_Technical_Runbook.md
 ├── sql/                        # Analytics and exploration queries
@@ -153,8 +154,9 @@ zero-trust-banking-pipeline/
 - A serverless SQL warehouse for the one-time catalog setup
 - Permission to create or assign the required account groups and service principals
 
-The portable Bundle target is `demo`. Each demo owner chooses their own CLI
-profile, workspace, catalog, and teammate memberships. Follow the
+Use `staging` for the current shared workspace. Other environment owners define
+their own Bundle target and choose their own CLI profile, workspace, catalog,
+and teammate memberships. Follow the
 [team workspace runbook](docs/Team_Workspace_Pipeline_Technical_Runbook.md)
 for the complete identity, catalog, S3-secret, permission, and acceptance-test
 procedure.
@@ -175,10 +177,10 @@ pip install -r requirements.txt
 
 ```bash
 databricks auth login \
-  --host <demo-workspace-url> \
-  --profile <demo-profile>
+  --host <workspace-url> \
+  --profile <cli-profile>
 
-databricks current-user me --profile <demo-profile>
+databricks current-user me --profile <cli-profile>
 ```
 
 3. **Prepare the workspace once:**
@@ -195,11 +197,11 @@ databricks current-user me --profile <demo-profile>
 4. **Create the gitignored local Bundle override:**
 
 ```bash
-mkdir -p .databricks/bundle/demo
-cp configs/demo.variable-overrides.example.json \
-  .databricks/bundle/demo/variable-overrides.json
+mkdir -p .databricks/bundle/<bundle-target>
+cp configs/environment.variable-overrides.example.json \
+  .databricks/bundle/<bundle-target>/variable-overrides.json
 
-git check-ignore .databricks/bundle/demo/variable-overrides.json
+git check-ignore .databricks/bundle/<bundle-target>/variable-overrides.json
 ```
 
 Set the chosen catalog, service-principal application IDs, and group names in
@@ -210,17 +212,18 @@ that local file. Do not commit workspace URLs, personal emails, IDs, or secrets.
 ```bash
 .venv/bin/pytest -q tests/pipeline/test_production_orchestration.py
 
-databricks bundle validate --target demo --profile <demo-profile>
-databricks bundle plan --target demo --profile <demo-profile>
-databricks bundle deploy --target demo --profile <demo-profile>
+databricks bundle validate --target <bundle-target> --profile <cli-profile>
+databricks bundle plan --target <bundle-target> --profile <cli-profile>
+databricks bundle deploy --target <bundle-target> --profile <cli-profile> \
+  --fail-on-active-runs
 ```
 
 6. **Run bootstrap once:**
 
 ```bash
 databricks bundle run banking_investigation_bootstrap \
-  --target demo \
-  --profile <demo-profile>
+  --target <bundle-target> \
+  --profile <cli-profile>
 ```
 
 Run bootstrap again only after an approved governance, tag, masking, group, or
@@ -230,9 +233,9 @@ catalog-grant change.
 
 ```bash
 databricks bundle run banking_investigation_pipeline_orchestration \
-  --target demo \
-  --profile <demo-profile> \
-  --params audit_business_date=2026-07-10
+  --target <bundle-target> \
+  --profile <cli-profile> \
+  --params business_date=2026-07-10
 ```
 
 For new source data or an ordinary retry, rerun only
@@ -243,12 +246,15 @@ start it, but it always executes as the pipeline service principal.
 
 ## Environment Commands Summary
 
-| Task | Dev Environment (`-t dev`) | Team Environment (`-t team`) (recommended) |
-| --- | --- | --- |
-| **Validate bundle** | `databricks bundle validate -t dev -p <your-profile>` | `databricks bundle validate -t team -p <your-profile>` |
-| **Deploy bundle** | `databricks bundle deploy -t dev -p <your-profile>` | `databricks bundle deploy -t team -p <your-profile>` |
-| **Run integration tests** | `databricks bundle run run_integration_tests -t dev -p <your-profile>` | `databricks bundle run run_integration_tests -t team -p <your-profile>` |
-| **Run full pipeline** | `databricks bundle run banking_investigation_pipeline_orchestration -t dev -p <your-profile>` | `databricks bundle run banking_investigation_pipeline_orchestration -t team -p <your-profile>` |
+Use `staging` for the current shared deployment, or replace `<bundle-target>`
+with the target defined for another workspace.
+
+| Task | Command |
+| --- | --- |
+| **Validate bundle** | `databricks bundle validate -t <bundle-target> -p <cli-profile>` |
+| **Deploy bundle** | `databricks bundle deploy -t <bundle-target> -p <cli-profile> --fail-on-active-runs` |
+| **Run integration tests** | `databricks bundle run run_integration_tests -t <bundle-target> -p <cli-profile>` |
+| **Run full pipeline** | `databricks bundle run banking_investigation_pipeline_orchestration -t <bundle-target> -p <cli-profile>` |
 
 ---
 

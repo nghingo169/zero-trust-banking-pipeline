@@ -10,10 +10,10 @@ of Git.
 
 ```bash
 databricks auth login \
-  --host <demo-workspace-url> \
-  --profile <demo-profile>
+  --host <workspace-url> \
+  --profile <cli-profile>
 
-databricks current-user me --profile <demo-profile>
+databricks current-user me --profile <cli-profile>
 ```
 
 Use a Unity Catalog workspace with serverless Spark Declarative Pipelines,
@@ -31,12 +31,12 @@ catalog ABAC, governed tags, and a serverless SQL warehouse.
 7. Next to **Groups**, select **Manage > Add group**.
 8. Create or reuse `governance-admins`, `data-engineers`, and
    `pii-dq-operator`.
-9. Open `governance-admins`, select **Add members**, and add the demo owner.
+9. Open `governance-admins`, select **Add members**, and add the workspace owner.
 10. Open `data-engineers`, select **Add members**, and add the teammates.
 11. Leave `pii-dq-operator` empty.
 12. Return to **Identity and access > Service principals > Manage**.
 13. Open each service principal, select **Permissions > Grant access**, add the
-    demo owner with **Service principal: User**, and save.
+    workspace owner with **Service principal: User**, and save.
 
 Do not create workspace-local copies of the groups. Do not grant teammates
 direct permissions; they inherit access from `data-engineers`.
@@ -49,13 +49,13 @@ and [manage groups](https://docs.databricks.com/aws/en/admin/users-groups/manage
 
 ```bash
 databricks service-principals list \
-  --profile <demo-profile> \
+  --profile <cli-profile> \
   --filter 'displayName eq "banking-pipeline-service"' \
   --attributes applicationId,displayName,id,active \
   --output json
 
 databricks service-principals list \
-  --profile <demo-profile> \
+  --profile <cli-profile> \
   --filter 'displayName eq "banking-governance-service"' \
   --attributes applicationId,displayName,id,active \
   --output json
@@ -82,9 +82,9 @@ Open [01_create_catalog_and_delegate.sql](../sql/infrastructure/01_create_catalo
 and copy it into Databricks SQL Editor.
 
 1. Select a serverless SQL warehouse.
-2. Replace every `<demo-catalog>`.
+2. Replace every `<catalog-name>`.
 3. Replace both service-principal application-ID placeholders.
-4. Run the complete SQL as the demo owner.
+4. Run the complete SQL as the workspace owner.
 5. Check the final `SHOW GRANTS` output.
 
 The SQL creates the catalog and prerequisite grants. The bootstrap Job creates
@@ -102,32 +102,36 @@ Enter values only through the interactive prompts:
 
 ```bash
 databricks secrets create-scope banking-s3-ingestion \
-  --profile <demo-profile>
+  --profile <cli-profile>
 
 databricks secrets put-secret banking-s3-ingestion access-key-id \
-  --profile <demo-profile>
+  --profile <cli-profile>
 
 databricks secrets put-secret banking-s3-ingestion secret-access-key \
-  --profile <demo-profile>
+  --profile <cli-profile>
 
 databricks secrets put-acl banking-s3-ingestion \
   <pipeline-service-principal-application-id> READ \
-  --profile <demo-profile>
+  --profile <cli-profile>
 ```
 
-### 7. Create the local Bundle override
+### 7. Choose the Bundle target and create its local override
+
+Use `staging` for the current shared workspace. For another workspace, add a
+target with that environment's name and settings under `targets` in
+`databricks.yml`, then use the same name for `<bundle-target>` below.
 
 ```bash
-mkdir -p .databricks/bundle/demo
-cp configs/demo.variable-overrides.example.json \
-  .databricks/bundle/demo/variable-overrides.json
+mkdir -p .databricks/bundle/<bundle-target>
+cp configs/environment.variable-overrides.example.json \
+  .databricks/bundle/<bundle-target>/variable-overrides.json
 ```
 
-Edit `.databricks/bundle/demo/variable-overrides.json`:
+Edit `.databricks/bundle/<bundle-target>/variable-overrides.json`:
 
 ```json
 {
-  "catalog": "<demo-catalog>",
+  "catalog": "<catalog-name>",
   "pipeline_service_principal_name": "<pipeline-service-principal-application-id>",
   "governance_service_principal_name": "<governance-service-principal-application-id>",
   "governance_admin_group": "governance-admins",
@@ -139,7 +143,7 @@ Edit `.databricks/bundle/demo/variable-overrides.json`:
 Confirm that the file is ignored:
 
 ```bash
-git check-ignore .databricks/bundle/demo/variable-overrides.json
+git check-ignore .databricks/bundle/<bundle-target>/variable-overrides.json
 ```
 
 ### 8. Validate and deploy
@@ -147,9 +151,10 @@ git check-ignore .databricks/bundle/demo/variable-overrides.json
 ```bash
 .venv/bin/pytest -q tests/pipeline/test_production_orchestration.py
 
-databricks bundle validate --target demo --profile <demo-profile>
-databricks bundle plan --target demo --profile <demo-profile>
-databricks bundle deploy --target demo --profile <demo-profile>
+databricks bundle validate --target <bundle-target> --profile <cli-profile>
+databricks bundle plan --target <bundle-target> --profile <cli-profile>
+databricks bundle deploy --target <bundle-target> --profile <cli-profile> \
+  --fail-on-active-runs
 ```
 
 Review the plan before deployment. Do not deploy over an unrelated catalog or
@@ -158,10 +163,11 @@ an existing legacy pipeline deployment.
 ### 9. Grant access to deployed Bundle files
 
 1. In the workspace sidebar, open **Workspace**.
-2. Navigate to and select the `files` folder:
+2. Navigate to the `workspace.file_path` configured under the selected Bundle
+   target and select its `files` folder. For the current `staging` target:
 
 ```text
-/Workspace/banking-demo/<demo-owner>/.bundle/zero-trust-banking-pipeline/demo/files
+/Workspace/banking-staging/<workspace-owner>/.bundle/zero-trust-banking-pipeline/staging/files
 ```
 
 3. Select **Share**.
@@ -180,17 +186,17 @@ Reference: [manage and share workspace objects](https://docs.databricks.com/aws/
 
 ```bash
 databricks bundle run banking_investigation_bootstrap \
-  --target demo \
-  --profile <demo-profile>
+  --target <bundle-target> \
+  --profile <cli-profile>
 ```
 
 ### 11. Run Source-to-Gold
 
 ```bash
 databricks bundle run banking_investigation_pipeline_orchestration \
-  --target demo \
-  --profile <demo-profile> \
-  --params audit_business_date=2026-07-10
+  --target <bundle-target> \
+  --profile <cli-profile> \
+  --params business_date=2026-07-10
 ```
 
 ## Teammate rerun
@@ -207,7 +213,9 @@ The Job runs as `banking-pipeline-service`, not as the teammate who starts it.
 - the latest run is `SUCCEEDED`;
 - `pipeline_id` and `pipeline_update_id` are populated;
 - quarantine, Silver, and Gold use the same `pipeline_run_id`;
-- the demo owner sees unmasked data; and
+- `monitoring_pipeline_updates`, `monitoring_table_metrics`, and
+  `monitoring_rule_metrics` can be queried in the governance schema;
+- the workspace owner sees unmasked data; and
 - a `data-engineers` user sees masked Silver and Gold data.
 
 ## What to rerun
