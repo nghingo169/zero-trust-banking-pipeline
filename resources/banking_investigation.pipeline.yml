@@ -11,6 +11,8 @@ resources:
       permissions:
         - service_principal_name: ${var.pipeline_service_principal_name}
           level: CAN_RUN
+        - group_name: ${var.data_engineer_group}
+          level: CAN_VIEW
       event_log:
         catalog: ${var.catalog}
         schema: ${var.governance_schema}

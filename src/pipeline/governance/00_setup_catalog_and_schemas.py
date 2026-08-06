@@ -93,7 +93,7 @@ if SOURCE_MODE == "volume":
 
 # Data Engineers receive only masked publication layers and redacted governance
 # evidence. Governance admins are a deliberate ABAC exception with catalog-wide
-# authority in this staging access model. JIT raw access remains available via
+# authority in this demo access model. JIT raw access remains available via
 # pii-dq-operator, which is managed and audited outside the Bundle.
 spark.sql(f"GRANT USE CATALOG ON CATALOG {CATALOG} TO {DATA_ENGINEERS}")
 for schema in (SILVER_SCHEMA, GOLD_SCHEMA, GOVERNANCE_SCHEMA):

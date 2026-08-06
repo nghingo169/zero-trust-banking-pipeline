@@ -8,6 +8,8 @@ from pipeline.run_context import CANONICAL_PIPELINE_NAME, active_run_id_sql
 
 ROOT = Path(__file__).resolve().parents[2]
 JOB = ROOT / "resources" / "banking_investigation.job.yml"
+BOOTSTRAP_JOB = ROOT / "resources" / "banking_investigation_bootstrap.job.yml"
+TAG_JOB = ROOT / "resources" / "apply_and_verify_pii_tags.job.yml"
 PIPELINE = ROOT / "resources" / "banking_investigation.pipeline.yml"
 
 
@@ -93,8 +95,59 @@ def test_bundle_has_one_physical_sdp_and_one_parent_pipeline_task():
         in pipeline_text
     )
     assert "level: CAN_RUN" in pipeline_text
+    assert "group_name: ${var.data_engineer_group}" in pipeline_text
+    assert "level: CAN_VIEW" in pipeline_text
     assert job_text.count("pipeline_task:") == 1
     assert "name: banking-investigation-pipeline-orchestration" in job_text
+    assert "group_name: ${var.data_engineer_group}" in job_text
+    assert "level: CAN_MANAGE_RUN" in job_text
+
+
+def test_bootstrap_and_recurring_jobs_are_separate_entry_points():
+    bootstrap_text = read(BOOTSTRAP_JOB)
+    recurring_text = read(JOB)
+    tag_text = read(TAG_JOB)
+
+    assert "banking_investigation_bootstrap:" in bootstrap_text
+    assert "name: banking-investigation-bootstrap" in bootstrap_text
+    assert (
+        "service_principal_name: ${var.governance_service_principal_name}"
+        in bootstrap_text
+    )
+    bootstrap_task_lines = [
+        line.strip()
+        for line in bootstrap_text.splitlines()
+        if line.startswith("        - task_key: setup_")
+    ]
+    assert bootstrap_task_lines == [
+        "- task_key: setup_catalog_and_schemas",
+        "- task_key: setup_masking_udf",
+        "- task_key: setup_abac_policy",
+    ]
+    assert "task_key: setup_catalog_and_schemas" in bootstrap_text
+    assert "task_key: setup_masking_udf" in bootstrap_text
+    assert "task_key: setup_abac_policy" in bootstrap_text
+
+    assert "task_key: setup_catalog_and_schemas" not in recurring_text
+    assert "task_key: setup_masking_udf" not in recurring_text
+    assert "task_key: setup_abac_policy" not in recurring_text
+    assert (
+        "service_principal_name: ${var.pipeline_service_principal_name}"
+        in recurring_text
+    )
+    assert "job_id: ${resources.jobs.apply_and_verify_pii_tags.id}" in recurring_text
+    assert (
+        "service_principal_name: ${var.governance_service_principal_name}"
+        in tag_text
+    )
+    assert "group_name: ${var.data_engineer_group}" not in bootstrap_text
+    assert "group_name: ${var.data_engineer_group}" not in tag_text
+    for legacy_job_file in (
+        "setup_catalog_and_schemas.job.yml",
+        "setup_masking_udf.job.yml",
+        "setup_abac_policy.job.yml",
+    ):
+        assert not (ROOT / "resources" / legacy_job_file).exists()
 
 
 def test_all_audits_follow_the_single_pipeline_with_all_done():
@@ -130,24 +183,32 @@ def test_abac_exceptions_and_run_as_are_variable_driven_without_personal_email()
     assert "EXCEPT {PIPELINE_SP}, {GOVERNANCE_ADMINS}, {PII_DQ_OPERATOR}" in policy_text
 
 
-def test_staging_target_uses_dedicated_catalog_and_s3_secrets():
+def test_demo_target_is_portable_and_uses_dedicated_catalog_and_s3_secrets():
     bundle_text = read(ROOT / "databricks.yml")
-    staging = bundle_text[bundle_text.index("  staging:") :]
-    assert "mode: development" in staging
-    assert "https://dbc-192e31d5-ba9d.cloud.databricks.com/" in staging
+    demo = bundle_text[bundle_text.index("  demo:") :]
+    assert "  staging:" not in bundle_text
+    assert "mode: development" in demo
+    assert "dbc-192e31d5-ba9d.cloud.databricks.com" not in bundle_text
     assert (
-        "/Workspace/banking-staging/${workspace.current_user.userName}/.bundle/"
-        in staging
+        "/Workspace/banking-demo/${workspace.current_user.userName}/.bundle/"
+        in demo
     )
-    assert "catalog: banking_investigation" in staging
-    assert "source_mode: s3" in staging
-    assert "s3://nab-src-dataset/banking/snapshots/" in staging
-    assert "{{secrets/banking-s3-ingestion/access-key-id}}" in staging
-    assert "{{secrets/banking-s3-ingestion/secret-access-key}}" in staging
-    assert "@gmail.com" not in staging
+    assert "catalog: banking_investigation" in demo
+    assert "source_mode: s3" in demo
+    assert "s3://nab-src-dataset/banking/snapshots/" in demo
+    assert "{{secrets/banking-s3-ingestion/access-key-id}}" in demo
+    assert "{{secrets/banking-s3-ingestion/secret-access-key}}" in demo
+    assert "@gmail.com" not in demo
+
+    override_template = read(
+        ROOT / "configs" / "demo.variable-overrides.example.json"
+    )
+    assert "<pipeline-service-principal-application-id>" in override_template
+    assert "<governance-service-principal-application-id>" in override_template
+    assert "@gmail.com" not in override_template
 
 
-def test_recurring_setup_validates_prebootstrapped_catalog_without_metastore_create():
+def test_bootstrap_setup_validates_precreated_catalog_without_metastore_create():
     setup_text = read(
         ROOT / "src" / "pipeline" / "governance" / "00_setup_catalog_and_schemas.py"
     )

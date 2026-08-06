@@ -2,7 +2,7 @@
 
 A production-grade Databricks lakehouse pipeline for ingesting banking source snapshots with comprehensive data quality validation, SCD Type 2 history tracking, and automated quarantine management.
 
-The project uses Databricks Declarative Automation Bundles (DABs) so the same codebase can be deployed seamlessly across engineer workspaces and target environments (`dev`, `staging`, `prod`/`team`). The `main` branch is reserved for production-ready releases; ongoing integration work belongs on the `dev` branch.
+The project uses Databricks Declarative Automation Bundles (DABs) so the same codebase can be deployed across engineer workspaces and target environments (`dev`, portable `demo`, and team/production). The `main` branch is reserved for production-ready releases; ongoing integration work belongs on the `dev` branch.
 
 ---
 

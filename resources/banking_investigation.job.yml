@@ -2,33 +2,18 @@ resources:
   jobs:
     banking_investigation_pipeline_orchestration:
       name: banking-investigation-pipeline-orchestration
-      description: One Source-to-Gold SDP update with governance-owned setup and post-update monitoring.
+      description: Recurring Source-to-Gold SDP update with post-update monitoring and governance tagging.
       max_concurrent_runs: 1
       run_as:
         service_principal_name: ${var.pipeline_service_principal_name}
+      permissions:
+        - group_name: ${var.data_engineer_group}
+          level: CAN_MANAGE_RUN
       parameters:
         - name: audit_business_date
           default: "2026-07-10"
       tasks:
-        - task_key: setup_catalog_and_schemas
-          run_job_task:
-            job_id: ${resources.jobs.setup_catalog_and_schemas.id}
-
-        - task_key: setup_masking_udf
-          depends_on:
-            - task_key: setup_catalog_and_schemas
-          run_job_task:
-            job_id: ${resources.jobs.setup_masking_udf.id}
-
-        - task_key: setup_abac_policy
-          depends_on:
-            - task_key: setup_masking_udf
-          run_job_task:
-            job_id: ${resources.jobs.setup_abac_policy.id}
-
         - task_key: initialize_pipeline_run
-          depends_on:
-            - task_key: setup_abac_policy
           notebook_task:
             notebook_path: ../src/pipeline/monitoring/pre_transform_setup.py
             base_parameters:

@@ -1,0 +1,8 @@
+{
+  "catalog": "banking_investigation",
+  "pipeline_service_principal_name": "<pipeline-service-principal-application-id>",
+  "governance_service_principal_name": "<governance-service-principal-application-id>",
+  "governance_admin_group": "governance-admins",
+  "data_engineer_group": "data-engineers",
+  "pii_dq_operator_group": "pii-dq-operator"
+}

@@ -10,8 +10,11 @@ rules. The deployed pipeline code lives under [`pipeline/`](pipeline/).
 
 `banking-investigation-pipeline` is the single physical Spark Declarative
 Pipeline. Its graph includes Source-to-Bronze, validated Silver and quarantine,
-atomic Silver, and Gold. The parent Lakeflow Job performs governance-owned
-setup first, invokes exactly one SDP update, and then runs non-gating audits.
+atomic Silver, and Gold. Run `banking_investigation_bootstrap` once before the
+first data run and again only after approved governance changes. The recurring
+`banking_investigation_pipeline_orchestration` Job invokes exactly one SDP
+update, runs non-gating audits, and invokes the internal governance-owned PII
+tag job after publication.
 
 ## Quarantine pattern
 
