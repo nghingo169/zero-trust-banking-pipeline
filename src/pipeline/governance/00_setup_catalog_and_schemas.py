@@ -83,8 +83,10 @@ if SOURCE_MODE == "volume":
         f"{CATALOG}.{SOURCE_LANDING_SCHEMA}.{SOURCE_LANDING_VOLUME} TO {PIPELINE_SP}"
     )
 
-# Account groups receive object privileges; raw visibility still requires JIT
-# membership in pii-dq-operator, which is managed and audited outside the Bundle.
+# Data Engineers receive only masked publication layers and redacted governance
+# evidence. Governance admins are a deliberate ABAC exception with catalog-wide
+# authority in this staging access model. JIT raw access remains available via
+# pii-dq-operator, which is managed and audited outside the Bundle.
 spark.sql(f"GRANT USE CATALOG ON CATALOG {CATALOG} TO {DATA_ENGINEERS}")
 for schema in (SILVER_SCHEMA, GOLD_SCHEMA, GOVERNANCE_SCHEMA):
     spark.sql(f"GRANT USE SCHEMA ON SCHEMA {CATALOG}.{schema} TO {DATA_ENGINEERS}")
@@ -96,5 +98,6 @@ for schema in (BRONZE_SCHEMA, VALIDATED_SCHEMA, GOVERNANCE_SCHEMA, SILVER_SCHEMA
     spark.sql(f"GRANT USE SCHEMA ON SCHEMA {CATALOG}.{schema} TO {PII_DQ_OPERATORS}")
     spark.sql(f"GRANT SELECT ON SCHEMA {CATALOG}.{schema} TO {PII_DQ_OPERATORS}")
 
-spark.sql(f"GRANT USE CATALOG, MANAGE ON CATALOG {CATALOG} TO {GOVERNANCE_ADMINS}")
+spark.sql(f"GRANT ALL PRIVILEGES ON CATALOG {CATALOG} TO {GOVERNANCE_ADMINS}")
+spark.sql(f"GRANT MANAGE ON CATALOG {CATALOG} TO {GOVERNANCE_ADMINS}")
 print(f"Catalog and schema prerequisites are ready in {CATALOG}.")

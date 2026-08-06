@@ -1,108 +1,79 @@
-# Greenfield Banking Investigation Pipeline Deployment Plan
+# Greenfield Banking Investigation Staging Deployment
 
-## Status and boundary
+## Environment
 
-This plan is intentionally deferred until the implementation on
-`feature/production-abac-orchestration` is reviewed. The implementation phase
-does not deploy the Bundle, execute remote SQL, provision an account/workspace,
-change table ownership, or run the pipeline.
+- Bundle target and CLI profile: `staging`
+- Catalog: `banking_investigation`
+- Source mode: S3 using the `banking-s3-ingestion` secret scope
+- Source snapshot: `simulation_id=banking-20260705-20260710`, full snapshot
+- First business date: `2026-07-10`
+- Runtime entry point: `banking_investigation_pipeline_orchestration`
 
-## 1. Account, workspace, and metastore prerequisites
+User identities are assigned to `governance-admins` or `data-engineers` outside
+the Bundle. Personal email addresses and cloud credentials must not be committed.
 
-1. Select the Databricks account, cloud region, network model, and production
-   workspace naming convention.
-2. Create or identify a Unity Catalog metastore in the same region and attach
-   the greenfield workspace.
-3. Configure customer-managed keys, private connectivity, IP access controls,
-   audit-log delivery, and system-table access according to the production
-   security baseline.
-4. Confirm serverless SDP and governed-tag/ABAC features are enabled in the
-   account and region.
-5. Choose the production catalog name and managed storage root. Record these as
-   deployment inputs; do not embed credentials or workspace-specific IDs in Git.
+## One-time pre-deployment bootstrap
 
-## 2. Storage, source access, and secrets
+The catalog and schemas must exist before Bundle deployment because the SDP
+resource references its target and event-log schemas during resource creation.
+The parent Job repeats the same creation operations idempotently on every run.
 
-1. Create the production storage credential and external location for the raw
-   source snapshot prefix, or approve the managed-volume landing design.
-2. Grant the pipeline service principal only the required `READ FILES` access
-   to the source location. Grant write access only where ingestion requires it.
-3. Create the secret scope and source-access secrets referenced by the `team`
-   target if the approved design still uses secret-backed S3A credentials.
-4. Verify business-date partition layout, encryption, retention, object-lock,
-   and source-file arrival controls before the first run.
+1. Authenticate interactively with the `staging` CLI profile and verify the
+   workspace, current user, Unity Catalog metastore, SQL warehouse, and serverless
+   SDP support.
+2. Create `banking_investigation` through Databricks SQL so account Default
+   Storage is selected automatically:
 
-## 3. Identities, groups, and JIT controls
+   ```sql
+   CREATE CATALOG IF NOT EXISTS banking_investigation
+   COMMENT 'Dedicated catalog for the greenfield banking investigation staging pipeline';
+   ```
 
-1. Provision separate pipeline and governance service principals.
-2. Create the `data-engineers`, `governance-admins`, and `pii-dq-operator`
-   account groups, replacing names through Bundle variables if the account uses
-   another naming standard.
-3. Keep `pii-dq-operator` empty by default. Integrate time-bound membership with
-   the approved JIT/PAM workflow, requiring a ticket, reason, expiry, approver,
-   and membership audit event.
-4. Allow the governance principal to manage catalogs, schemas, functions,
-   governed tags, policies, and tag assignment. Do not grant it automatic raw
-   table access.
-5. Allow the pipeline principal to read source/raw data, create and update
-   pipeline outputs, and write governance evidence, but not manage ABAC policy.
-6. Verify the pipeline principal can run the governance child jobs while those
-   child jobs continue to execute as the governance principal.
+3. Create `source_landing`, `bronze`, `silver_validated`, `silver`, `gold`, and
+   `governance` in that catalog. Never drop or clear shared catalogs.
+4. Create separate pipeline and governance service principals and the
+   `governance-admins`, `data-engineers`, and empty `pii-dq-operator` groups.
+5. Grant the deployment admin `servicePrincipal.user` on both runtime
+   principals. Grant the governance principal governed-tag creator, manager,
+   and assigner roles at account scope.
+6. Grant only the pipeline and governance privileges required on the dedicated
+   catalog and schemas. Catalog/schema `MANAGE` requires explicit security
+   approval because it permits changing permissions for all child objects.
+7. Create `banking-s3-ingestion`, grant its `READ` ACL only to the pipeline
+   principal, and populate `access-key-id` and `secret-access-key` using
+   interactive CLI prompts.
 
-## 4. Bundle target and deployment identity
+## Bundle deployment
 
-1. Add reviewed target values for catalog, schemas, source mode/root, service
-   principal application IDs, and group names through environment-specific
-   configuration or CI variables.
-2. Authenticate the deployment runner as an approved deployment identity—not a
-   personal workspace user—and grant only the Bundle deployment permissions.
-3. Run `databricks bundle validate` with production placeholder resolution and
-   review the rendered plan and resource names.
-4. Obtain change approval before any first deployment.
+Environment-specific service-principal application IDs are stored in the
+gitignored `.databricks/bundle/staging/variable-overrides.json` file. The
+`staging` target uses development mode, a user-unique workspace root, the
+dedicated catalog, and secret-backed S3A configuration.
 
-## 5. First deployment and controlled execution
+Run tests, authenticated Bundle validation, and `databricks bundle plan` before
+deployment. The plan must contain no deletes. Deploy the reviewed plan and
+verify that the single SDP pipeline, parent orchestration, governance child
+jobs, audits, tag verification, and finalizers all exist with their expected
+run-as identities.
 
-1. Deploy the reviewed commit to the greenfield target.
-2. Confirm that one SDP resource named `banking-investigation-pipeline`, the
-   parent job, and the governance child jobs exist with the expected run-as
-   identities.
-3. Run the setup child jobs in order and verify catalog/schema, masking UDF,
-   policy, and grants before exposing any data.
-4. Load a controlled source snapshot and execute
-   `banking_investigation_pipeline_orchestration` for one business date.
-5. Do not perform a legacy table-ownership migration in this workspace; all
-   pipeline tables must be created greenfield by the consolidated SDP resource.
+## First run and acceptance
 
-## 6. Verification and reconciliation
+Run only `banking_investigation_pipeline_orchestration` for business date
+`2026-07-10`. Do not start until both S3 secrets and governance-policy privileges
+are verified.
 
-1. Confirm the SDP graph contains Source→Bronze→validated/quarantine→atomic
-   Silver→Gold and that Unity Catalog lineage connects the full graph.
-2. Reconcile source, Bronze, validated, quarantine, Silver, and Gold counts for
-   the business date, including failed-rule totals and duplicate-key checks.
-3. Confirm every quarantine, atomic-Silver, and Gold row from the execution has
-   the parent Job run ID.
-4. Confirm `governance.pipeline_run` records `SUCCEEDED`, end time, the stable
-   pipeline resource ID, and the native SDP update ID from the configured event
-   log.
-5. Verify Data Engineers see masked Silver/Gold values and only redacted DQ
-   evidence; verify they cannot read Bronze, validated-Silver, or quarantine
-   payload JSON.
-6. Verify Governance Admins can manage policy/tags without automatic raw-data
-   access. Exercise a time-bound `pii-dq-operator` grant and confirm its access,
-   expiry, and audit trail.
-7. Test that missing or duplicate `RUNNING` contexts fail the pipeline update
-   and that no random lineage ID is produced.
+Accept the run only when:
 
-## 7. Monitoring, rollback, and acceptance
+- The parent Job and one Source-to-Gold SDP update succeed.
+- `governance.pipeline_run` is `SUCCEEDED` and stores the Job run ID, SDP update
+  ID, and stable pipeline ID.
+- Quarantine, atomic Silver, and Gold preserve the same `pipeline_run_id`.
+- Layer audits and governed-tag verification pass.
+- Governance administrators see unmasked data and can manage policy/tags.
+- Data Engineers see masked Silver/Gold and redacted DQ evidence, and cannot
+  access Bronze, validated-Silver, raw quarantine payloads, secrets, or policy
+  administration.
+- `pii-dq-operator` has no standing member.
 
-1. Configure alerts for parent-job failure, SDP update failure, stale `RUNNING`
-   contexts, quarantine-rate thresholds, failed quality rules, missing outputs,
-   lineage mismatch, and event-log reconciliation failure.
-2. Route Databricks account audit logs and governance evidence to the approved
-   security monitoring destination.
-3. Define rollback as stopping schedules/triggers, revoking newly introduced
-   grants, restoring the last reviewed Bundle version, and retaining all source,
-   quarantine, audit, and event-log evidence. Do not delete data as rollback.
-4. Record operational ownership, on-call routing, RTO/RPO, runbook links, and
-   formal acceptance from Data Engineering, Governance, Security, and Platform
-   owners before enabling a production schedule.
+On failure, retain event logs, audit data, quarantine evidence, and run context.
+Do not drop the catalog, destroy shared resources, or claim null lineage rows.

@@ -15,6 +15,7 @@ def principal(value: str) -> str:
 
 CATALOG = widget("catalog", "workspace")
 PIPELINE_SP = principal(widget("pipeline_service_principal_name", ""))
+GOVERNANCE_ADMINS = principal(widget("governance_admin_group", "governance-admins"))
 PII_DQ_OPERATOR = principal(widget("pii_dq_operator_group", "pii-dq-operator"))
 
 spark.sql(
@@ -23,7 +24,7 @@ spark.sql(
     ON CATALOG {CATALOG}
     COLUMN MASK {CATALOG}.governance.tdm_masking_engine
     TO `account users`
-    EXCEPT {PIPELINE_SP}, {PII_DQ_OPERATOR}
+    EXCEPT {PIPELINE_SP}, {GOVERNANCE_ADMINS}, {PII_DQ_OPERATOR}
     FOR TABLES
     MATCH COLUMNS has_tag('pii_type') AS target_col
     ON COLUMN target_col
@@ -40,4 +41,4 @@ verification = spark.sql(
 ).collect()
 if len(verification) != 1:
     raise RuntimeError("ABAC policy metadata verification failed")
-print("ABAC policy is active with variable-driven pipeline and JIT exceptions.")
+print("ABAC policy is active with variable-driven pipeline, governance-admin, and JIT exceptions.")

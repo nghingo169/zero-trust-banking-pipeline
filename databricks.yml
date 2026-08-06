@@ -52,7 +52,7 @@ variables:
     description: Account group receiving masked Silver/Gold and redacted DQ evidence access.
     default: data-engineers
   governance_admin_group:
-    description: Account group permitted to manage governance objects without implicit raw-data access.
+    description: Account group permitted to manage governance objects and inspect unmasked data.
     default: governance-admins
   pii_dq_operator_group:
     description: JIT-only account group exempted from PII masks for time-bound DQ investigations.
@@ -70,6 +70,27 @@ targets:
     variables:
       source_mode: s3
       source_root: "s3://nab-src-dataset/banking/snapshots/simulation_id=banking-20260705-20260710/snapshot_type=full"
+    resources:
+      pipelines:
+        banking_investigation_pipeline:
+          configuration:
+            spark.hadoop.fs.s3a.aws.credentials.provider: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
+            spark.hadoop.fs.s3a.access.key: "{{secrets/banking-s3-ingestion/access-key-id}}"
+            spark.hadoop.fs.s3a.secret.key: "{{secrets/banking-s3-ingestion/secret-access-key}}"
+            spark.hadoop.fs.s3a.endpoint.region: ap-southeast-1
+
+  staging:
+    mode: development
+    workspace:
+      host: https://dbc-192e31d5-ba9d.cloud.databricks.com/
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: banking_investigation
+      source_mode: s3
+      source_root: "s3://nab-src-dataset/banking/snapshots/simulation_id=banking-20260705-20260710/snapshot_type=full"
+      data_engineer_group: data-engineers
+      governance_admin_group: governance-admins
+      pii_dq_operator_group: pii-dq-operator
     resources:
       pipelines:
         banking_investigation_pipeline:

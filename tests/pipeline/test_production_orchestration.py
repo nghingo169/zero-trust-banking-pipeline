@@ -119,7 +119,21 @@ def test_abac_exceptions_and_run_as_are_variable_driven_without_personal_email()
     assert "governance_service_principal_name" in combined
     assert "@gmail.com" not in combined
     assert "TO `account users`" in policy_text
-    assert "EXCEPT {PIPELINE_SP}, {PII_DQ_OPERATOR}" in policy_text
+    assert "governance_admin_group" in combined
+    assert "EXCEPT {PIPELINE_SP}, {GOVERNANCE_ADMINS}, {PII_DQ_OPERATOR}" in policy_text
+
+
+def test_staging_target_uses_dedicated_catalog_and_s3_secrets():
+    bundle_text = read(ROOT / "databricks.yml")
+    staging = bundle_text[bundle_text.index("  staging:") :]
+    assert "mode: development" in staging
+    assert "https://dbc-192e31d5-ba9d.cloud.databricks.com/" in staging
+    assert "catalog: banking_investigation" in staging
+    assert "source_mode: s3" in staging
+    assert "s3://nab-src-dataset/banking/snapshots/" in staging
+    assert "{{secrets/banking-s3-ingestion/access-key-id}}" in staging
+    assert "{{secrets/banking-s3-ingestion/secret-access-key}}" in staging
+    assert "@gmail.com" not in staging
 
 
 def test_native_sdp_identity_and_national_id_masking_are_configured():
