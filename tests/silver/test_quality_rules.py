@@ -27,6 +27,7 @@ from data_contracts.quality_rules.registry import (
     get_quarantine_condition,
     get_rules,
     get_rules_as_list_of_dict,
+    get_rules_or_empty,
 )
 
 
@@ -86,8 +87,12 @@ class QualityRulesTests(unittest.TestCase):
         rules = get_rules("card")
         self.assertEqual(
             get_quarantine_condition("card"),
-            "NOT({0})".format(" AND ".join(rules.values())),
+            "NOT(COALESCE(({0}), FALSE))".format(" AND ".join(rules.values())),
         )
+
+    def test_tables_without_row_level_rules_have_a_non_quarantining_predicate(self) -> None:
+        self.assertEqual(get_rules_or_empty("watchlist"), {})
+        self.assertEqual(get_quarantine_condition("watchlist"), "FALSE")
 
     def test_unknown_table_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "No data-quality rules"):
@@ -181,22 +186,26 @@ class QualityRulesTests(unittest.TestCase):
         )
 
     def test_silver_validation_imports_the_shared_rule_module(self) -> None:
-        root = Path(__file__).resolve().parents[2] / "src/pipeline/silver"
-        pipeline_source = (root / "bronze_to_validated_silver.py").read_text()
-        card_assessment = (root / "card_validation.py").read_text()
+        pipeline_source = (
+            Path(__file__).resolve().parents[2]
+            / "src/pipeline/silver/bronze_to_validated_silver.py"
+        ).read_text()
         self.assertIn('spark.conf.get("pipeline.quality_rules_path")', pipeline_source)
         self.assertIn(
-            "from data_contracts.quality_rules.registry import get_rules",
-            card_assessment,
+            "get_rules_or_empty",
+            pipeline_source,
         )
-        self.assertNotIn("RULES_BY_TABLE =", card_assessment)
+        self.assertNotIn("card_validation", pipeline_source)
+        self.assertNotIn("customer_validation", pipeline_source)
+        self.assertNotIn("fincrime_validation", pipeline_source)
+        self.assertNotIn("transaction_validation", pipeline_source)
 
     def test_silver_validation_quarantines_null_rule_evaluations(self) -> None:
         pipeline_source = (
             Path(__file__).resolve().parents[2]
-            / "src/pipeline/silver/card_validation.py"
+            / "src/pipeline/silver/bronze_to_validated_silver.py"
         ).read_text()
-        self.assertIn("~F.coalesce(F.expr(rule), F.lit(False))", pipeline_source)
+        self.assertIn("~F.coalesce(F.expr(rule_sql), F.lit(False))", pipeline_source)
 
     def test_quality_pipelines_use_cdf_for_quarantine_history(self) -> None:
         source = (
@@ -205,6 +214,30 @@ class QualityRulesTests(unittest.TestCase):
         ).read_text()
         self.assertIn('option("readChangeFeed", "true")', source)
         self.assertIn("update_postimage", source)
+
+    def test_assessment_views_publish_native_expectation_metrics(self) -> None:
+        source = (
+            Path(__file__).resolve().parents[2]
+            / "src/pipeline/silver/bronze_to_validated_silver.py"
+        ).read_text()
+        self.assertIn("@dp.temporary_view(name=view_name)", source)
+        self.assertIn("@dp.expect_all(rules)", source)
+        self.assertIn("F.expr(quarantine_condition)", source)
+        self.assertIn("def failed_rule_names(rules", source)
+        self.assertNotIn("card_validation.assess", source)
+        self.assertNotIn("transaction_validation.assess", source)
+        self.assertNotIn("fincrime_validation.assess", source)
+
+    def test_all_assessment_views_feed_one_shared_quarantine_table(self) -> None:
+        source = (
+            Path(__file__).resolve().parents[2]
+            / "src/pipeline/silver/bronze_to_validated_silver.py"
+        ).read_text()
+        self.assertIn("def quarantine_events(", source)
+        self.assertIn("ASSESSMENT_VIEWS[(domain, table_name)]", source)
+        self.assertIn('name=qualified(GOVERNANCE_SCHEMA, "silver_quarantine_record")', source)
+        self.assertIn("for domain in DOMAINS", source)
+        self.assertIn("quarantine_events(domain, table_name, business_key)", source)
 
     def test_silver_validation_retains_scd2_history(self) -> None:
         source = (

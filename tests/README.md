@@ -12,15 +12,11 @@ tests/
 │   └── test_bronze.py                      # Tests for Bronze layer ingestion & metadata enrichment
 ├── silver/
 │   ├── test_card_transformation.py         # Card domain schema & logic transformation tests
-│   ├── test_card_validation.py             # Card domain row-level data quality validation tests
 │   ├── test_customer_transformation.py     # Customer domain transformation tests
-│   ├── test_customer_validation.py         # Customer domain quality validation tests
 │   ├── test_fincrime_transformation.py     # Financial Crime domain transformation tests
-│   ├── test_fincrime_validation.py         # Financial Crime domain quality validation tests
 │   ├── test_nab_tdm_masking.py             # PII masking & TDM security tests
-│   ├── test_quality_rules.py               # Rule registry & validation engine unit tests
-│   ├── test_transaction_transformation.py # Transaction domain transformation tests
-│   └── test_transaction_validation.py      # Transaction domain quality validation tests
+│   ├── test_quality_rules.py               # Rule registry, native expectations & shared quarantine tests
+│   └── test_transaction_transformation.py  # Transaction domain transformation tests
 ├── gold/
 │   ├── test_ai_aml_investigation_context.py # AI AML investigation views & context tests
 │   ├── test_customer_360_context.py        # Customer 360 aggregation & view tests

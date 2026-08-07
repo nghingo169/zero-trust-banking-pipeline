@@ -1,9 +1,10 @@
 """Bronze-to-validated-Silver pipeline with one centralized quarantine output.
 
 Each Bronze CDF source is normalized and assessed once in a temporary pipeline
-view. The assessment branches into its validated Silver streaming table or the
-shared governance quarantine streaming table. No second pipeline re-evaluates
-the rules.
+view. Native expectations publish data-quality metrics on that view; the same
+view branches into its validated Silver streaming table and the one shared
+governance quarantine streaming table. No second pipeline re-evaluates rules
+or creates source-specific quarantine tables.
 """
 
 from __future__ import annotations
@@ -20,15 +21,14 @@ if RULE_PATH not in sys.path:
     sys.path.insert(0, RULE_PATH)
 
 from data_contracts.table_catalog import DOMAINS, tables
+from data_contracts.quality_rules.registry import (
+    get_quarantine_condition,
+    get_rules_or_empty,
+)
+from data_contracts.normalization import normalize
 from pipeline.run_context import (
     CANONICAL_PIPELINE_NAME,
     pipeline_run_id_column,
-)
-from pipeline.silver import (
-    card_validation,
-    customer_validation,
-    fincrime_validation,
-    transaction_validation,
 )
 
 CATALOG = spark.conf.get("pipeline.catalog")
@@ -69,6 +69,40 @@ def duplicate_active_business_keys(
     )
 
 
+def duplicate_active_national_ids(table_name: str) -> DataFrame | None:
+    """Return duplicate current national IDs for customer identity sources."""
+
+    if table_name not in {"core_banking_customer", "crm_customer"}:
+        return None
+    return (
+        normalize(spark.read.table(bronze("customer", table_name)))
+        .filter("__END_AT IS NULL AND national_id IS NOT NULL")
+        .groupBy("national_id")
+        .count()
+        .filter("count > 1")
+        .select("national_id")
+    )
+
+
+def failed_rule_names(rules: dict[str, str]):
+    """Return each failed expectation name for atomic quarantine records."""
+
+    if not rules:
+        return F.expr("CAST(array() AS ARRAY<STRING>)")
+    return F.filter(
+        F.array(
+            *[
+                F.when(
+                    ~F.coalesce(F.expr(rule_sql), F.lit(False)),
+                    F.lit(rule_name),
+                )
+                for rule_name, rule_sql in rules.items()
+            ]
+        ),
+        lambda rule_name: rule_name.isNotNull(),
+    )
+
+
 def active_scd2_versions(
     domain: str, table_name: str, business_key: str
 ) -> DataFrame | None:
@@ -93,7 +127,7 @@ def active_scd2_versions(
 
 
 def assess(domain: str, table_name: str) -> DataFrame:
-    """Normalize a source and attach the single authoritative rule outcome."""
+    """Normalize one source and retain its failed rule names for the shared DLQ."""
 
     raw_changes = (
         spark.readStream.option("readChangeFeed", "true")
@@ -108,20 +142,29 @@ def assess(domain: str, table_name: str) -> DataFrame:
         "_quarantine_payload_json",
         F.to_json(F.struct(*[F.col(column) for column in raw_changes.columns])),
     )
-    if domain == "card":
-        df = card_validation.assess(raw_changes, table_name)
-    elif domain == "customer":
-        df = customer_validation.assess(
-            raw_changes,
-            table_name,
-            customer_validation.duplicate_national_ids(
-                spark, bronze(domain, table_name)
+    rules = get_rules_or_empty(table_name)
+    df = normalize(raw_changes).withColumn(
+        "_failed_rule_names", failed_rule_names(rules)
+    )
+
+    duplicate_ids = duplicate_active_national_ids(table_name)
+    if duplicate_ids is not None:
+        df = df.join(
+            F.broadcast(
+                duplicate_ids.withColumn("_duplicate_national_id", F.lit(True))
+            ),
+            "national_id",
+            "left",
+        ).withColumn(
+            "_failed_rule_names",
+            F.concat(
+                F.col("_failed_rule_names"),
+                F.when(
+                    F.col("_duplicate_national_id"),
+                    F.array(F.lit(f"{table_name}__national_id__duplicate")),
+                ).otherwise(F.expr("CAST(array() AS ARRAY<STRING>)")),
             ),
         )
-    elif domain == "transaction":
-        df = transaction_validation.assess(raw_changes, table_name)
-    else:
-        df = fincrime_validation.assess(raw_changes, table_name)
 
     business_key = tables(domain)[table_name]
     duplicate_keys = duplicate_active_business_keys(domain, table_name, business_key)
@@ -147,18 +190,13 @@ def assess(domain: str, table_name: str) -> DataFrame:
         .withColumn(
             "_rescued_data_json", _column_or_null(df, "_rescued_data", "string")
         )
-        .withColumn(
-            "is_quarantined",
-            (F.size("_failed_rule_names") > 0)
-            | (
-                F.col("_rescued_data_json").isNotNull()
-                & (F.length("_rescued_data_json") > 0)
-            ),
-        )
         .drop("_duplicate_national_id", "_duplicate_active_business_key")
     )
 
 
+# Ephemeral source assessments only.  The sole physical quarantine output is
+# ``silver_quarantine_record``, which unions failures from every one of these
+# views below.
 ASSESSMENT_VIEWS: dict[tuple[str, str], str] = {}
 
 # Status-event IDs are reused by the source.  Their business identity is the
@@ -178,11 +216,31 @@ EVENT_KEY_COLUMNS = {
 
 def register_assessment(domain: str, table_name: str) -> None:
     view_name = f"_assessment__{domain}__{table_name}"
+    rules = get_rules_or_empty(table_name)
+    quarantine_condition = get_quarantine_condition(table_name)
     ASSESSMENT_VIEWS[(domain, table_name)] = view_name
 
     @dp.temporary_view(name=view_name)
-    def assessment(domain=domain, table_name=table_name) -> DataFrame:
-        return assess(domain, table_name)
+    @dp.expect_all(rules)
+    def assessment(
+        domain=domain,
+        table_name=table_name,
+        quarantine_condition=quarantine_condition,
+    ) -> DataFrame:
+        assessed = assess(domain, table_name)
+        return assessed.withColumn(
+            "is_quarantined",
+            # The expectation metrics and the quarantine split use the same
+            # rule inventory.  Keep the failure-name check for the two
+            # cross-row duplicate rules, which cannot be expressed as native
+            # expectation predicates.
+            F.expr(quarantine_condition)
+            | (F.size("_failed_rule_names") > 0)
+            | (
+                F.col("_rescued_data_json").isNotNull()
+                & (F.length("_rescued_data_json") > 0)
+            ),
+        )
 
 
 def register_validated_output(domain: str, table_name: str) -> None:

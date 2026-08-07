@@ -50,7 +50,25 @@ def get_rules(table):
         raise ValueError(f"No data-quality rules found for table: {table!r}") from error
 
 
-def get_quarantine_condition(table):
-    """Return the predicate that identifies rows for quarantine."""
+def get_rules_or_empty(table):
+    """Return a table's expectations, or an empty mapping when it has none.
 
-    return "NOT({0})".format(" AND ".join(get_rules(table).values()))
+    The source-to-Silver graph includes a handful of pass-through tables with
+    no row-level quality contract.  An empty expectation mapping keeps their
+    temporary assessment view structurally identical to governed sources.
+    """
+
+    return {rule["name"]: rule["constraint"] for rule in RULES_BY_TABLE.get(table, ())}
+
+
+def get_quarantine_condition(table):
+    """Return a null-safe predicate that identifies rows for quarantine."""
+
+    rules = get_rules_or_empty(table)
+    if not rules:
+        return "FALSE"
+
+    # Expectations treat NULL constraint results as failures.  SQL's
+    # ``NOT(rule_a AND rule_b)`` alone would produce NULL for nullable rules,
+    # and a subsequent ``filter(is_quarantined)`` would silently lose rows.
+    return "NOT(COALESCE(({0}), FALSE))".format(" AND ".join(rules.values()))
