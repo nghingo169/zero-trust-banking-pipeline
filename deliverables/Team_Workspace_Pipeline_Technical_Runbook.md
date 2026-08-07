@@ -1,181 +1,146 @@
 # Banking Investigation Demo Runbook
 
-This runbook lets any authorized demo owner deploy the banking investigation demo to their own Databricks workspace and invite teammates to rerun it.
+Follow these steps from the repository root. Replace every `<placeholder>` with
+your environment value. Keep emails, application IDs, tokens, and AWS keys out
+of Git.
 
-Nothing in the committed configuration identifies a workspace or a person:
+## First-time setup
 
-- the owner chooses the workspace through a Databricks CLI profile;
-- the portable Bundle target is always `demo`;
-- the owner chooses the catalog name locally;
-- service-principal application IDs stay in a gitignored override; and
-- user email addresses exist only in Databricks account/group membership.
-
-## Demo roles
-
-| Role | Responsibility |
-|---|---|
-| Demo owner | Initiates the demo, remains account/workspace administrator, deploys the Bundle, and belongs to `governance-admins`. |
-| Data Engineer teammate | Belongs to `data-engineers`, can run the recurring Job and view the SDP graph, and receives only masked Silver/Gold plus redacted DQ evidence. |
-| Pipeline service principal | Runs the recurring Job and the Source-to-Gold SDP pipeline. |
-| Governance service principal | Runs bootstrap and the internal PII-tagging Job. |
-| PII DQ operator | Empty `pii-dq-operator` group reserved for externally managed JIT access. |
-
-There are two operator-facing Jobs:
-
-1. `banking_investigation_bootstrap` — the demo owner runs it once after deployment and after approved governance changes.
-2. `banking_investigation_pipeline_orchestration` — the owner or a Data Engineer runs it whenever the demo should process data.
-
-The recurring Job automatically calls the internal governance tag Job. Nobody runs that child Job manually.
-
-## Owner setup
-
-### 1. Choose and authenticate to a workspace
-
-The profile name is the owner's choice. Replace all angle-bracket placeholders locally.
+### 1. Authenticate
 
 ```bash
 databricks auth login \
-  --host <demo-workspace-url> \
-  --profile <demo-profile>
+  --host <workspace-url> \
+  --profile <cli-profile>
 
-databricks current-user me --profile <demo-profile>
+databricks current-user me --profile <cli-profile>
 ```
 
-The workspace must have:
+Use a Unity Catalog workspace with serverless Spark Declarative Pipelines,
+catalog ABAC, governed tags, and a serverless SQL warehouse.
 
-- Unity Catalog with an attached metastore;
-- serverless Lakeflow Declarative Pipelines;
-- governed tags and catalog ABAC support;
-- a serverless SQL warehouse; and
-- enough privileges for the owner to manage workspace identities and create the demo catalog.
+### 2. Create identities and groups
 
-Run all remaining commands from the repository root.
+1. Select your profile icon in the top-right corner.
+2. Select **Settings**.
+3. Open **Identity and access**.
+4. Next to **Service principals**, select **Manage > Add service principal**.
+5. Create or reuse `banking-pipeline-service` and
+   `banking-governance-service`.
+6. Next to **Users**, select **Manage > Add user** and add each teammate email.
+7. Next to **Groups**, select **Manage > Add group**.
+8. Create or reuse `governance-admins`, `data-engineers`, and
+   `pii-dq-operator`.
+9. Open `governance-admins`, select **Add members**, and add the workspace owner.
+10. Open `data-engineers`, select **Add members**, and add the teammates.
+11. Leave `pii-dq-operator` empty.
+12. Return to **Identity and access > Service principals > Manage**.
+13. Open each service principal, select **Permissions > Grant access**, add the
+    authenticated Bundle deployer returned by `databricks current-user me`,
+    grant **Service principal: User**, and save. Repeat for both service
+    principals; workspace-admin or Service Principal Manager access does not
+    include this role automatically.
 
-### 2. Create identities and invite teammates
+Do not create workspace-local copies of the groups. Do not grant teammates
+direct permissions; they inherit access from `data-engineers`.
 
-In the Databricks account/workspace administration UI, create or reuse these exact account-level identities:
+References: [manage users](https://docs.databricks.com/aws/en/admin/users-groups/users),
+[manage service principals](https://docs.databricks.com/aws/en/admin/users-groups/manage-service-principals),
+and [manage groups](https://docs.databricks.com/aws/en/admin/users-groups/manage-groups).
 
-Service principals:
+### 3. Get the service-principal application IDs
 
-- `banking-pipeline-service`
-- `banking-governance-service`
+```bash
+databricks service-principals list \
+  --profile <cli-profile> \
+  --filter 'displayName eq "banking-pipeline-service"' \
+  --attributes applicationId,displayName,id,active \
+  --output json
 
-Groups:
+databricks service-principals list \
+  --profile <cli-profile> \
+  --filter 'displayName eq "banking-governance-service"' \
+  --attributes applicationId,displayName,id,active \
+  --output json
+```
 
-- `governance-admins`
-- `data-engineers`
-- `pii-dq-operator`
+Each command must return exactly one active principal. Record `applicationId`,
+not the numeric `id`.
 
-Then:
+### 4. Grant governed-tag permissions
 
-1. assign both service principals and all three account groups to the demo workspace with ordinary workspace-user access;
-2. add the demo owner to `governance-admins`;
-3. invite the chosen teammate email addresses to the account/workspace;
-4. add those teammates only to `data-engineers`;
-5. leave `pii-dq-operator` empty; and
-6. allow the demo owner to use both service principals as Bundle `run_as` identities.
-
-Do not create workspace-local versions of these groups. Do not place owner or teammate emails in this repository.
-
-Record both service-principal application IDs; they are not the numeric principal IDs.
-
-### 3. Grant governed-tag authority
-
-In **Catalog > Govern > Governed Tags > Account Permissions**, grant `banking-governance-service`:
+Open **Catalog > Govern > Governed Tags > Account Permissions** and grant
+`banking-governance-service`:
 
 - `CREATE`
 - `MANAGE`
 - `ASSIGN`
 
-Do not grant these account-level permissions to `data-engineers` or the pipeline service principal.
+These are account-level governed-tag permissions. Catalog or schema
+`APPLY TAG` does not authorize `CREATE GOVERNED TAG`. Wait at least 30 seconds
+after saving for the permissions to propagate.
 
-### 4. Create the catalog and schemas once
+Do not grant these permissions to `data-engineers` or
+`banking-pipeline-service`.
 
-Choose an isolated catalog name, for example `banking_investigation`. Stop if that catalog already contains unrelated objects.
+### 5. Create the catalog and delegate bootstrap access
 
-Run as the demo owner on a serverless SQL warehouse:
+Open [01_create_catalog_and_delegate.sql](https://github.com/nghingo169/zero-trust-banking-pipeline/blob/dev/sql/infrastructure/01_create_catalog_and_delegate.sql)
+and copy it into Databricks SQL Editor.
 
-```sql
-CREATE CATALOG IF NOT EXISTS <demo-catalog>
-COMMENT 'Dedicated catalog for the banking investigation demo';
+1. Select a serverless SQL warehouse.
+2. Replace every `<catalog-name>`.
+3. Replace both service-principal application-ID placeholders.
+4. Run the complete SQL as the workspace owner.
+5. Check the final `SHOW GRANTS` output. Confirm the governance application ID
+   has `USE CATALOG`, `CREATE SCHEMA`, `APPLY TAG`, and `MANAGE`, and the
+   pipeline application ID has `USE CATALOG`.
 
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.source_landing;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.bronze;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.silver_validated;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.silver;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.gold;
-CREATE SCHEMA IF NOT EXISTS <demo-catalog>.governance;
+The SQL creates the catalog and prerequisite grants. The bootstrap Job creates
+the schemas, data grants, masking UDFs, governed tags, and ABAC policy.
 
-GRANT USE CATALOG, CREATE SCHEMA, APPLY TAG, MANAGE
-ON CATALOG <demo-catalog>
-TO `<governance-service-principal-application-id>`;
-```
+### 6. Configure the S3 secrets
 
-For each of `source_landing`, `bronze`, `silver_validated`, `silver`, `gold`, and `governance`, run:
-
-```sql
-GRANT USE SCHEMA, CREATE TABLE, CREATE FUNCTION,
-      CREATE MATERIALIZED VIEW, MODIFY, SELECT, APPLY TAG, MANAGE
-ON SCHEMA <demo-catalog>.<schema-name>
-TO `<governance-service-principal-application-id>`;
-```
-
-The catalog is intentionally created by the owner. Bootstrap does not need metastore-wide `CREATE CATALOG`.
-
-If no managed storage is configured, stop and configure approved metastore default storage or a catalog `MANAGED LOCATION`.
-
-### 5. Configure demo source credentials
-
-The committed demo source is:
+The AWS identity needs `s3:ListBucket` and `s3:GetObject` on:
 
 ```text
 s3://nab-src-dataset/banking/snapshots/simulation_id=banking-20260705-20260710/snapshot_type=full
 ```
 
-The AWS identity must have narrow `s3:ListBucket` and `s3:GetObject` access to that prefix.
-
-Create the secret scope and enter both values through interactive prompts:
+Enter values only through the interactive prompts:
 
 ```bash
 databricks secrets create-scope banking-s3-ingestion \
-  --profile <demo-profile>
+  --profile <cli-profile>
 
 databricks secrets put-secret banking-s3-ingestion access-key-id \
-  --profile <demo-profile>
+  --profile <cli-profile>
 
 databricks secrets put-secret banking-s3-ingestion secret-access-key \
-  --profile <demo-profile>
+  --profile <cli-profile>
 
 databricks secrets put-acl banking-s3-ingestion \
   <pipeline-service-principal-application-id> READ \
-  --profile <demo-profile>
+  --profile <cli-profile>
 ```
 
-Never put AWS values in command arguments, chat, Git, notebooks, or Bundle overrides.
+### 7. Choose the Bundle target and create its local override
 
-The direct-S3 demo also requires this demo-only workspace concession:
-
-```sql
-GRANT SELECT ON ANY FILE TO `<pipeline-service-principal-application-id>`;
-```
-
-Production deployments should replace keys and `ANY FILE` with an IAM role, Unity Catalog storage credential, external location, and `READ FILES`.
-
-### 6. Create the local Bundle override
-
-Copy the tracked template:
+Use `staging` for the current shared workspace. For another workspace, add a
+target with that environment's name and settings under `targets` in
+`databricks.yml`, then use the same name for `<bundle-target>` below.
 
 ```bash
-mkdir -p .databricks/bundle/demo
-cp configs/demo.variable-overrides.example.json \
-  .databricks/bundle/demo/variable-overrides.json
+mkdir -p .databricks/bundle/<bundle-target>
+cp configs/environment.variable-overrides.example.json \
+  .databricks/bundle/<bundle-target>/variable-overrides.json
 ```
 
-Edit the copied file locally:
+Edit `.databricks/bundle/<bundle-target>/variable-overrides.json`:
 
 ```json
 {
-  "catalog": "<demo-catalog>",
+  "catalog": "<catalog-name>",
   "pipeline_service_principal_name": "<pipeline-service-principal-application-id>",
   "governance_service_principal_name": "<governance-service-principal-application-id>",
   "governance_admin_group": "governance-admins",
@@ -184,143 +149,113 @@ Edit the copied file locally:
 }
 ```
 
-Confirm it is ignored:
+Confirm that the file is ignored:
 
 ```bash
-git check-ignore .databricks/bundle/demo/variable-overrides.json
+git check-ignore .databricks/bundle/<bundle-target>/variable-overrides.json
 ```
 
-### 7. Validate, review, and deploy
+### 8. Validate and deploy
+
+Confirm the authenticated deployer can use both runtime service principals:
+
+```bash
+databricks service-principals list \
+  --profile <cli-profile> \
+  --filter "permission eq 'servicePrincipal/use'" \
+  --attributes applicationId,displayName,id,active \
+  --output json
+```
+
+The result must include `banking-pipeline-service` and
+`banking-governance-service` before deployment.
 
 ```bash
 .venv/bin/pytest -q tests/pipeline/test_production_orchestration.py
 
-databricks bundle validate --target demo --profile <demo-profile>
-databricks bundle plan --target demo --profile <demo-profile>
-databricks bundle deploy --target demo --profile <demo-profile>
+databricks bundle validate --target <bundle-target> --profile <cli-profile>
+databricks bundle plan --target <bundle-target> --profile <cli-profile>
+databricks bundle deploy --target <bundle-target> --profile <cli-profile> \
+  --fail-on-active-runs
 ```
 
-For a new workspace, the plan should create the bootstrap Job, recurring Job, internal tag Job, integration-test Job, and one SDP pipeline. It must not delete unrelated resources.
+Review the plan before deployment. Do not deploy over an unrelated catalog or
+an existing legacy pipeline deployment.
 
-### 8. Grant runtime access to deployed files
+### 9. Grant access to deployed Bundle files
 
-Grant both runtime service principals `CAN READ` on:
+1. In the workspace sidebar, open **Workspace**.
+2. Navigate to the `workspace.file_path` configured under the selected Bundle
+   target and select its `files` folder. For the current `staging` target:
 
 ```text
-/Workspace/banking-demo/<demo-owner>/.bundle/zero-trust-banking-pipeline/demo/files
+/Workspace/banking-staging/<workspace-owner>/.bundle/zero-trust-banking-pipeline/staging/files
 ```
 
-Use the workspace folder **Permissions** UI. Do not move Bundle code to `/Workspace/Shared`.
+3. Select **Share**.
+4. Select **Add**, search for `banking-pipeline-service`, and grant
+   **Can view**.
+5. Repeat for `banking-governance-service`.
+6. Save and confirm that both service principals appear in the folder's
+   permission list.
 
-### 9. Run bootstrap once
+The UI label **Can view** is the folder permission represented as `CAN READ` by
+the Permissions API.
+
+Reference: [manage and share workspace objects](https://docs.databricks.com/aws/en/workspace/workspace-objects).
+
+### 10. Run the bootstrap Job once per environment
+
+Run this Job after the first deployment and before the first data-pipeline run.
+It prepares the schemas, grants, masking UDFs, governed tags, and ABAC policy.
+It does not process the source data.
 
 ```bash
 databricks bundle run banking_investigation_bootstrap \
-  --target demo \
-  --profile <demo-profile>
+  --target <bundle-target> \
+  --profile <cli-profile>
 ```
 
-Bootstrap validates the catalog, creates operational objects and grants, creates the masking UDF/governed tag, and installs the catalog ABAC policy.
+After initial setup, rerun bootstrap only when governance, UDF, tag, group, or
+catalog permissions change.
 
-### 10. Run the Source-to-Gold demo
+### 11. Run the recurring data-pipeline Job
+
+Run the parent Job below. Do not run the SDP pipeline resource directly. The
+Job initializes the run context, triggers one Source-to-Gold SDP update,
+applies governed tags and monitoring views, and finalizes the run status.
 
 ```bash
 databricks bundle run banking_investigation_pipeline_orchestration \
-  --target demo \
-  --profile <demo-profile> \
-  --params audit_business_date=2026-07-10
-```
-
-The Job executes:
-
-```text
-initialize run context
-  -> one Source-to-Gold SDP update
-       -> Bronze
-       -> validated Silver and quarantine
-       -> atomic Silver
-       -> Gold
-  -> four layer audits
-  -> internal PII-tagging Job
-  -> success/failure finalizer
+  --target <bundle-target> \
+  --profile <cli-profile> \
+  --params business_date=2026-07-10
 ```
 
 ## Teammate rerun
 
-A Data Engineer does not run bootstrap or start the SDP pipeline directly.
-
-The easiest rerun is through the workspace UI:
-
-1. Open **Jobs & Pipelines** and select **All**.
+1. Open **Jobs & Pipelines > All**.
 2. Open `banking-investigation-pipeline-orchestration`.
-3. Select **Run now** and use business date `2026-07-10`.
-4. Monitor the Job and open the linked SDP task to view its graph.
+3. Select **Run now**.
+4. Use business date `2026-07-10`.
 
-The Job always executes as `banking-pipeline-service`, regardless of which approved teammate clicks **Run now**.
+The Job runs as `banking-pipeline-service`, not as the teammate who starts it.
 
-For CLI reruns, the teammate can clone the repository, authenticate with their own profile, create the same non-secret local override, and run:
+## Check the result
 
-```bash
-databricks bundle run banking_investigation_pipeline_orchestration \
-  --target demo \
-  --profile <teammate-profile> \
-  --params audit_business_date=2026-07-10
-```
+- the latest run is `SUCCEEDED`;
+- `pipeline_id` and `pipeline_update_id` are populated;
+- quarantine, Silver, and Gold use the same `pipeline_run_id`;
+- `monitoring_pipeline_updates`, `monitoring_table_metrics`, and
+  `monitoring_rule_metrics` can be queried in the governance schema;
+- the workspace owner sees unmasked data; and
+- a `data-engineers` user sees masked Silver and Gold data.
 
-## Acceptance check
+## What to rerun
 
-The latest run is accepted when:
-
-- the parent Job and one SDP update succeed;
-- all four audits and internal tagging succeed;
-- `pipeline_run_id` is consistent across quarantine, Silver, and Gold;
-- the stable pipeline ID and native update ID are persisted; and
-- role tests show the owner unmasked and Data Engineers masked.
-
-Run as the demo owner:
-
-```sql
-SELECT
-  pipeline_run_id,
-  business_date,
-  execution_status,
-  pipeline_id,
-  pipeline_update_id,
-  start_time,
-  end_time
-FROM <demo-catalog>.governance.pipeline_run
-WHERE pipeline_name = 'banking-investigation-pipeline'
-ORDER BY start_time DESC
-LIMIT 10;
-```
-
-The latest record must be `SUCCEEDED` with non-null `pipeline_id` and `pipeline_update_id`.
-
-## Repeat-run rules
-
-| Situation | Bootstrap | Recurring Job |
+| Change | Bootstrap Job | Data Pipeline Job |
 |---|---:|---:|
-| First deployment | Run once | Run after bootstrap |
-| New source data | Do not run | Run |
-| Repeat unchanged demo | Do not run | Run; an incremental no-op is valid |
-| Masking UDF, policy, group, or catalog-grant change | Run | Run only if data processing is required |
-| New PII output columns | Run if governed-tag definition changed | Run; internal tagging applies/verifies output tags |
-| Ordinary retry after fixing code/configuration | Do not run unless governance changed | Run |
-
-## Troubleshooting
-
-| Failure | Check first |
-|---|---|
-| A teammate sees no Jobs or pipelines | Confirm their account-level `data-engineers` membership, workspace assignment, and the deployed Job/pipeline ACLs. Refresh the UI and select **All**, not **Owned by me**. |
-| Bootstrap says catalog is missing | The owner must run the one-time catalog/schema SQL before bootstrap. |
-| Unity Catalog cannot resolve a group | Use account-level groups assigned to the workspace, not workspace-local groups. |
-| Notebook or Python access denied | Grant both runtime service principals `CAN READ` on the demo Bundle `files` directory. |
-| S3 `AccessDenied` | Check the scope ACL, key names, narrow AWS IAM prefix, region, and demo `SELECT ON ANY FILE`. Never print secret values. |
-| `preferred_contact_method` cannot be resolved | Confirm the contract-aware schema-evolution code is deployed and diagnose the first Silver error. |
-| Rerun reports zero changes | The source and SDP checkpoint are unchanged; this is a valid incremental result. |
-
-On failure, preserve pipeline state, event logs, quarantine, run context, and audits. Do not drop schemas, destroy the Bundle, or full-refresh as an ordinary retry.
-
-## Existing deployments
-
-Changing to the portable `demo` target does not automatically rename or migrate a Bundle deployment created under an older environment-specific target. Manage or retire an existing deployment through a separately reviewed migration; do not deploy `demo` into the same catalog until its resource bindings and state path are confirmed.
+| First deployment | Run once | Run afterward |
+| New source data | No | Run |
+| Code/configuration retry | Only if governance changed | Run |
+| UDF, tag, ABAC, group, or catalog-grant change | Run | Run if needed |
