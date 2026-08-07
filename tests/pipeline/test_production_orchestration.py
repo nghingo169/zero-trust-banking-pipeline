@@ -219,7 +219,7 @@ def test_native_event_log_views_supply_dashboard_monitoring_without_raw_access()
     assert "create_monitoring_views(" in tag_text
     assert "monitoring view setup did not complete" in tag_text
     assert "banking_investigation_pipeline_event_log" not in setup_text
-    assert "GRANT USE SCHEMA, SELECT ON SCHEMA" in setup_text
+    assert "GRANT USE SCHEMA, CREATE FUNCTION, CREATE TABLE" in setup_text
     assert 'widget("governance_service_principal_name", "")' in setup_text
 
 
@@ -302,11 +302,18 @@ def test_bootstrap_setup_validates_precreated_catalog_without_metastore_create()
     assert (
         "GRANT USE CATALOG, CREATE SCHEMA, APPLY TAG, MANAGE" in delegation_sql
     )
+    assert (
+        "GRANT USE CATALOG\nON CATALOG `<catalog-name>`\nTO "
+        "`<pipeline-service-principal-application-id>`" in delegation_sql
+    )
     assert "CREATE SCHEMA IF NOT EXISTS" not in delegation_sql
     assert "<pipeline-service-principal-application-id>" in delegation_sql
     assert "<governance-service-principal-application-id>" in delegation_sql
     assert "GRANT SELECT ON ANY FILE" in delegation_sql
     assert "SHOW GRANTS ON CATALOG `<catalog-name>`" in delegation_sql
+    assert "CREATE FUNCTION, CREATE TABLE" in setup_text
+    assert "CREATE MATERIALIZED VIEW, MODIFY, SELECT, APPLY TAG, MANAGE" in setup_text
+    assert "for schema in (SILVER_SCHEMA, GOLD_SCHEMA)" in setup_text
     assert "01_create_catalog_and_delegate.sql" in runbook_text
     assert "applicationId" in runbook_text
     assert "CREATE SCHEMA IF NOT EXISTS" in setup_text

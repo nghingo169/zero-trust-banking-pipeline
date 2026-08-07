@@ -36,7 +36,10 @@ catalog ABAC, governed tags, and a serverless SQL warehouse.
 11. Leave `pii-dq-operator` empty.
 12. Return to **Identity and access > Service principals > Manage**.
 13. Open each service principal, select **Permissions > Grant access**, add the
-    workspace owner with **Service principal: User**, and save.
+    authenticated Bundle deployer returned by `databricks current-user me`,
+    grant **Service principal: User**, and save. Repeat for both service
+    principals; workspace-admin or Service Principal Manager access does not
+    include this role automatically.
 
 Do not create workspace-local copies of the groups. Do not grant teammates
 direct permissions; they inherit access from `data-engineers`.
@@ -73,6 +76,10 @@ Open **Catalog > Govern > Governed Tags > Account Permissions** and grant
 - `MANAGE`
 - `ASSIGN`
 
+These are account-level governed-tag permissions. Catalog or schema
+`APPLY TAG` does not authorize `CREATE GOVERNED TAG`. Wait at least 30 seconds
+after saving for the permissions to propagate.
+
 Do not grant these permissions to `data-engineers` or
 `banking-pipeline-service`.
 
@@ -85,7 +92,9 @@ and copy it into Databricks SQL Editor.
 2. Replace every `<catalog-name>`.
 3. Replace both service-principal application-ID placeholders.
 4. Run the complete SQL as the workspace owner.
-5. Check the final `SHOW GRANTS` output.
+5. Check the final `SHOW GRANTS` output. Confirm the governance application ID
+   has `USE CATALOG`, `CREATE SCHEMA`, `APPLY TAG`, and `MANAGE`, and the
+   pipeline application ID has `USE CATALOG`.
 
 The SQL creates the catalog and prerequisite grants. The bootstrap Job creates
 the schemas, data grants, masking UDFs, governed tags, and ABAC policy.
@@ -147,6 +156,19 @@ git check-ignore .databricks/bundle/<bundle-target>/variable-overrides.json
 ```
 
 ### 8. Validate and deploy
+
+Confirm the authenticated deployer can use both runtime service principals:
+
+```bash
+databricks service-principals list \
+  --profile <cli-profile> \
+  --filter "permission eq 'servicePrincipal/use'" \
+  --attributes applicationId,displayName,id,active \
+  --output json
+```
+
+The result must include `banking-pipeline-service` and
+`banking-governance-service` before deployment.
 
 ```bash
 .venv/bin/pytest -q tests/pipeline/test_production_orchestration.py
