@@ -46,8 +46,10 @@ variables:
     default: gold
   pipeline_service_principal_name:
     description: Application ID of the service principal that runs the parent job and SDP pipeline.
+    default: "banking-pipeline-service"
   governance_service_principal_name:
     description: Application ID of the service principal that owns governance setup operations.
+    default: "banking-governance-service"
   data_engineer_group:
     description: Account group receiving masked Silver/Gold and redacted DQ evidence access.
     default: data-engineers
@@ -72,6 +74,7 @@ targets:
       data_engineer_group: data-engineers
       governance_admin_group: governance-admins
       pii_dq_operator_group: pii-dq-operator
+      governance_service_principal_name: "banking-governance-service"
     resources:
       pipelines:
         banking_investigation_pipeline:
@@ -86,6 +89,7 @@ targets:
     variables:
       source_mode: s3
       source_root: "s3://nab-src-dataset/banking/snapshots/simulation_id=banking-20260705-20260710/snapshot_type=full"
+      governance_service_principal_name: "banking-governance-service"
     resources:
       pipelines:
         banking_investigation_pipeline:
@@ -107,6 +111,7 @@ targets:
       data_engineer_group: data-engineers
       governance_admin_group: governance-admins
       pii_dq_operator_group: pii-dq-operator
+      governance_service_principal_name: "banking-governance-service"
     resources:
       pipelines:
         banking_investigation_pipeline:
