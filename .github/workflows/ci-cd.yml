@@ -139,7 +139,7 @@ jobs:
         uses: databricks/setup-cli@main
       
       - name: Deploy bundle
-        run: databricks bundle deploy -t dev
+        run: databricks bundle deploy -t dev --auto-approve
       
       - name: Run Integration Tests
         run: |
@@ -187,7 +187,7 @@ jobs:
         uses: databricks/setup-cli@main
       
       - name: Deploy to team
-        run: databricks bundle deploy -t team
+        run: databricks bundle deploy -t team --auto-approve
       
       - name: Notify on success
         if: success()
