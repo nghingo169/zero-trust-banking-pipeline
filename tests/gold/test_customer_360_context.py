@@ -249,7 +249,7 @@ def test_ai_customer_360_context_core_scenarios(test_spark):
             StructField("verified_date", StringType(), True),
             StructField("verification_status", StringType(), True),
             StructField("id_type", StringType(), True),
-            StructField("id_number_token", StringType(), True),
+            StructField("id_number", StringType(), True),
         ]
     )
     df_kyc = test_spark.createDataFrame(
@@ -688,7 +688,7 @@ def test_monthly_income_banding_boundaries(test_spark):
                 StructField("verified_date", StringType(), True),
                 StructField("verification_status", StringType(), True),
                 StructField("id_type", StringType(), True),
-                StructField("id_number_token", StringType(), True),
+                StructField("id_number", StringType(), True),
             ]
         ),
     )

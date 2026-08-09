@@ -24,7 +24,9 @@ def principal(value: str) -> str:
 
 CATALOG = identifier(widget("catalog", "workspace"))
 SOURCE_LANDING_SCHEMA = identifier(widget("source_landing_schema", "source_landing"))
-SOURCE_LANDING_VOLUME = identifier(widget("source_landing_volume", "source_snapshot_files"))
+SOURCE_LANDING_VOLUME = identifier(
+    widget("source_landing_volume", "source_snapshot_files")
+)
 SOURCE_MODE = widget("source_mode", "volume")
 BRONZE_SCHEMA = identifier(widget("bronze_schema", "bronze"))
 VALIDATED_SCHEMA = identifier(widget("silver_validated_schema", "silver_validated"))
@@ -71,14 +73,22 @@ elif SOURCE_MODE != "s3":
 
 ensure_governance_tables(spark, CATALOG, GOVERNANCE_SCHEMA)
 
-# The governance principal defines secure views over pipeline-owned event-log
-# and quarantine tables. Schema-level SELECT is inherited by those objects;
-# Data Engineers receive SELECT only on the redacted/aggregated views.
+# The governance principal creates the masking UDF and defines secure views over
+# pipeline-owned event-log and quarantine tables. Keep these privileges
+# explicit even though a principal that creates a schema initially owns it: an
+# existing greenfield schema can have a different owner after redeployment.
 spark.sql(f"GRANT USE CATALOG ON CATALOG {CATALOG} TO {GOVERNANCE_SP}")
 spark.sql(
-    f"GRANT USE SCHEMA, SELECT ON SCHEMA "
+    f"GRANT USE SCHEMA, CREATE FUNCTION, CREATE TABLE, "
+    f"CREATE MATERIALIZED VIEW, MODIFY, SELECT, APPLY TAG, MANAGE ON SCHEMA "
     f"{CATALOG}.{GOVERNANCE_SCHEMA} TO {GOVERNANCE_SP}"
 )
+
+# The governance-owned post-pipeline task applies governed PII tags to the
+# publication schemas. APPLY TAG is inherited from the catalog delegation;
+# these explicit usage grants allow the task to resolve those objects.
+for schema in (SILVER_SCHEMA, GOLD_SCHEMA):
+    spark.sql(f"GRANT USE SCHEMA ON SCHEMA {CATALOG}.{schema} TO {GOVERNANCE_SP}")
 
 spark.sql(f"GRANT USE CATALOG ON CATALOG {CATALOG} TO {PIPELINE_SP}")
 for schema in (
@@ -112,7 +122,13 @@ for schema in (SILVER_SCHEMA, GOLD_SCHEMA):
     spark.sql(f"GRANT SELECT ON SCHEMA {CATALOG}.{schema} TO {DATA_ENGINEERS}")
 
 spark.sql(f"GRANT USE CATALOG ON CATALOG {CATALOG} TO {PII_DQ_OPERATORS}")
-for schema in (BRONZE_SCHEMA, VALIDATED_SCHEMA, GOVERNANCE_SCHEMA, SILVER_SCHEMA, GOLD_SCHEMA):
+for schema in (
+    BRONZE_SCHEMA,
+    VALIDATED_SCHEMA,
+    GOVERNANCE_SCHEMA,
+    SILVER_SCHEMA,
+    GOLD_SCHEMA,
+):
     spark.sql(f"GRANT USE SCHEMA ON SCHEMA {CATALOG}.{schema} TO {PII_DQ_OPERATORS}")
     spark.sql(f"GRANT SELECT ON SCHEMA {CATALOG}.{schema} TO {PII_DQ_OPERATORS}")
 

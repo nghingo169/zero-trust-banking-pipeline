@@ -21,9 +21,7 @@ GOLD = widget("gold_schema", "gold")
 GOVERNANCE = widget("governance_schema", "governance")
 DATA_ENGINEER_GROUP = widget("data_engineer_group", "data-engineers")
 DATA_ENGINEERS = principal(DATA_ENGINEER_GROUP)
-EVENT_LOG_TABLE = widget(
-    "event_log_table", "banking_investigation_pipeline_event_log"
-)
+EVENT_LOG_TABLE = widget("event_log_table", "banking_investigation_pipeline_event_log")
 SOURCE_PATH = widget("source_path", "")
 
 if SOURCE_PATH and SOURCE_PATH not in sys.path:
@@ -58,8 +56,7 @@ for schema, table, column, tag_value in TAGS:
         f"SET TAGS ('pii_type' = '{tag_value}')"
     )
 
-spark.sql(
-    f"""
+spark.sql(f"""
     CREATE OR REPLACE VIEW {CATALOG}.{GOVERNANCE}.silver_quarantine_redacted_evidence AS
     SELECT
       quarantine_key,
@@ -70,8 +67,7 @@ spark.sql(
       quarantine_reason,
       quarantined_at
     FROM {CATALOG}.{GOVERNANCE}.silver_quarantine_record
-    """
-)
+    """)
 
 for object_name in (
     "pipeline_run",
@@ -93,14 +89,12 @@ for failure in monitoring_failures:
     print(f"WARNING: monitoring view setup did not complete: {failure}")
 
 expected = len(TAGS)
-actual = spark.sql(
-    f"""
+actual = spark.sql(f"""
     SELECT COUNT(*) AS tagged_columns
     FROM {CATALOG}.information_schema.column_tags
     WHERE tag_name = 'pii_type'
       AND schema_name IN ('{SILVER}', '{GOLD}')
-    """
-).first()["tagged_columns"]
+    """).first()["tagged_columns"]
 if actual < expected:
     raise RuntimeError(f"Expected at least {expected} PII tags, found {actual}")
 print(

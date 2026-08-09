@@ -84,14 +84,16 @@ def get_pipeline_run_id(df) -> F.Column:
         F,
         df,
         catalog=get_catalog(),
-        governance_schema=spark.conf.get("pipeline.governance_schema", "governance")
-        if "pytest" not in sys.modules
-        else "governance",
-        pipeline_name=spark.conf.get(
-            "pipeline.pipeline_name", CANONICAL_PIPELINE_NAME
-        )
-        if "pytest" not in sys.modules
-        else CANONICAL_PIPELINE_NAME,
+        governance_schema=(
+            spark.conf.get("pipeline.governance_schema", "governance")
+            if "pytest" not in sys.modules
+            else "governance"
+        ),
+        pipeline_name=(
+            spark.conf.get("pipeline.pipeline_name", CANONICAL_PIPELINE_NAME)
+            if "pytest" not in sys.modules
+            else CANONICAL_PIPELINE_NAME
+        ),
     )
 
 
@@ -102,7 +104,7 @@ SOURCE_SYSTEM_PREFIX_MAP = {"CB": "CORE_BANKING", "CRM": "CRM"}
 
 
 def get_source_system(ref_col) -> F.Column:
-    """customer_ref/cust_no/party_id are polymorphic (CB-xxxx vs CRM-xxx), 
+    """customer_ref/cust_no/party_id are polymorphic (CB-xxxx vs CRM-xxx),
     so the party_key literal prefix must be derived the same way everywhere."""
     if isinstance(ref_col, str):
         ref_col = F.col(ref_col)
@@ -376,10 +378,8 @@ def silver_gateway_payment():
         hash_key(
             F.lit("payment_gateway"), F.lit("GATEWAY_PAYMENT"), "gateway_txn_id"
         ).alias("financial_event_key"),
-        
         # Rule 1.16 Narratives/Description/Comments: Lưu dữ liệu tham chiếu thanh toán sạch nguyên bản
         F.col("payment_ref").alias("payment_reference"),
-        
         F.col("payment_method"),
         hash_key(F.lit("merchant_system"), "merchant_id").alias("merchant_key"),
         F.col("amount").cast("decimal(12,2)").alias("amount"),

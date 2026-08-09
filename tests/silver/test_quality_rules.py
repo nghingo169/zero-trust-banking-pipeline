@@ -90,7 +90,9 @@ class QualityRulesTests(unittest.TestCase):
             "NOT(COALESCE(({0}), FALSE))".format(" AND ".join(rules.values())),
         )
 
-    def test_tables_without_row_level_rules_have_a_non_quarantining_predicate(self) -> None:
+    def test_tables_without_row_level_rules_have_a_non_quarantining_predicate(
+        self,
+    ) -> None:
         self.assertEqual(get_rules_or_empty("watchlist"), {})
         self.assertEqual(get_quarantine_condition("watchlist"), "FALSE")
 
@@ -235,7 +237,9 @@ class QualityRulesTests(unittest.TestCase):
         ).read_text()
         self.assertIn("def quarantine_events(", source)
         self.assertIn("ASSESSMENT_VIEWS[(domain, table_name)]", source)
-        self.assertIn('name=qualified(GOVERNANCE_SCHEMA, "silver_quarantine_record")', source)
+        self.assertIn(
+            'name=qualified(GOVERNANCE_SCHEMA, "silver_quarantine_record")', source
+        )
         self.assertIn("for domain in DOMAINS", source)
         self.assertIn("quarantine_events(domain, table_name, business_key)", source)
 

@@ -22,7 +22,7 @@ SELECT
     AS kyc_assessment_key,
   r.candidate_party_key AS party_key,
   k.id_type,
-  sha2(concat('ID_NUMBER|', k.id_number), 256) AS id_number_token,
+  sha2(concat('ID_NUMBER|', k.id_number), 256) AS id_number,
   k.verification_status,
   k.verified_date,
   'KYC' AS source_system,

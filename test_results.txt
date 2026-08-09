@@ -1,0 +1,115 @@
+2026-08-09 18:59:13 [INFO] Databricks SparkSession injected and config getter safely patched.
+2026-08-09 18:59:13 [INFO] =================================================================
+2026-08-09 18:59:13 [INFO] AUTOMATED PIPELINE UNIT & INTEGRATION TEST SUITE
+2026-08-09 18:59:13 [INFO] Project Root : C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline
+2026-08-09 18:59:13 [INFO] Source directory   : C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline\src
+2026-08-09 18:59:13 [INFO] Target layer : ['bronze', 'gold', 'pipeline', 'silver']
+2026-08-09 18:59:13 [INFO] =================================================================
+============================= test session starts =============================
+platform win32 -- Python 3.12.0, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline\.venv\Scripts\python.exe
+rootdir: C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline
+collecting ... collected 90 items
+
+tests/bronze/test_bronze.py::test_schema_hints_cast_columns_to_correct_types_and_values PASSED [  1%]
+tests/bronze/test_bronze.py::test_schema_hints_skip_columns_not_present_on_the_df PASSED [  2%]
+tests/bronze/test_bronze.py::test_schema_hints_empty_string_is_a_no_op PASSED [  3%]
+tests/bronze/test_bronze.py::test_schema_hints_malformed_value_casts_to_null_rather_than_raising PASSED [  4%]
+tests/bronze/test_bronze.py::test_source_contract_adds_typed_null_for_pre_evolution_crm_snapshot PASSED [  5%]
+tests/bronze/test_bronze.py::test_source_contract_preserves_post_evolution_crm_value PASSED [  6%]
+tests/bronze/test_bronze.py::test_source_contract_is_versioned_optional_and_table_scoped PASSED [  7%]
+tests/bronze/test_bronze.py::test_derived_event_keys_only_apply_to_payment_gateway_status_event PASSED [  8%]
+tests/bronze/test_bronze.py::test_derived_event_keys_resolve_the_parent_reference_correctly[42-None-ACCOUNT:42] PASSED [ 10%]
+tests/bronze/test_bronze.py::test_derived_event_keys_resolve_the_parent_reference_correctly[None-99-CARD:99] PASSED [ 11%]
+tests/bronze/test_bronze.py::test_derived_event_keys_resolve_the_parent_reference_correctly[42-99-ACCOUNT:42] PASSED [ 12%]
+tests/bronze/test_bronze.py::test_derived_event_keys_resolve_the_parent_reference_correctly[None-None-<MISSING_PARENT>] PASSED [ 13%]
+tests/bronze/test_bronze.py::test_dedup_only_applies_to_account_transaction_status_event PASSED [ 14%]
+tests/bronze/test_bronze.py::test_dedup_leaves_every_other_table_untouched PASSED [ 15%]
+tests/bronze/test_bronze.py::test_metadata_adds_all_technical_columns_and_drops_layout_only_ones PASSED [ 16%]
+tests/bronze/test_bronze.py::test_metadata_business_date_domain_and_timestamps_are_correct PASSED [ 17%]
+tests/bronze/test_bronze.py::test_metadata_requires_a_file_backed_dataframe PASSED [ 18%]
+tests/bronze/test_bronze.py::test_business_dates_are_parsed_deduped_and_sorted PASSED [ 20%]
+tests/bronze/test_bronze.py::test_business_dates_result_is_cached PASSED [ 21%]
+tests/bronze/test_bronze.py::test_business_dates_listing_failure_raises_a_helpful_error PASSED [ 22%]
+tests/bronze/test_bronze.py::test_watermark_first_run_returns_the_earliest_snapshot PASSED [ 23%]
+tests/bronze/test_bronze.py::test_watermark_only_advances_to_snapshots_newer_than_the_current_one PASSED [ 24%]
+tests/bronze/test_bronze.py::test_watermark_returns_none_when_fully_caught_up PASSED [ 25%]
+tests/gold/test_ai_aml_investigation_context.py::test_ai_aml_investigation_context_aggregations_and_dq_status PASSED [ 26%]
+tests/gold/test_customer_360_context.py::test_ai_customer_360_context_core_scenarios PASSED [ 27%]
+tests/gold/test_customer_360_context.py::test_monthly_income_banding_boundaries PASSED [ 28%]
+tests/gold/test_fraud_transaction_context.py::test_ai_fraud_transaction_context_core_scenarios PASSED [ 30%]
+tests/gold/test_fraud_transaction_context.py::test_merchant_max_store_risk_ordering PASSED [ 31%]
+tests/pipeline/test_production_orchestration.py::test_active_context_sql_fails_closed_for_missing_or_ambiguous_contexts PASSED [ 32%]
+tests/pipeline/test_production_orchestration.py::test_active_context_rejects_invalid_non_default_catalogs[] PASSED [ 33%]
+tests/pipeline/test_production_orchestration.py::test_active_context_rejects_invalid_non_default_catalogs[workspace; DROP CATALOG workspace] PASSED [ 34%]
+tests/pipeline/test_production_orchestration.py::test_no_random_lineage_uuid_or_legacy_pipeline_lookup_remains PASSED [ 35%]
+tests/pipeline/test_production_orchestration.py::test_quarantine_resolves_the_same_canonical_active_run_context PASSED [ 36%]
+tests/pipeline/test_production_orchestration.py::test_silver_and_gold_keep_the_pipeline_run_lineage_column PASSED [ 37%]
+tests/pipeline/test_production_orchestration.py::test_bundle_has_one_physical_sdp_and_one_parent_pipeline_task PASSED [ 38%]
+tests/pipeline/test_production_orchestration.py::test_bootstrap_and_recurring_jobs_are_separate_entry_points PASSED [ 40%]
+tests/pipeline/test_production_orchestration.py::test_recurring_job_has_no_post_pipeline_layer_audit_tasks PASSED [ 41%]
+tests/pipeline/test_production_orchestration.py::test_native_event_log_views_supply_dashboard_monitoring_without_raw_access PASSED [ 42%]
+tests/pipeline/test_production_orchestration.py::test_monitoring_view_setup_failures_are_non_gating PASSED [ 43%]
+tests/pipeline/test_production_orchestration.py::test_abac_exceptions_and_run_as_are_variable_driven_without_personal_email PASSED [ 44%]
+tests/pipeline/test_production_orchestration.py::test_staging_target_preserves_existing_deployment_identity_and_s3_secrets PASSED [ 45%]
+tests/pipeline/test_production_orchestration.py::test_bootstrap_setup_validates_precreated_catalog_without_metastore_create PASSED [ 46%]
+tests/pipeline/test_production_orchestration.py::test_native_sdp_identity_and_national_id_masking_are_configured PASSED [ 47%]
+tests/pipeline/test_production_orchestration.py::test_crm_schema_evolution_is_optional_versioned_and_silver_safe PASSED [ 48%]
+tests/silver/test_card_transformation.py::test_hash_key_generation PASSED [ 50%]
+tests/silver/test_card_transformation.py::test_tokenize_pii PASSED       [ 51%]
+tests/silver/test_card_transformation.py::test_get_pipeline_run_id_existing_column PASSED [ 52%]
+tests/silver/test_card_transformation.py::test_build_account PASSED      [ 53%]
+tests/silver/test_card_transformation.py::test_build_payment_card PASSED [ 54%]
+tests/silver/test_card_transformation.py::test_build_party_account_role PASSED [ 55%]
+tests/silver/test_card_transformation.py::test_build_payment_card_limit_history PASSED [ 56%]
+tests/silver/test_card_transformation.py::test_build_merchant_and_location PASSED [ 57%]
+tests/silver/test_customer_transformation.py::test_hash_key_generation PASSED [ 58%]
+tests/silver/test_customer_transformation.py::test_tokenize_pii PASSED   [ 60%]
+tests/silver/test_customer_transformation.py::test_get_source_system PASSED [ 61%]
+tests/silver/test_customer_transformation.py::test_resolve_party_status PASSED [ 62%]
+tests/silver/test_customer_transformation.py::test_build_party PASSED    [ 63%]
+tests/silver/test_customer_transformation.py::test_build_party_identifier PASSED [ 64%]
+tests/silver/test_customer_transformation.py::test_build_party_identity_resolution PASSED [ 65%]
+tests/silver/test_customer_transformation.py::test_build_party_profile_version PASSED [ 66%]
+tests/silver/test_customer_transformation.py::test_build_party_kyc_employment_service_request PASSED [ 67%]
+tests/silver/test_fincrime_transformation.py::test_hash_key_generation PASSED [ 68%]
+tests/silver/test_fincrime_transformation.py::test_get_pipeline_run_id_existing_column PASSED [ 70%]
+tests/silver/test_fincrime_transformation.py::test_silver_financial_event_risk_score PASSED [ 71%]
+tests/silver/test_fincrime_transformation.py::test_silver_fraud_alert_and_link PASSED [ 72%]
+tests/silver/test_fincrime_transformation.py::test_silver_monitoring_alert_financial_event_union PASSED [ 73%]
+tests/silver/test_fincrime_transformation.py::test_silver_investigation_case_and_note PASSED [ 74%]
+tests/silver/test_fincrime_transformation.py::test_silver_call_center_contact_pii_masking PASSED [ 75%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_all_assessment_views_feed_one_shared_quarantine_table PASSED [ 76%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_all_required_card_columns_have_not_null_rules PASSED [ 77%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_assessment_views_publish_native_expectation_metrics PASSED [ 78%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_card_rules_are_isolated_in_the_card_domain_module PASSED [ 80%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_card_rules_are_lakeflow_expectation_dictionary PASSED [ 81%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_catalog_sentinel_rules_match_card_error_injection PASSED [ 82%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_customer_transaction_and_fincrime_injections_have_quarantine_rules PASSED [ 83%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_every_catalog_quarantine_table_is_covered_by_its_domain_registry PASSED [ 84%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_non_quarantine_catalog_handling_is_not_a_row_quarantine_rule PASSED [ 85%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_quality_pipelines_use_cdf_for_quarantine_history PASSED [ 86%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_quarantine_condition_matches_databricks_pattern PASSED [ 87%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_silver_validation_imports_the_shared_rule_module PASSED [ 88%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_silver_validation_quarantines_null_rule_evaluations PASSED [ 90%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_silver_validation_retains_scd2_history PASSED [ 91%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_tables_without_row_level_rules_have_a_non_quarantining_predicate PASSED [ 92%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_unknown_table_is_rejected PASSED [ 93%]
+tests/silver/test_transaction_transformation.py::test_hash_key_generation PASSED [ 94%]
+tests/silver/test_transaction_transformation.py::test_get_currency_col PASSED [ 95%]
+tests/silver/test_transaction_transformation.py::test_get_pipeline_run_id_existing_column PASSED [ 96%]
+tests/silver/test_transaction_transformation.py::test_silver_financial_event_header_union PASSED [ 97%]
+tests/silver/test_transaction_transformation.py::test_extension_tables_builders PASSED [ 98%]
+tests/silver/test_transaction_transformation.py::test_silver_financial_event_status_history_union PASSED [100%]2026-08-09 19:09:16 [INFO] All Pipeline Unit Tests Passed Successfully!
+
+
+============================== warnings summary ===============================
+tests\silver\test_card_transformation.py:216
+  C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline\tests\silver\test_card_transformation.py:216: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 90 passed, 1 warning in 602.92s (0:10:02) ==================
+2026-08-09 19:09:16 [INFO] Closing down clientserver connection
+SUCCESS: The process with PID 15108 (child process of PID 22960) has been terminated.
+SUCCESS: The process with PID 22960 (child process of PID 17908) has been terminated.
+SUCCESS: The process with PID 17908 (child process of PID 24916) has been terminated.

@@ -65,8 +65,7 @@ def test_quarantine_resolves_the_same_canonical_active_run_context():
     assert "pipeline_run_id_column(" in content
     assert "pipeline_name=PIPELINE_NAME" in content
     monitoring_sources = "\n".join(
-        read(path)
-        for path in (ROOT / "src" / "pipeline" / "monitoring").glob("*.py")
+        read(path) for path in (ROOT / "src" / "pipeline" / "monitoring").glob("*.py")
     )
     assert "WHERE pipeline_run_id IS NULL" not in monitoring_sources
 
@@ -146,8 +145,7 @@ def test_bootstrap_and_recurring_jobs_are_separate_entry_points():
     )
     assert "job_id: ${resources.jobs.apply_and_verify_pii_tags.id}" in recurring_text
     assert (
-        "service_principal_name: ${var.governance_service_principal_name}"
-        in tag_text
+        "service_principal_name: ${var.governance_service_principal_name}" in tag_text
     )
     assert "group_name: ${var.data_engineer_group}" not in bootstrap_text
     assert "group_name: ${var.data_engineer_group}" not in tag_text
@@ -198,12 +196,14 @@ def test_native_event_log_views_supply_dashboard_monitoring_without_raw_access()
         "monitoring_rule_metrics",
     }
     assert "event_type = 'update_progress'" in statements["monitoring_pipeline_updates"]
-    assert "details:flow_progress.metrics.num_output_rows" in statements[
-        "monitoring_table_metrics"
-    ]
-    assert "details:flow_progress.data_quality.dropped_records" in statements[
-        "monitoring_table_metrics"
-    ]
+    assert (
+        "details:flow_progress.metrics.num_output_rows"
+        in statements["monitoring_table_metrics"]
+    )
+    assert (
+        "details:flow_progress.data_quality.dropped_records"
+        in statements["monitoring_table_metrics"]
+    )
     assert "SILVER_QUARANTINE" in statements["monitoring_rule_metrics"]
     assert "quarantine_data_payload" not in statements["monitoring_rule_metrics"]
 
@@ -219,7 +219,7 @@ def test_native_event_log_views_supply_dashboard_monitoring_without_raw_access()
     assert "create_monitoring_views(" in tag_text
     assert "monitoring view setup did not complete" in tag_text
     assert "banking_investigation_pipeline_event_log" not in setup_text
-    assert "GRANT USE SCHEMA, SELECT ON SCHEMA" in setup_text
+    assert "GRANT USE SCHEMA, CREATE FUNCTION, CREATE TABLE" in setup_text
     assert 'widget("governance_service_principal_name", "")' in setup_text
 
 
@@ -299,20 +299,23 @@ def test_bootstrap_setup_validates_precreated_catalog_without_metastore_create()
     assert "CREATE CATALOG IF NOT EXISTS" not in setup_text
     assert "catalog bootstrap" in setup_text
     assert "CREATE CATALOG IF NOT EXISTS `<catalog-name>`" in delegation_sql
+    assert "GRANT USE CATALOG, CREATE SCHEMA, APPLY TAG, MANAGE" in delegation_sql
     assert (
-        "GRANT USE CATALOG, CREATE SCHEMA, APPLY TAG, MANAGE" in delegation_sql
+        "GRANT USE CATALOG\nON CATALOG `<catalog-name>`\nTO "
+        "`<pipeline-service-principal-application-id>`" in delegation_sql
     )
     assert "CREATE SCHEMA IF NOT EXISTS" not in delegation_sql
     assert "<pipeline-service-principal-application-id>" in delegation_sql
     assert "<governance-service-principal-application-id>" in delegation_sql
     assert "GRANT SELECT ON ANY FILE" in delegation_sql
     assert "SHOW GRANTS ON CATALOG `<catalog-name>`" in delegation_sql
+    assert "CREATE FUNCTION, CREATE TABLE" in setup_text
+    assert "CREATE MATERIALIZED VIEW, MODIFY, SELECT, APPLY TAG, MANAGE" in setup_text
+    assert "for schema in (SILVER_SCHEMA, GOLD_SCHEMA)" in setup_text
     assert "01_create_catalog_and_delegate.sql" in runbook_text
     assert "applicationId" in runbook_text
     assert "CREATE SCHEMA IF NOT EXISTS" in setup_text
-    assert not (
-        ROOT / "sql" / "infrastructure" / "01_workspace_bootstrap.sql"
-    ).exists()
+    assert not (ROOT / "sql" / "infrastructure" / "01_workspace_bootstrap.sql").exists()
 
 
 def test_native_sdp_identity_and_national_id_masking_are_configured():

@@ -76,7 +76,6 @@ class TestRunner:
                         val = _orig_conf_get(key, default)
                         return val if val is not None else default
                     except Exception:
-                        # Fallback defaults cho các biến pipeline
                         defaults_map = {
                             "pipeline.catalog": "workspace",
                             "pipeline.bronze_schema": "bronze",
@@ -85,8 +84,15 @@ class TestRunner:
                             "pipeline.silver_schema": "silver",
                             "pipeline.gold_schema": "gold",
                             "pipeline.quality_rules_path": ".",
+                            "spark.sql.stackTracesInDataFrameContext": "1",
                         }
-                        return defaults_map.get(key, default)
+                        res = defaults_map.get(key, default)
+                        return (
+                            "1"
+                            if key == "spark.sql.stackTracesInDataFrameContext"
+                            and res is None
+                            else res
+                        )
 
                 builtins.spark.conf.get = _safe_conf_get
 
@@ -104,10 +110,26 @@ class TestRunner:
             pyspark.pipelines = pipelines_mock
             sys.modules["pyspark.pipelines"] = pipelines_mock
 
+        # Bổ sung vào _inject_spark_and_mocks() trong tests/run_unit_tests.py
         if "dlt" not in sys.modules:
             dlt_mock = ModuleType("dlt")
-            dlt_mock.table = lambda *args, **kwargs: (lambda func: func)
-            dlt_mock.temporary_view = lambda *args, **kwargs: (lambda func: func)
+            noop_decorator = lambda *args, **kwargs: (lambda func: func)
+
+            dlt_mock.table = noop_decorator
+            dlt_mock.temporary_view = noop_decorator
+
+            # Mock DLT Expectations & Data Quality
+            dlt_mock.expect = noop_decorator
+            dlt_mock.expect_or_drop = noop_decorator
+            dlt_mock.expect_or_fail = noop_decorator
+            dlt_mock.expect_all = noop_decorator
+            dlt_mock.expect_all_or_drop = noop_decorator
+            dlt_mock.expect_all_or_fail = noop_decorator
+
+            # Mock DLT Readers
+            dlt_mock.read = lambda *args, **kwargs: None
+            dlt_mock.read_stream = lambda *args, **kwargs: None
+
             sys.modules["dlt"] = dlt_mock
 
     def _configure_python_path(self) -> None:

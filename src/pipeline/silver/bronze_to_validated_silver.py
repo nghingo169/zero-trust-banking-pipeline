@@ -20,12 +20,12 @@ RULE_PATH = spark.conf.get("pipeline.quality_rules_path")
 if RULE_PATH not in sys.path:
     sys.path.insert(0, RULE_PATH)
 
-from data_contracts.table_catalog import DOMAINS, tables
+from data_contracts.normalization import normalize
 from data_contracts.quality_rules.registry import (
     get_quarantine_condition,
     get_rules_or_empty,
 )
-from data_contracts.normalization import normalize
+from data_contracts.table_catalog import DOMAINS, tables
 from pipeline.run_context import (
     CANONICAL_PIPELINE_NAME,
     pipeline_run_id_column,

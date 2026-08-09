@@ -77,14 +77,16 @@ def get_pipeline_run_id(df) -> F.Column:
         F,
         df,
         catalog=get_catalog(),
-        governance_schema=spark.conf.get("pipeline.governance_schema", "governance")
-        if "pytest" not in sys.modules
-        else "governance",
-        pipeline_name=spark.conf.get(
-            "pipeline.pipeline_name", CANONICAL_PIPELINE_NAME
-        )
-        if "pytest" not in sys.modules
-        else CANONICAL_PIPELINE_NAME,
+        governance_schema=(
+            spark.conf.get("pipeline.governance_schema", "governance")
+            if "pytest" not in sys.modules
+            else "governance"
+        ),
+        pipeline_name=(
+            spark.conf.get("pipeline.pipeline_name", CANONICAL_PIPELINE_NAME)
+            if "pytest" not in sys.modules
+            else CANONICAL_PIPELINE_NAME
+        ),
     )
 
 
@@ -136,13 +138,16 @@ def silver_fraud_alert():
         F.col("alert_status"),
         F.col("created_date").cast("timestamp").alias("created_at"),
         F.lit("fincrime").alias("source_system"),
-        F.col("alert_id").cast("string").alias("source_business_key"), # <--- ĐÃ SỬA THÀNH alert_id
+        F.col("alert_id")
+        .cast("string")
+        .alias("source_business_key"),  # <--- ĐÃ SỬA THÀNH alert_id
         F.concat_ws(":", F.lit("fraud_alert"), F.col("alert_id")).alias(
             "bronze_record_ref"
         ),
         get_pipeline_run_id(df).alias("pipeline_run_id"),
         F.current_timestamp().alias("ingested_at"),
     )
+
 
 @dp.table(name=atomic_tgt("financial_event_fraud_alert"))
 def silver_financial_event_fraud_alert():
@@ -391,10 +396,8 @@ def silver_investigation_note():
         .cast("timestamp")
         .alias("source_arrival_timestamp"),
         F.col("note_type"),
-        
         # Rule 1.16 Narratives/Description/Comments: Lưu dữ liệu sạch nguyên bản
         F.col("note_text"),
-        
         F.lit("fincrime").alias("source_system"),
         F.col("note_id").cast("string").alias("source_business_key"),
         F.concat_ws(":", F.lit("investigation_note"), F.col("note_id")).alias(
@@ -438,10 +441,8 @@ def silver_watchlist_entry():
             "watchlist_entry_key"
         ),
         F.col("watchlist_id").cast("string").alias("source_watchlist_id"),
-        
         # Rule 1.2 Individual Name / Rule 1.3 Organization Names
         F.col("entity_name"),
-        
         F.col("list_type"),
         F.col("country"),
         F.col("added_date").cast("date").alias("added_date"),
@@ -468,10 +469,8 @@ def silver_sanctions_screening():
         hash_key(F.lit("fincrime"), F.lit("watchlist"), "watchlist_id").alias(
             "watchlist_entry_key"
         ),
-        
         # Rule 1.2 Individual Name
         F.col("screened_name"),
-        
         F.col("match_score").cast("decimal(5,2)").alias("match_score"),
         F.col("screening_date").cast("date").alias("screening_date"),
         F.col("result").alias("screening_result"),
@@ -619,15 +618,13 @@ def silver_call_center_contact():
         hash_key(F.lit("fincrime"), F.lit("investigation_case"), "case_id").alias(
             "investigation_case_key"
         ),
-        
         # Rule 1.12 Phone Number: Lưu dữ liệu sạch nguyên bản
-        F.coalesce(F.col("caller_phone"), F.lit("")).cast("string").alias("caller_phone"),
-        
+        F.coalesce(F.col("caller_phone"), F.lit(""))
+        .cast("string")
+        .alias("caller_phone"),
         F.col("call_timestamp").cast("timestamp").alias("call_timestamp"),
-        
         # Rule 1.16 Narratives/Description/Comments
         F.col("call_reason"),
-        
         F.col("agent_id"),
         F.col("call_duration_seconds").cast("bigint").alias("call_duration_seconds"),
         F.lit("fincrime").alias("source_system"),
