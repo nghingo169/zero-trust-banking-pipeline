@@ -108,14 +108,16 @@ def get_pipeline_run_id(df) -> F.Column:
         F,
         df,
         catalog=get_catalog(),
-        governance_schema=spark.conf.get("pipeline.governance_schema", "governance")
-        if "pytest" not in sys.modules
-        else "governance",
-        pipeline_name=spark.conf.get(
-            "pipeline.pipeline_name", CANONICAL_PIPELINE_NAME
-        )
-        if "pytest" not in sys.modules
-        else CANONICAL_PIPELINE_NAME,
+        governance_schema=(
+            spark.conf.get("pipeline.governance_schema", "governance")
+            if "pytest" not in sys.modules
+            else "governance"
+        ),
+        pipeline_name=(
+            spark.conf.get("pipeline.pipeline_name", CANONICAL_PIPELINE_NAME)
+            if "pytest" not in sys.modules
+            else CANONICAL_PIPELINE_NAME
+        ),
     )
 
 
@@ -166,10 +168,8 @@ def _build_payment_card(df):
         hash_key(F.lit("card_system"), "card_id").alias("payment_card_key"),
         F.col("card_id").cast("string").alias("source_card_id"),
         hash_key(F.lit("core_banking"), "account_id").alias("account_key"),
-        
         # Rule 1.15 Card Number: Lưu dữ liệu sạch nguyên bản
         F.col("card_number").cast("string").alias("card_number"),
-        
         F.col("card_type"),
         F.col("issue_date").cast("date").alias("issue_date"),
         F.col("expiry_date").cast("date").alias("expiry_date"),
@@ -252,13 +252,11 @@ def _build_merchant_location(df):
         ),
         hash_key(F.lit("merchant_system"), "merchant_id").alias("merchant_key"),
         F.col("store_id").cast("string").alias("source_store_id"),
-        
         # Rule 1.30 Store Name & Rule 1.11 Address: Lưu dữ liệu sạch nguyên bản
         F.col("store_name"),
         F.col("store_description"),
         F.col("store_type"),
         F.col("store_address"),
-        
         F.col("risk_rating"),
         F.col("registered_date").cast("date").alias("registered_date"),
         F.lit("merchant_system").alias("source_system"),

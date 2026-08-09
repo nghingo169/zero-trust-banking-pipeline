@@ -87,7 +87,12 @@ class TestRunner:
                             "spark.sql.stackTracesInDataFrameContext": "1",
                         }
                         res = defaults_map.get(key, default)
-                        return "1" if key == "spark.sql.stackTracesInDataFrameContext" and res is None else res
+                        return (
+                            "1"
+                            if key == "spark.sql.stackTracesInDataFrameContext"
+                            and res is None
+                            else res
+                        )
 
                 builtins.spark.conf.get = _safe_conf_get
 
@@ -109,10 +114,10 @@ class TestRunner:
         if "dlt" not in sys.modules:
             dlt_mock = ModuleType("dlt")
             noop_decorator = lambda *args, **kwargs: (lambda func: func)
-            
+
             dlt_mock.table = noop_decorator
             dlt_mock.temporary_view = noop_decorator
-            
+
             # Mock DLT Expectations & Data Quality
             dlt_mock.expect = noop_decorator
             dlt_mock.expect_or_drop = noop_decorator
@@ -120,11 +125,11 @@ class TestRunner:
             dlt_mock.expect_all = noop_decorator
             dlt_mock.expect_all_or_drop = noop_decorator
             dlt_mock.expect_all_or_fail = noop_decorator
-            
+
             # Mock DLT Readers
             dlt_mock.read = lambda *args, **kwargs: None
             dlt_mock.read_stream = lambda *args, **kwargs: None
-            
+
             sys.modules["dlt"] = dlt_mock
 
     def _configure_python_path(self) -> None:

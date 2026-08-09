@@ -99,9 +99,11 @@ def test_spark():
 import card_transformation
 
 if not hasattr(card_transformation, "tokenize_pii"):
+
     def _mock_tokenize_pii(col_or_name):
         c = F.col(col_or_name) if isinstance(col_or_name, str) else col_or_name
         return F.sha2(F.trim(c.cast("string")), 256)
+
     card_transformation.tokenize_pii = _mock_tokenize_pii
 
 
@@ -122,7 +124,9 @@ def test_hash_key_generation(test_spark):
     hashes = [r.key_hash for r in result_df.collect()]
 
     assert len(hashes[0]) == 64, "SHA-256 output must be 64 hexadecimal characters"
-    assert hashes[0] == hashes[1], "Trimming whitespace must produce identical hash values"
+    assert (
+        hashes[0] == hashes[1]
+    ), "Trimming whitespace must produce identical hash values"
 
 
 def test_tokenize_pii(test_spark):
@@ -211,6 +215,7 @@ def test_build_payment_card(test_spark):
     assert len(row.payment_card_key) == 64
     assert row.card_number == "4532015112830366"
     assert row.source_system == "card_system"
+
 
 def test_build_payment_card_limit_history(test_spark):
     """Verify _build_payment_card_limit_history casts limit_amount to Decimal(12,2)."""

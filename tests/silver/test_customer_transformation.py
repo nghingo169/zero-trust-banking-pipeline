@@ -103,9 +103,11 @@ import customer_transformation
 
 # Dynamic monkeypatch nếu module source chưa có hàm tokenize_pii
 if not hasattr(customer_transformation, "tokenize_pii"):
+
     def _mock_tokenize_pii(col_or_name):
         c = F.col(col_or_name) if isinstance(col_or_name, str) else col_or_name
         return F.sha2(F.trim(c.cast("string")), 256)
+
     customer_transformation.tokenize_pii = _mock_tokenize_pii
 
 # ==============================================================================
@@ -318,7 +320,18 @@ def test_build_party_profile_version(test_spark):
         ]
     )
     df_cb = test_spark.createDataFrame(
-        [("CB-101", "John Doe", "1990-01-01", "123 Main St", "2026-07-01", None, "RUN_01")], schema_cb
+        [
+            (
+                "CB-101",
+                "John Doe",
+                "1990-01-01",
+                "123 Main St",
+                "2026-07-01",
+                None,
+                "RUN_01",
+            )
+        ],
+        schema_cb,
     )
 
     schema_crm = StructType(
@@ -349,7 +362,12 @@ def test_build_party_profile_version(test_spark):
 
         assert len(rows) == 2, f"Expected 2 profile rows, got {len(rows)}"
         cols = set(res_df.columns)
-        assert {"party_profile_version_key", "party_key", "full_name", "is_current"}.issubset(cols)
+        assert {
+            "party_profile_version_key",
+            "party_key",
+            "full_name",
+            "is_current",
+        }.issubset(cols)
 
 
 def test_build_party_kyc_employment_service_request(test_spark):

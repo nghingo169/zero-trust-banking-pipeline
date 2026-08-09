@@ -41,7 +41,8 @@ def ensure_governance_tables(
             spark.sql(
                 f"ALTER TABLE {pipeline_run_table} ADD COLUMNS ({column_name} STRING)"
             )
-    spark.sql(f"""CREATE TABLE IF NOT EXISTS {_table(catalog, 'pii_masking_log', governance_schema)} (
+    spark.sql(
+        f"""CREATE TABLE IF NOT EXISTS {_table(catalog, 'pii_masking_log', governance_schema)} (
             audit_id STRING,
             pipeline_run_id STRING,
             target_table_name STRING,
@@ -49,4 +50,5 @@ def ensure_governance_tables(
             masking_policy STRING,
             records_transformed BIGINT,
             executed_at TIMESTAMP
-        ) USING DELTA""")
+        ) USING DELTA"""
+    )

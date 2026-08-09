@@ -34,9 +34,7 @@ elif SOURCE_MODE == "volume":
         "pipeline.source_root", "/Volumes/main/default/landing"
     ).rstrip("/")
 elif SOURCE_MODE == "memory":
-    SOURCE_ROOT = safe_conf_get(
-        "pipeline.source_root", "memory://landing"
-    ).rstrip("/")
+    SOURCE_ROOT = safe_conf_get("pipeline.source_root", "memory://landing").rstrip("/")
 else:
     raise ValueError("pipeline.source_mode must be 's3', 'volume', or 'memory'.")
 
@@ -467,14 +465,14 @@ def add_operational_metadata(
 
 
 def read_snapshot_dataframe(path: str) -> DataFrame:
-    """Helper đọc Snapshot DataFrame: 
+    """Helper đọc Snapshot DataFrame:
     Nếu mode 'memory' (In-Memory Testing) -> đọc từ Spark Temp View trong RAM.
     Ngược lại ('s3'/'volume') -> đọc Parquet thực tế trên S3/Volume.
     """
     if SOURCE_MODE == "memory":
         view_name = "view_" + re.sub(r"[^a-zA-Z0-9_]", "_", path)
         return spark.table(view_name)
-    
+
     return spark.read.option("mergeSchema", "true").parquet(path)
 
 
@@ -541,7 +539,7 @@ def build_snapshot_flow(
 
             except Exception as error:
                 if (
-                    "PATH_NOT_FOUND" in str(error) 
+                    "PATH_NOT_FOUND" in str(error)
                     or "not found" in str(error).lower()
                     or "Table or view not found" in str(error)
                 ):

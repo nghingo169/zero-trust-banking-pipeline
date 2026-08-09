@@ -1,9 +1,11 @@
 """
 Pytest configuration and fixtures for pipeline tests.
 """
+
 import os
 import sys
 from pathlib import Path
+
 import pytest
 from pyspark.sql import SparkSession
 
@@ -29,6 +31,7 @@ for p in paths_to_inject:
 
 # tests/conftest.py
 
+
 @pytest.fixture(scope="session")
 def spark():
     """Khởi tạo Spark Session Local In-Memory nhẹ nhàng."""
@@ -50,6 +53,7 @@ def spark():
     )
     session.conf.set("spark.sql.stackTracesInDataFrameContext", "1")
     return session
+
 
 @pytest.fixture(scope="session")
 def test_catalog():

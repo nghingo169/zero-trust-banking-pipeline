@@ -33,18 +33,15 @@ run_id = literal(RUN_ID)
 pipeline_name = literal(PIPELINE_NAME)
 business_date = literal(BUSINESS_DATE)
 
-spark.sql(
-    f"""
+spark.sql(f"""
     UPDATE {table}
     SET execution_status = 'ABANDONED', end_time = current_timestamp()
     WHERE pipeline_name = '{pipeline_name}'
       AND execution_status = 'RUNNING'
       AND pipeline_run_id <> '{run_id}'
-    """
-)
+    """)
 
-spark.sql(
-    f"""
+spark.sql(f"""
     MERGE INTO {table} AS target
     USING (
       SELECT
@@ -75,16 +72,13 @@ spark.sql(
       source.business_date, source.start_time, source.end_time,
       source.execution_status, source.pipeline_update_id, source.pipeline_id
     )
-    """
-)
+    """)
 
-active_count = spark.sql(
-    f"""
+active_count = spark.sql(f"""
     SELECT COUNT(*) AS active_count
     FROM {table}
     WHERE pipeline_name = '{pipeline_name}' AND execution_status = 'RUNNING'
-    """
-).first()["active_count"]
+    """).first()["active_count"]
 if active_count != 1:
     raise RuntimeError(f"Expected exactly one active run context, found {active_count}")
 print(f"Initialized RUNNING context {RUN_ID} for {PIPELINE_NAME}.")

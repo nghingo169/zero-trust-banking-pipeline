@@ -24,7 +24,9 @@ def principal(value: str) -> str:
 
 CATALOG = identifier(widget("catalog", "workspace"))
 SOURCE_LANDING_SCHEMA = identifier(widget("source_landing_schema", "source_landing"))
-SOURCE_LANDING_VOLUME = identifier(widget("source_landing_volume", "source_snapshot_files"))
+SOURCE_LANDING_VOLUME = identifier(
+    widget("source_landing_volume", "source_snapshot_files")
+)
 SOURCE_MODE = widget("source_mode", "volume")
 BRONZE_SCHEMA = identifier(widget("bronze_schema", "bronze"))
 VALIDATED_SCHEMA = identifier(widget("silver_validated_schema", "silver_validated"))
@@ -120,7 +122,13 @@ for schema in (SILVER_SCHEMA, GOLD_SCHEMA):
     spark.sql(f"GRANT SELECT ON SCHEMA {CATALOG}.{schema} TO {DATA_ENGINEERS}")
 
 spark.sql(f"GRANT USE CATALOG ON CATALOG {CATALOG} TO {PII_DQ_OPERATORS}")
-for schema in (BRONZE_SCHEMA, VALIDATED_SCHEMA, GOVERNANCE_SCHEMA, SILVER_SCHEMA, GOLD_SCHEMA):
+for schema in (
+    BRONZE_SCHEMA,
+    VALIDATED_SCHEMA,
+    GOVERNANCE_SCHEMA,
+    SILVER_SCHEMA,
+    GOLD_SCHEMA,
+):
     spark.sql(f"GRANT USE SCHEMA ON SCHEMA {CATALOG}.{schema} TO {PII_DQ_OPERATORS}")
     spark.sql(f"GRANT SELECT ON SCHEMA {CATALOG}.{schema} TO {PII_DQ_OPERATORS}")
 

@@ -35,8 +35,7 @@ event_table = f"{CATALOG}.{GOVERNANCE_SCHEMA}.{EVENT_LOG_TABLE}"
 
 native_rows = []
 if spark.catalog.tableExists(event_table):
-    native_rows = spark.sql(
-        f"""
+    native_rows = spark.sql(f"""
         SELECT
           CAST(origin.update_id AS STRING) AS pipeline_update_id
         FROM {event_table}
@@ -49,8 +48,7 @@ if spark.catalog.tableExists(event_table):
           )
         ORDER BY timestamp DESC
         LIMIT 1
-        """
-    ).collect()
+        """).collect()
 
 pipeline_update_id = (
     literal(native_rows[0]["pipeline_update_id"]) if native_rows else None
@@ -58,8 +56,7 @@ pipeline_update_id = (
 pipeline_id_sql = f"'{expected_pipeline_id}'"
 pipeline_update_id_sql = f"'{pipeline_update_id}'" if pipeline_update_id else "NULL"
 
-spark.sql(
-    f"""
+spark.sql(f"""
     UPDATE {run_table}
     SET execution_status = '{STATUS}',
         end_time = current_timestamp(),
@@ -67,17 +64,14 @@ spark.sql(
         pipeline_update_id = {pipeline_update_id_sql}
     WHERE pipeline_run_id = '{run_id}'
       AND pipeline_name = '{pipeline_name}'
-    """
-)
+    """)
 
 if STATUS == "SUCCEEDED" and not pipeline_update_id:
-    spark.sql(
-        f"""
+    spark.sql(f"""
         UPDATE {run_table}
         SET execution_status = 'FAILED'
         WHERE pipeline_run_id = '{run_id}' AND pipeline_name = '{pipeline_name}'
-        """
-    )
+        """)
     raise RuntimeError(
         "Successful SDP update has no matching native event-log update ID"
     )
