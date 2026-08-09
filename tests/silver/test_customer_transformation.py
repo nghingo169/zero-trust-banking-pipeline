@@ -130,7 +130,6 @@ def test_hash_key_generation(test_spark):
 
 def test_tokenize_pii(test_spark):
     """Verify tokenize_pii creates a valid SHA-256 token."""
-    print("\n---> DANG CHAY TEST CUSTOMER MOI <---")
     df = test_spark.createDataFrame([("123456789",)], ["nat_id"])
     result_df = df.select(customer_transformation.tokenize_pii("nat_id").alias("token"))
     token_val = result_df.first().token

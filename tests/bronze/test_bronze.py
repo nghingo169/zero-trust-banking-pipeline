@@ -2,6 +2,7 @@
 import builtins
 import datetime
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -12,6 +13,7 @@ import pyspark
 import pytest
 from pyspark.errors import AnalysisException
 from pyspark.sql import Row, SparkSession
+from pyspark.sql import functions as F
 from pyspark.sql.types import DecimalType, LongType, StringType
 
 # ------------------------------------------------------------------------------
@@ -32,19 +34,17 @@ except NameError:
         SparkSession.builder.master("local[2]")
         .appName("Pipeline-UnitTest-Bronze")
         .config("spark.sql.shuffle.partitions", "1")
-        .config("spark.hadoop.fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem")
         .getOrCreate()
     )
 
 builtins.spark = test_spark_session
 builtins.dbutils = MagicMock(name="dbutils")
 
-# Local temp directory - POSIX URI format cho Spark Windows IO
 _SOURCE_TMP_DIR = Path(tempfile.mkdtemp(prefix="bronze_source_root_"))
-_SOURCE_ROOT = f"file:///{_SOURCE_TMP_DIR.as_posix()}"
+_SOURCE_ROOT = f"memory:///{_SOURCE_TMP_DIR.as_posix()}"
 
 _PIPELINE_CONF_DEFAULTS = {
-    "pipeline.source_mode": "volume",
+    "pipeline.source_mode": "memory",
     "pipeline.source_root": _SOURCE_ROOT,
     "pipeline.target_catalog": "workspace",
     "pipeline.target_schema": "bronze",
@@ -55,16 +55,18 @@ for k, v in _PIPELINE_CONF_DEFAULTS.items():
     except Exception:
         pass
 
-
 _conf_cls = type(builtins.spark.conf)
 if not hasattr(_conf_cls, "_bronze_test_get_patched"):
     _original_conf_get = _conf_cls.get
 
     def _patched_conf_get(self, key, default=None):
+        if key == "spark.sql.stackTracesInDataFrameContext":
+            return "1"
         try:
-            return _original_conf_get(self, key, default)
+            val = _original_conf_get(self, key, default)
+            return val if val is not None else default
         except Exception:
-            return default
+            return default if default is not None else "1"
 
     _conf_cls.get = _patched_conf_get
     _conf_cls._bronze_test_get_patched = True
@@ -275,19 +277,17 @@ WORKSPACE_TMP_DIR = PROJECT_ROOT / ".tmp_pytest"
 WORKSPACE_TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
-
 def _read_back(spark, tmp_path, rows, subdir="snapshot"):
-    target_dir = WORKSPACE_TMP_DIR / tmp_path.name / subdir
-    target_dir.parent.mkdir(parents=True, exist_ok=True)
-    
-    # Format URI chuẩn hóa cho cả Windows và Linux
-    path_str = target_dir.as_posix()
-    if not path_str.startswith("/"):
-        path_str = "/" + path_str
-    target_path = f"file://{path_str}"
-    
-    spark.createDataFrame(rows).write.mode("overwrite").parquet(target_path)
-    return spark.read.parquet(target_path)
+    # Giả lập _metadata column hoàn toàn In-Memory (không đụng đĩa DBFS)
+    df = spark.createDataFrame(rows)
+    df_with_meta = df.withColumn(
+        "_metadata",
+        F.struct(
+            F.lit("mock_source_file.parquet").alias("file_name"),
+            F.current_timestamp().alias("file_modification_time"),
+        ),
+    )
+    return df_with_meta
 
 
 def test_metadata_adds_all_technical_columns_and_drops_layout_only_ones(
@@ -384,41 +384,28 @@ def test_business_dates_listing_failure_raises_a_helpful_error(monkeypatch):
         source_to_bronze_ingestion.get_available_business_dates()
 
 
-# tests/bronze/test_bronze.py
-
-
 @pytest.fixture
 def watermark_source(fake_dp, test_spark, tmp_path_factory, monkeypatch, request):
-    # CRITICAL FIX 1: Reset cache ngày business date trước mỗi test watermark
     source_to_bronze_ingestion.CACHED_BUSINESS_DATES = None
 
     domain, table = "wm_domain", f"wm_table_{request.node.name}"
+    root_uri = "memory://landing"
 
-    root = WORKSPACE_TMP_DIR / tmp_path_factory.mktemp("watermark_root").name
-    root.mkdir(parents=True, exist_ok=True)
-
-    # CRITICAL FIX 2: Chuẩn hóa URI
-    root_posix = root.as_posix()
-    if not root_posix.startswith("/"):
-        root_posix = "/" + root_posix
-    root_uri = f"file://{root_posix}"
-
-    monkeypatch.setattr(
-        source_to_bronze_ingestion, "SOURCE_ROOT", root_uri
-    )
+    monkeypatch.setattr(source_to_bronze_ingestion, "SOURCE_ROOT", root_uri)
+    monkeypatch.setattr(source_to_bronze_ingestion, "SOURCE_MODE", "memory")
 
     def write_snapshot(business_date: str, row_id: int):
-        target_dir = root / f"business_date={business_date}" / domain / table
-        target_dir.mkdir(parents=True, exist_ok=True)
-        
-        target_posix = target_dir.as_posix()
-        if not target_posix.startswith("/"):
-            target_posix = "/" + target_posix
-        target_path = f"file://{target_posix}"
-        
-        test_spark.createDataFrame([Row(id=row_id)]).write.mode("overwrite").parquet(
-            target_path
+        path_str = f"{root_uri}/business_date={business_date}/{domain}/{table}"
+        view_name = "view_" + re.sub(r"[^a-zA-Z0-9_]", "_", path_str)
+
+        df = test_spark.createDataFrame([Row(id=row_id)]).withColumn(
+            "_metadata",
+            F.struct(
+                F.lit("mock_snapshot.parquet").alias("file_name"),
+                F.current_timestamp().alias("file_modification_time"),
+            ),
         )
+        df.createOrReplaceTempView(view_name)
 
     source_to_bronze_ingestion.build_snapshot_flow(
         table_name=table,
@@ -429,6 +416,7 @@ def watermark_source(fake_dp, test_spark, tmp_path_factory, monkeypatch, request
     )
     source_fn = fake_dp.create_auto_cdc_from_snapshot_flow.call_args.kwargs["source"]
     return source_fn, write_snapshot
+
 
 def test_watermark_first_run_returns_the_earliest_snapshot(
     watermark_source, monkeypatch

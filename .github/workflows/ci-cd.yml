@@ -26,7 +26,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip' # Tối ưu thời gian install
+          cache: 'pip'
       
       - name: Install linting tools
         run: |
@@ -35,21 +35,17 @@ jobs:
       
       - name: Run flake8 (Linting)
         run: |
-          # Check Python code quality (bỏ qua các lỗi đặc thù của Databricks Spark/DLT)
           flake8 src/ tests/ --count --select=E9,F63,F7 --show-source --statistics
           flake8 src/ tests/ --count --exit-zero --ignore=E501,E402,F401,F811,F841,W291,E712 --builtins=spark,dbutils --max-line-length=127 --statistics
       
       - name: Run black (Code Formatting)
         run: |
-          # Check if code is formatted correctly
           black --check --diff src/ tests/
       
       - name: Run isort (Import Sorting)
         run: |
-          # Bổ sung cờ --profile black trực tiếp vào lệnh
           isort --profile black --check-only --diff src/ tests/
       
-      # Notification on failure
       - name: Notify on code quality failure
         if: failure()
         run: |
@@ -61,7 +57,6 @@ jobs:
 
   # ==========================================
   # Stage 1: Unit Tests (Pre-deployment)
-  #  WITH PARALLEL TESTING
   # ==========================================
   unit-tests:
     name: Run Unit Tests (Python ${{ matrix.python-version }})
@@ -90,17 +85,18 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       
       - name: Run pytest with coverage
+        env:
+          SPARK_LOCAL_IP: "127.0.0.1"
+          pipeline.source_mode: "memory"
         run: |
-          cd tests
-          # Thêm cờ -m "not integration" để bỏ qua các integration tests ở khâu Pre-deployment
-          pytest -v --tb=short -m "not integration" --cov=../src --cov-report=term-missing
+          # Chạy pytest từ project root để import module src chuẩn xác
+          pytest tests/ -v --tb=short --import-mode=importlib --cov=src --cov-report=term-missing
       
-      # Notification on failure
       - name: Notify on test failure
         if: failure()
         run: |
           echo "Unit tests failed on Python ${{ matrix.python-version }}!"
-          echo "Run locally: pytest -v tests/"
+          echo "Run locally: python -m pytest tests/ -v"
 
   # ==========================================
   # Stage 2: Validate Bundle
@@ -117,10 +113,12 @@ jobs:
       - name: Install Databricks CLI
         uses: databricks/setup-cli@main
       
-      - name: Validate bundle
+      - name: Validate bundle (dev)
         run: databricks bundle validate -t dev
       
-      # Notification on failure
+      - name: Validate bundle (team)
+        run: databricks bundle validate -t team
+      
       - name: Notify on validation failure
         if: failure()
         run: |
@@ -148,30 +146,28 @@ jobs:
       
       - name: Run Integration Tests
         run: |
-          # Trigger the integration test job (hoặc full-pipeline)
-          JOB_ID=$(databricks jobs list --output json | jq -r '.jobs[] | select(.settings.name | (contains("run-integration-tests") or contains("full-pipeline"))) | .job_id' | head -1)
+          # Tìm Job ID dựa trên tên job "[dev] run-integration-tests" từ bundle
+          JOB_ID=$(databricks jobs list --output json | jq -r '.jobs[]? | select(.settings.name | test("run-integration-tests"; "i")) | .job_id' | head -1)
           
-          if [ -n "$JOB_ID" ]; then
+          if [ -n "$JOB_ID" ] && [ "$JOB_ID" != "null" ]; then
             echo "Triggering integration test job: $JOB_ID"
             RUN_ID=$(databricks jobs run-now --job-id $JOB_ID --output json | jq -r '.run_id')
             
-            echo "Waiting for test job to complete..."
+            echo "Waiting for test job to complete (Run ID: $RUN_ID)..."
             databricks runs wait $RUN_ID
             
-            # Check result
             RESULT=$(databricks runs get --run-id $RUN_ID --output json | jq -r '.state.result_state')
             
             if [ "$RESULT" != "SUCCESS" ]; then
-              echo "Integration tests failed!"
+              echo "Integration tests failed with status: $RESULT"
               exit 1
             fi
             
-            echo "Integration tests passed!"
+            echo "Integration tests passed successfully!"
           else
-            echo "Integration test job not found, skipping..."
+            echo "Integration test job not found on workspace, skipping..."
           fi
       
-      # Notification on failure
       - name: Notify on deploy failure
         if: failure()
         run: |
@@ -197,13 +193,11 @@ jobs:
       - name: Deploy to team
         run: databricks bundle deploy -t team
       
-      # Success notification
       - name: Notify on success
         if: success()
         run: |
           echo "Successfully deployed to production environment"
       
-      # Notification on failure
       - name: Notify on production deploy failure
         if: failure()
         run: |

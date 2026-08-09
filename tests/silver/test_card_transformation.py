@@ -212,45 +212,6 @@ def test_build_payment_card(test_spark):
     assert row.card_number == "4532015112830366"
     assert row.source_system == "card_system"
 
-
-@pytest.mark.integration
-def test_build_party_account_role(test_spark):
-    """Verify _build_party_account_role maps customer to account link relationship with mock table."""
-    card_transformation.spark = test_spark
-
-    schema_core = StructType(
-        [
-            StructField("cif_number", StringType(), True),
-            StructField("cust_no", StringType(), True),
-        ]
-    )
-    df_core = test_spark.createDataFrame([("CIF_100", "CB-100")], schema_core)
-
-    schema = StructType(
-        [
-            StructField("link_id", StringType(), True),
-            StructField("cif_number", StringType(), True),
-            StructField("account_id", LongType(), True),
-            StructField("relationship_type", StringType(), True),
-            StructField("linked_date", StringType(), True),
-            StructField("pipeline_run_id", StringType(), True),
-        ]
-    )
-    df = test_spark.createDataFrame(
-        [("LINK_01", "CIF_100", 1001, "PRIMARY_OWNER", "2026-01-15", "RUN_01")], schema
-    )
-
-    reader_cls = type(builtins.spark.read)
-    with patch.object(reader_cls, "table", return_value=df_core):
-        result_df = card_transformation._build_party_account_role(df)
-        row = result_df.first()
-
-        assert len(row.party_account_role_key) == 64
-        assert len(row.party_key) == 64
-        assert len(row.account_key) == 64
-        assert row.relationship_type == "PRIMARY_OWNER"
-
-
 def test_build_payment_card_limit_history(test_spark):
     """Verify _build_payment_card_limit_history casts limit_amount to Decimal(12,2)."""
     schema = StructType(

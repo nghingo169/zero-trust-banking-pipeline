@@ -18,8 +18,6 @@ def safe_conf_get(key: str, default: str = "") -> str:
         return default
 
 
-# Note: Global schema autoMerge is not supported in Serverless compute.
-# Schema evolution is handled via .option("mergeSchema", "true") in readers/writers.
 try:
     spark.conf.set("spark.databricks.delta.typeWidening.enabled", "true")
 except Exception:
@@ -28,17 +26,19 @@ except Exception:
 SOURCE_MODE = safe_conf_get("pipeline.source_mode", "s3").lower()
 
 if SOURCE_MODE == "s3":
-    # Production: direct source access. Default path used as fallback during testing.
     SOURCE_ROOT = safe_conf_get(
         "pipeline.source_root", "s3://landing-bucket/banking"
     ).rstrip("/")
 elif SOURCE_MODE == "volume":
-    # Development: files uploaded into a UC Volume. Default path used as fallback during testing.
     SOURCE_ROOT = safe_conf_get(
         "pipeline.source_root", "/Volumes/main/default/landing"
     ).rstrip("/")
+elif SOURCE_MODE == "memory":
+    SOURCE_ROOT = safe_conf_get(
+        "pipeline.source_root", "memory://landing"
+    ).rstrip("/")
 else:
-    raise ValueError("pipeline.source_mode must be either 's3' or 'volume'.")
+    raise ValueError("pipeline.source_mode must be 's3', 'volume', or 'memory'.")
 
 TARGET_CATALOG = safe_conf_get("pipeline.target_catalog", "workspace")
 TARGET_SCHEMA = safe_conf_get("pipeline.target_schema", "bronze")
@@ -55,11 +55,6 @@ TECHNICAL_METADATA_COLUMNS = [
     "EXTRACT_DTE",
 ]
 
-# Stable, versioned fields that downstream contracts may consume even when an
-# older source snapshot predates the field. These are deliberately separate
-# from schema hints: hints cast fields that already exist, while this contract
-# also creates missing optional fields as typed NULLs so whole-graph SDP
-# analysis sees one compatible schema across every snapshot version.
 SOURCE_SCHEMA_CONTRACTS: Dict[str, Dict[str, Dict[str, Any]]] = {
     "crm_customer": {
         "preferred_contact_method": {
@@ -71,14 +66,6 @@ SOURCE_SCHEMA_CONTRACTS: Dict[str, Dict[str, Dict[str, Any]]] = {
 }
 
 CACHED_BUSINESS_DATES: Optional[List[int]] = None
-
-
-# ==============================================================================
-# TABLE CONFIGURATION
-#
-# SCD1 = immutable facts/events replayed in later full snapshots.
-# SCD2 = business entities whose attributes or lifecycle can change over time.
-# ==============================================================================
 
 
 def table_configs(
@@ -98,9 +85,6 @@ def table_configs(
 
 
 TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
-    # --------------------------------------------------------------------------
-    # Customer master: mutable customer/account state → SCD2
-    # --------------------------------------------------------------------------
     **table_configs(
         "customer_master",
         "2",
@@ -135,9 +119,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-    # --------------------------------------------------------------------------
-    # Transaction tables, except explicit status events → SCD2
-    # --------------------------------------------------------------------------
     **table_configs(
         "customer_transaction",
         "2",
@@ -186,9 +167,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-    # --------------------------------------------------------------------------
-    # Explicit transaction status events → SCD1
-    # --------------------------------------------------------------------------
     **table_configs(
         "customer_transaction",
         "1",
@@ -220,9 +198,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-    # --------------------------------------------------------------------------
-    # Financial-crime lifecycle/state records → SCD2
-    # --------------------------------------------------------------------------
     **table_configs(
         "financial_crime",
         "2",
@@ -266,9 +241,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-    # --------------------------------------------------------------------------
-    # Financial-crime facts and relationship rows → SCD2
-    # --------------------------------------------------------------------------
     **table_configs(
         "financial_crime",
         "2",
@@ -326,9 +298,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-    # --------------------------------------------------------------------------
-    # Card tables, except the explicit status event → SCD2
-    # --------------------------------------------------------------------------
     **table_configs(
         "card",
         "2",
@@ -354,9 +323,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
             ),
         },
     ),
-    # --------------------------------------------------------------------------
-    # Explicit card status event → SCD1
-    # --------------------------------------------------------------------------
     **table_configs(
         "card",
         "1",
@@ -372,11 +338,6 @@ TABLE_CONFIGS: Dict[str, Dict[str, Any]] = {
         },
     ),
 }
-
-
-# ==============================================================================
-# SOURCE AND METADATA HELPERS
-# ==============================================================================
 
 
 def source_path(
@@ -426,7 +387,6 @@ def get_available_business_dates() -> List[int]:
 
 
 def apply_schema_hints(df: DataFrame, hints: str) -> DataFrame:
-    """Casts configured Parquet columns without relying on Auto Loader hints."""
     if not hints:
         return df
 
@@ -443,14 +403,6 @@ def apply_schema_hints(df: DataFrame, hints: str) -> DataFrame:
 
 
 def apply_source_schema_contract(df: DataFrame, table_name: str) -> DataFrame:
-    """Return a stable source schema across historical snapshot versions.
-
-    A field declared here is structurally available to downstream SDP nodes
-    from the first graph analysis. Historical snapshots that predate an
-    optional field receive a typed NULL; snapshots that contain it preserve
-    the source value with the declared type.
-    """
-
     for column_name, field_contract in SOURCE_SCHEMA_CONTRACTS.get(
         table_name, {}
     ).items():
@@ -465,7 +417,6 @@ def apply_source_schema_contract(df: DataFrame, table_name: str) -> DataFrame:
 
 
 def add_derived_event_keys(df: DataFrame, table_name: str) -> DataFrame:
-    """Add the non-null parent reference needed by payment-gateway events."""
     if table_name != "payment_gateway_status_event":
         return df
 
@@ -488,44 +439,43 @@ def remove_confirmed_snapshot_replays(
     table_name: str,
     keys: List[str],
 ) -> DataFrame:
-    """Remove exact duplicate rows the source repeats within one full snapshot."""
     if table_name == "account_transaction_status_event":
         return df.dropDuplicates(keys)
     return df
 
 
-# source_to_bronze_ingestion.py
 def add_operational_metadata(
     df: DataFrame,
     domain: str,
     business_date: str,
 ) -> DataFrame:
-    """Adds source-file and pipeline lineage metadata."""
     load_timestamp = F.current_timestamp()
-
-    # Kiểm tra an toàn cột _metadata cho cả Spark local/Windows lẫn Databricks Runtime
-    if "_metadata" in df.columns:
-        source_file_col = F.col("_metadata.file_name")
-        source_mod_col = F.col("_metadata.file_modification_time")
-    else:
-        source_file_col = F.lit("unknown_file")
-        source_mod_col = load_timestamp
 
     return (
         df.drop("simulation_id", "snapshot_type")
         .withColumn("business_date", F.to_date(F.lit(business_date)))
         .withColumn("domain", F.lit(domain))
-        .withColumn("source_file_name", source_file_col)
-        .withColumn("source_file_modified_at", source_mod_col)
+        .withColumn("source_file_name", F.col("_metadata.file_name"))
+        .withColumn(
+            "source_file_modified_at",
+            F.col("_metadata.file_modification_time"),
+        )
         .withColumn("LOAD_DTTM", load_timestamp)
         .withColumn("EXTRACT_DTTM", load_timestamp)
         .withColumn("EXTRACT_DTE", F.to_date(load_timestamp))
     )
 
 
-# ==============================================================================
-# SNAPSHOT CDC BUILDER
-# ==============================================================================
+def read_snapshot_dataframe(path: str) -> DataFrame:
+    """Helper đọc Snapshot DataFrame: 
+    Nếu mode 'memory' (In-Memory Testing) -> đọc từ Spark Temp View trong RAM.
+    Ngược lại ('s3'/'volume') -> đọc Parquet thực tế trên S3/Volume.
+    """
+    if SOURCE_MODE == "memory":
+        view_name = "view_" + re.sub(r"[^a-zA-Z0-9_]", "_", path)
+        return spark.table(view_name)
+    
+    return spark.read.option("mergeSchema", "true").parquet(path)
 
 
 def build_snapshot_flow(
@@ -567,7 +517,7 @@ def build_snapshot_flow(
             business_date = f"{value[:4]}-{value[4:6]}-{value[6:]}"
 
             try:
-                snapshot_df = spark.read.option("mergeSchema", "true").parquet(
+                snapshot_df = read_snapshot_dataframe(
                     source_path(table_domain, table, business_date)
                 )
 
@@ -590,7 +540,11 @@ def build_snapshot_flow(
                 )
 
             except Exception as error:
-                if "PATH_NOT_FOUND" in str(error) or "not found" in str(error).lower():
+                if (
+                    "PATH_NOT_FOUND" in str(error) 
+                    or "not found" in str(error).lower()
+                    or "Table or view not found" in str(error)
+                ):
                     print(
                         f"[WARN] Snapshot not found: "
                         f"{table} for {business_date}; skipping."
@@ -613,10 +567,6 @@ def build_snapshot_flow(
 
     dp.create_auto_cdc_from_snapshot_flow(**flow_arguments)
 
-
-# ==============================================================================
-# REGISTER ALL BRONZE TABLES
-# ==============================================================================
 
 for table_name, config in TABLE_CONFIGS.items():
     build_snapshot_flow(

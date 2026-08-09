@@ -147,7 +147,7 @@ Table party_kyc_assessment {
   kyc_assessment_key varchar [pk]
   party_key varchar [not null]
   id_type varchar
-  id_number_token varchar
+  id_number varchar
   verification_status varchar [not null]
   verified_date date
   source_system varchar [not null]

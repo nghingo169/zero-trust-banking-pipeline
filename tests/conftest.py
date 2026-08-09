@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 from pyspark.sql import SparkSession
 
-# Ép PySpark Worker dùng 'python.exe' từ Virtual Environment
 venv_python = sys.executable
 os.environ["PYSPARK_PYTHON"] = venv_python
 os.environ["PYSPARK_DRIVER_PYTHON"] = venv_python
@@ -28,10 +27,11 @@ for p in paths_to_inject:
     if p not in sys.path:
         sys.path.insert(0, p)
 
+# tests/conftest.py
 
 @pytest.fixture(scope="session")
 def spark():
-    """Khởi tạo Local Spark Session tương thích hoàn toàn với Windows Local I/O."""
+    """Khởi tạo Spark Session Local In-Memory nhẹ nhàng."""
     try:
         active = SparkSession.getActiveSession()
         if active:
@@ -43,16 +43,13 @@ def spark():
     session = (
         SparkSession.builder.master("local[2]")
         .appName("pipeline-tests")
-        .config("spark.sql.warehouse.dir", "file:///C:/tmp/spark-warehouse")
-        .config("spark.driver.memory", "2g")
+        .config("spark.driver.memory", "1g")
+        .config("spark.sql.shuffle.partitions", "1")
         .config("spark.sql.stackTracesInDataFrameContext", "1")
-        # BỎ QUA KIỂM TRA WINUTILS / HADOOP PERMISSIONS TRÊN WINDOWS
-        .config("spark.hadoop.fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem")
         .getOrCreate()
     )
     session.conf.set("spark.sql.stackTracesInDataFrameContext", "1")
     return session
-
 
 @pytest.fixture(scope="session")
 def test_catalog():
