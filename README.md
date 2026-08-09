@@ -1,4 +1,4 @@
-# Zero-trust banking pipeline
+# Zero-Trust Banking Pipeline
 
 A production-grade Databricks lakehouse pipeline for ingesting banking source snapshots with comprehensive data quality validation, SCD Type 2 history tracking, and automated quarantine management.
 
@@ -18,9 +18,9 @@ This project implements a zero-trust data pipeline that:
 
 ---
 
-## Architecture & medallion flow
+## Architecture & Medallion Flow
 
-### Pipeline flow
+### Pipeline Flow
 
 ```text
                     Source Snapshot Files (.csv/.parquet)
@@ -56,24 +56,24 @@ This project implements a zero-trust data pipeline that:
 
 ```
 
-### Medallion architecture layers
+### Medallion Architecture Layers
 
 #### Bronze Layer — Raw Data Ingestion
 
 * **Purpose:** Immutable landing zone preserving full source history.
-* **SCD Type 2 for snapshot entities (customer, account, card):** Tracks historical changes with effective dates (`valid_from`, `valid_to`) to maintain a complete audit trail of state changes.
-* **SCD Type 1 for status-event tables (transactions, status changes):** Treats immutable events using their real composite business keys. No history tracking needed as events are point-in-time facts.
+* **SCD Type 2 for snapshot entities (Customer, Account, Card):** Tracks historical changes with effective dates (`valid_from`, `valid_to`) to maintain a complete audit trail of state changes.
+* **SCD Type 1 for status-event tables (Transactions, Status Changes):** Treats immutable events using their real composite business keys. No history tracking needed as events are point-in-time facts.
 * **Metadata enrichment:** `business_date`, `load_timestamp`, `source_file`.
 * **Schema:** Minimal transformations, preserves raw source structure.
 
-#### Silver layer — Validated & normalized
+#### Silver Layer — Validated & Normalized
 
 * **Purpose:** Clean, conformed data ready for analytics and downstream ML feature engineering.
 * **Data quality validation:** Row-level quality rule enforcement.
 * **Schema standardization:** Consistent data types, naming conventions, and deduplication.
 * **Quarantine routing:** Failed records are automatically routed to Governance Quarantine with context.
 
-#### Gold layer — Business aggregates & analytics
+#### Gold Layer — Business Aggregates & Analytics
 
 * **Purpose:** Pre-aggregated, business-level datasets optimized for reporting and ML.
 * **Customer 360 Views:** Unified customer profiles across all 4 domains.
@@ -89,88 +89,102 @@ Cross-layer capabilities for data quality, lineage, and compliance:
 
 ---
 
-## Repository structure
+## Repository Structure
 
 ```plaintext
 zero-trust-banking-pipeline/
+├── .databricks/                # Databricks bundle local state & overrides
+│   └── bundle/
+│       ├── dev/
+│       └── team/
 ├── .github/
 │   └── workflows/
-│       └── ci-cd.yml           # GitHub Actions CI/CD pipeline
-├── resources/                  # Databricks Bundle resources
-│   ├── banking_investigation.pipeline.yml
-│   │                            # One Source-to-Gold SDP pipeline
-│   ├── banking_investigation_bootstrap.job.yml
-│   │                            # One-time governance/bootstrap Job
-│   ├── banking_investigation.job.yml
-│   │                            # Recurring pipeline orchestration Job
-│   ├── apply_and_verify_pii_tags.job.yml
-│   │                            # Governance-owned internal tagging Job
-│   └── run_integration_tests.yml
-├── src/
-│   ├── pipeline/
-│   │   ├── bronze/             # Source-to-Bronze ingestion
-│   │   ├── silver/             # Validation, quarantine, and atomic Silver
-│   │   ├── gold/               # Gold investigation contexts
-│   │   ├── governance/         # Schema, UDF, ABAC, grants, and PII tags
-│   │   ├── monitoring/         # Run-context initialization and finalization
-│   │   ├── source_landing/     # Source landing guidance
-│   │   ├── run_context.py      # Canonical fail-closed run identity
-│   │   └── README.md           # Pipeline source overview
-│   └── data_contracts/         # Authoritative schemas and quality rules
-│       ├── schemas/            # Table schema definitions
-│       ├── quality_rules/      # Data quality rule registry
-│       ├── audit/              # Operational lineage table setup
-│       ├── monitoring/         # Native event-log monitoring views
-│       ├── table_catalog.py    # Table metadata and keys
-│       └── normalization.py    # Data normalization functions
-├── tests/
-│   ├── bronze/                 # Bronze ingestion and metadata tests
-│   ├── silver/                 # Transformation, validation, and masking tests
-│   ├── gold/                   # Gold context tests
-│   └── pipeline/               # Production orchestration contract tests
-├── configs/
+│       └── ci-cd.yml           # GitHub Actions CI/CD workflow
+├── .vscode/                    # VS Code editor workspace settings
+├── configs/                    # Bundle environment overrides template
 │   └── environment.variable-overrides.example.json
-│                                # Non-secret environment override template
-├── docs/                       # Runbook, data models, and architecture documentation
+├── data/                       # Local/sample dataset guidelines
+├── data_contract/              # YAML data contract definitions
+│   ├── Card_domain_datacontract.yaml
+│   ├── Customer_domain_datacontract.yaml
+│   ├── Customer_domain_datacontract_ver2.yaml
+│   ├── FinCrime_domain_datacontract.yaml
+│   └── Transaction_domain_datacontract.yaml
+├── docs/                       # Architecture & runbook documentation
+│   ├── banking_daily_change_catalog.md
+│   ├── banking_error_injection_catalog.md
+│   ├── Banking_Silver_Atomic_Warehouse.dbml
+│   ├── customer_360_silver_guide.md
+│   ├── error_injection_rule_mapping.md
+│   ├── IMPLEMENTATION_SUMMARY.md
+│   ├── NAB_TDM_MASKING_GUIDE.md
 │   └── Team_Workspace_Pipeline_Technical_Runbook.md
-├── sql/                        # Analytics and exploration queries
-├── scripts/                    # Source and deployment utilities
-├── databricks.yml              # Bundle variables and deployment targets
-├── requirements.txt            # Python dependencies
-├── .gitignore
-└── README.md                   # Root documentation
+├── resources/                  # Databricks Bundle Job & Pipeline resources
+│   ├── apply_and_verify_pii_tags.job.yml
+│   ├── banking_investigation.job.yml
+│   ├── banking_investigation.pipeline.yml
+│   ├── banking_investigation_bootstrap.job.yml
+│   └── run_integration_tests.yml
+├── scripts/                    # Helper utility scripts
+│   └── source_landing/
+│       └── load_local_snapshots.sh
+├── sql/                        # SQL scripts for Infrastructure & Customer 360
+│   ├── customer_360/           # 18 Customer 360 analytics SQL views/queries
+│   └── infrastructure/         # Catalog setup SQL scripts
+│       └── 01_create_catalog_and_delegate.sql
+├── src/                        # Pipeline source code
+│   ├── data_contracts/         # Normalization, schema, monitoring & rules
+│   │   ├── audit/              # Audit log writers
+│   │   ├── monitoring/         # Monitoring views
+│   │   ├── quality_rules/      # Domain-specific quality rules
+│   │   ├── schemas/            # Domain schema contracts
+│   │   ├── normalization.py
+│   │   └── table_catalog.py
+│   ├── legacy/                 # Legacy transformations and notebooks
+│   └── pipeline/               # Core pipeline transformation scripts
+│       ├── bronze/             # Source to Bronze ingestion
+│       ├── silver/             # Bronze to Silver transformations
+│       ├── gold/               # Gold contexts (Customer 360, Fraud, AML)
+│       ├── governance/         # ABAC, PII tagging, and catalog setup
+│       ├── monitoring/         # Pipeline setup and finalization
+│       └── run_context.py      # Pipeline run context helper
+├── tests/                      # Unit & integration test suite
+│   ├── bronze/                 # Bronze ingestion unit tests
+│   ├── gold/                   # Gold layer context tests
+│   ├── pipeline/               # Production orchestration tests
+│   ├── silver/                 # Silver transformation & quality tests
+│   ├── conftest.py             # Pytest Spark session configuration
+│   └── run_unit_tests.py       # Automated test runner script
+├── databricks.yml              # Databricks Asset Bundle (DAB) configuration
+├── README.md                   # Root documentation
+└── test_results.txt            # Test execution output logs
 
 ```
 
 ---
 
-## Quick start & setup
+## Quick Start & Setup
 
 ### Prerequisites
 
-- Python 3.10+ and Git
-- Databricks CLI with Bundle support
-- A Unity Catalog workspace with serverless SDP, governed tags, and ABAC support
-- A serverless SQL warehouse for the one-time catalog setup
-- Permission to create or assign the required account groups and service principals
+* Python 3.10+ and Git
+* Databricks CLI with Bundle support
+* A Unity Catalog workspace with serverless SDP, governed tags, and ABAC support
+* A serverless SQL warehouse for the one-time catalog setup
+* Permission to create or assign the required account groups and service principals
 
-Use `staging` for the current shared workspace. Other environment owners define
-their own Bundle target and choose their own CLI profile, workspace, catalog,
-and teammate memberships. Follow the
-[team workspace runbook](docs/Team_Workspace_Pipeline_Technical_Runbook.md)
-for the complete identity, catalog, S3-secret, permission, and acceptance-test
-procedure.
+Use `staging` for the current shared workspace. Other environment owners define their own Bundle target and choose their own CLI profile, workspace, catalog, and teammate memberships. Follow the [team workspace runbook](https://www.google.com/search?q=docs/Team_Workspace_Pipeline_Technical_Runbook.md) for the complete identity, catalog, S3-secret, permission, and acceptance-test procedure.
 
-### Initial setup
+### Initial Setup
 
-1. **Clone the repository and install dependencies:**
+1. **Clone the repository and set up environment:**
 
 ```bash
 git clone <repository-url>
 cd zero-trust-banking-pipeline
 python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
 ```
 
 2. **Authenticate to the selected workspace:**
@@ -181,18 +195,15 @@ databricks auth login \
   --profile <cli-profile>
 
 databricks current-user me --profile <cli-profile>
+
 ```
 
 3. **Prepare the workspace once:**
 
-- Create or reuse the two runtime service principals and the
-  `governance-admins`, `data-engineers`, and `pii-dq-operator` account groups.
-- Create the isolated catalog and delegate catalog-level bootstrap authority
-  using `sql/infrastructure/01_create_catalog_and_delegate.sql`. The bootstrap
-  Job creates the schemas and intentionally cannot create arbitrary catalogs.
-- Configure the `banking-s3-ingestion` secret scope through interactive CLI
-  prompts and grant it only to the pipeline service principal.
-- Grant the runtime service principals access to the deployed Bundle files path.
+* Create or reuse the two runtime service principals and the `governance-admins`, `data-engineers`, and `pii-dq-operator` account groups.
+* Create the isolated catalog and delegate catalog-level bootstrap authority using `sql/infrastructure/01_create_catalog_and_delegate.sql`. The bootstrap Job creates the schemas and intentionally cannot create arbitrary catalogs.
+* Configure the `banking-s3-ingestion` secret scope through interactive CLI prompts and grant it only to the pipeline service principal.
+* Grant the runtime service principals access to the deployed Bundle files path.
 
 4. **Create the gitignored local Bundle override:**
 
@@ -202,20 +213,21 @@ cp configs/environment.variable-overrides.example.json \
   .databricks/bundle/<bundle-target>/variable-overrides.json
 
 git check-ignore .databricks/bundle/<bundle-target>/variable-overrides.json
+
 ```
 
-Set the chosen catalog, service-principal application IDs, and group names in
-that local file. Do not commit workspace URLs, personal emails, IDs, or secrets.
+Set the chosen catalog, service-principal application IDs, and group names in that local file. Do not commit workspace URLs, personal emails, IDs, or secrets.
 
 5. **Test, validate, review, and deploy:**
 
 ```bash
-.venv/bin/pytest -q tests/pipeline/test_production_orchestration.py
+python -m pytest -q tests/pipeline/test_production_orchestration.py
 
 databricks bundle validate --target <bundle-target> --profile <cli-profile>
 databricks bundle plan --target <bundle-target> --profile <cli-profile>
 databricks bundle deploy --target <bundle-target> --profile <cli-profile> \
   --fail-on-active-runs
+
 ```
 
 6. **Run bootstrap once:**
@@ -224,10 +236,10 @@ databricks bundle deploy --target <bundle-target> --profile <cli-profile> \
 databricks bundle run banking_investigation_bootstrap \
   --target <bundle-target> \
   --profile <cli-profile>
+
 ```
 
-Run bootstrap again only after an approved governance, tag, masking, group, or
-catalog-grant change.
+Run bootstrap again only after an approved governance, tag, masking, group, or catalog-grant change.
 
 7. **Run the recurring Source-to-Gold Job:**
 
@@ -236,18 +248,16 @@ databricks bundle run banking_investigation_pipeline_orchestration \
   --target <bundle-target> \
   --profile <cli-profile> \
   --params business_date=2026-07-10
+
 ```
 
-For new source data or an ordinary retry, rerun only
-`banking_investigation_pipeline_orchestration`. Authorized Data Engineers may
-start it, but it always executes as the pipeline service principal.
+For new source data or an ordinary retry, rerun only `banking_investigation_pipeline_orchestration`. Authorized Data Engineers may start it, but it always executes as the pipeline service principal.
 
 ---
 
 ## Environment Commands Summary
 
-Use `staging` for the current shared deployment, or replace `<bundle-target>`
-with the target defined for another workspace.
+Use `staging` for the current shared deployment, or replace `<bundle-target>` with the target defined for another workspace.
 
 | Task | Command |
 | --- | --- |
@@ -258,103 +268,105 @@ with the target defined for another workspace.
 
 ---
 
-## Engineering workflow
+## Developer Local & CI/CD Workflow
 
-### Branch strategy
+### Branching Strategy
 
-* `main`: Production-ready code only. Direct commits are restricted; changes require PR approvals. Merges trigger production deployment.
+* `main`: Production-ready code only. Direct commits are strictly restricted.
 * `dev`: Integration branch for ongoing development. Feature branches target `dev` first.
 * `feature/*`: Feature-specific branches created from `dev`.
 
-### Developer cycle
+### Local Development & CI/CD Lifecycle
 
-1. **Branch out:**
+1. **Branch Out:** Create a new feature branch from `dev`:
 ```bash
-git checkout dev && git pull origin dev && git checkout -b feature/your-feature
+git checkout dev
+git pull origin dev
+git checkout -b feature/your-feature-name
 
 ```
 
 
-2. **Develop & test locally:**
+2. **Modify & Auto-Format Code Locally:** After modifying the codebase locally, you must run the following formatting commands to enforce PEP8 standards and organize imports before committing:
 ```bash
-# Unit testing
-pytest tests/ -v --cov=src
-
-# Formatting & Linting
+# 1. Format code automatically using Black
 black src/ tests/
-isort src/ tests/
-flake8 src/ tests/
+
+# 2. Sort import statements using isort
+isort --profile black src/ tests/
 
 ```
 
 
-3. **Validate bundle configuration:**
+3. **Validate & Test Locally:** Verify bundle configuration and unit tests before pushing:
 ```bash
-databricks bundle validate --target dev --profile <your-profile>
+python -m pytest tests/
+databricks bundle validate --target dev
 
 ```
 
 
-4. **Deploy & integration test on Databricks:**
+4. **Create Pull Request (PR):** Push your branch to remote and open a Pull Request targeting `dev` (or from `dev` to `main`).
+5. **GitHub Actions CI Validation Check:** The CI workflow (`.github/workflows/ci-cd.yml`) triggers automatically to check code quality, linters (`flake8`, `black`, `isort`), unit tests, and executes bundle validation:
 ```bash
-databricks bundle deploy --target dev
+databricks bundle validate -t dev
+
+```
+
+
+6. **Merge PR & Automated Deployment:** Once validation checks pass and the PR is reviewed and approved:
+* Merge the Pull Request into the target branch.
+* GitHub Actions triggers the deployment pipeline automatically:
+```bash
+# 1. Deploy bundle resources to Databricks Workspace
+databricks bundle deploy -t dev --auto-approve
+
+# 2. Trigger automated Integration Tests remotely
 databricks bundle run run_integration_tests -t dev
 
 ```
 
 
-5. **PR & merge:** Open PR to `dev`. Upon review and approval, merge to `dev`, and eventually promote from `dev` to `main`.
+
+
 
 ---
 
-## Testing & validation
+## Testing & Validation
 
 Testing occurs across multiple levels:
 
-### 1. Local unit tests
+### 1. Local Unit Tests
 
 ```bash
 # Using pytest
-pytest tests/ -v --cov=src --cov-report=term-missing
+python -m pytest tests/ -v --cov=src --cov-report=term-missing
 
-# Using unittest
-PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py'
+# Using the test runner script
+python tests/run_unit_tests.py
 
 ```
 
-### 2. Static code analysis
+### 2. Static Code Analysis
 
 ```bash
 black src/ tests/
-isort src/ tests/
+isort --profile black src/ tests/
 flake8 src/ tests/ --max-line-length=127
 
 ```
 
-### 3. Integration & end-to-end testing (Databricks)
+### 3. Integration & End-to-End Testing (Databricks)
 
 ```bash
 # Validate and deploy bundle in dev target
 databricks bundle validate -t dev -p <your-profile>
-databricks bundle deploy -t dev -p <your-profile>
+databricks bundle deploy -t dev -p <your-profile> --auto-approve
 
 # Run integration tests remotely (dev environment)
 databricks bundle run run_integration_tests -t dev -p <your-profile>
 
-# Or team environment (recommended)
-databricks bundle validate -t team -p <your-profile>
-databricks bundle deploy -t team -p <your-profile>
-databricks bundle run run_integration_tests -t team -p <your-profile>
-
 ```
-
-### 4. CI/CD automation (GitHub actions)
-
-Located at `.github/workflows/ci-cd.yml`:
-
-* **On push/PR to `main`:** Runs code quality checks (`flake8`, `black`, `isort`), parallel unit tests on Python 3.10/3.11/3.12, and bundle syntax validation.
-* **On merge to `main`:** Automatically deploys to Dev, executes integration tests on Databricks, and promotes/deploys to the production/team workspace.
-* **Secret configuration:** Ensure `DATABRICKS_HOST` and `DATABRICKS_TOKEN` are configured in GitHub Repository Secrets.
 
 ---
 
@@ -373,7 +385,7 @@ Located at `.github/workflows/ci-cd.yml`:
 | Issue | Cause | Solution |
 | --- | --- | --- |
 | **Bundle validation fails** | YAML syntax error or missing variable | Run `databricks bundle validate --target dev` and inspect missing resource key/variable definitions. |
-| **Local unit tests fail** | Missing `PYTHONPATH` or packages | Run `pip install -r requirements.txt` and set path: `export PYTHONPATH=src`. |
+| **Local unit tests fail** | Missing `PYTHONPATH` or environment setup | Ensure virtual environment is active and set path: `export PYTHONPATH=src`. |
 | **CLI auth failure** | Expired token or invalid host | Re-authenticate using `databricks auth login --host <workspace-url>`. |
 | **Job run failures** | Schema mismatch or missing Volume | Check job execution logs in Databricks UI, verify UC volume path, and consult the Quarantine table for validation rule errors. |
 | **Notebook import error** | Missing workspace deployment | Ensure `databricks bundle deploy` has been executed on the target environment. |

@@ -1,0 +1,3071 @@
+Folder PATH listing for volume OS
+Volume serial number is 0000006F 5823:1F11
+C:.
+│   .gitignore
+│   1.txt
+│   1.txy
+│   databricks.yml
+│   git
+│   README.md
+│   test_results.txt
+│   
+├───.databricks
+│   │   .gitignore
+│   │   
+│   └───bundle
+│       ├───dev
+│       │   │   deployment.json
+│       │   │   resources.json
+│       │   │   variable-overrides.json
+│       │   │   vscode.bundlevars.json
+│       │   │   vscode.overrides.json
+│       │   │   
+│       │   ├───.internal
+│       │   └───sync-snapshots
+│       │           b80edaab482cb937.json
+│       │           
+│       └───team
+│           │   deployment.json
+│           │   resources.json
+│           │   variable-overrides.json
+│           │   vscode.bundlevars.json
+│           │   vscode.overrides.json
+│           │   
+│           ├───.internal
+│           └───sync-snapshots
+│                   88f174943172d91c.json
+│                   
+├───.github
+│   └───workflows
+│           ci-cd.yml
+│           
+├───.pytest_cache
+│   │   .gitignore
+│   │   CACHEDIR.TAG
+│   │   README.md
+│   │   
+│   └───v
+│       └───cache
+│               lastfailed
+│               nodeids
+│               
+├───.tmp_pytest
+│   ├───test_metadata_adds_all_technic0
+│   │   └───snapshot
+│   ├───test_metadata_business_date_do0
+│   │   └───snapshot
+│   ├───watermark_root0
+│   │   └───business_date=2026-01-01
+│   │       └───wm_domain
+│   │           └───wm_table_test_watermark_first_run_returns_the_earliest_snapshot
+│   ├───watermark_root1
+│   │   └───business_date=2026-01-01
+│   │       └───wm_domain
+│   │           └───wm_table_test_watermark_only_advances_to_snapshots_newer_than_the_current_one
+│   └───watermark_root2
+│       └───business_date=2026-01-01
+│           └───wm_domain
+│               └───wm_table_test_watermark_returns_none_when_fully_caught_up
+├───.venv
+│   │   pyvenv.cfg
+│   │   
+│   ├───Include
+│   ├───Lib
+│   │   └───site-packages
+│   │       │   py.py
+│   │       │   
+│   │       ├───colorama
+│   │       │   │   ansi.py
+│   │       │   │   ansitowin32.py
+│   │       │   │   initialise.py
+│   │       │   │   win32.py
+│   │       │   │   winterm.py
+│   │       │   │   __init__.py
+│   │       │   │   
+│   │       │   ├───tests
+│   │       │   │   │   ansitowin32_test.py
+│   │       │   │   │   ansi_test.py
+│   │       │   │   │   initialise_test.py
+│   │       │   │   │   isatty_test.py
+│   │       │   │   │   utils.py
+│   │       │   │   │   winterm_test.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   └───__pycache__
+│   │       │           ansi.cpython-312.pyc
+│   │       │           ansitowin32.cpython-312.pyc
+│   │       │           initialise.cpython-312.pyc
+│   │       │           win32.cpython-312.pyc
+│   │       │           winterm.cpython-312.pyc
+│   │       │           __init__.cpython-312.pyc
+│   │       │           
+│   │       ├───colorama-0.4.6.dist-info
+│   │       │   │   INSTALLER
+│   │       │   │   METADATA
+│   │       │   │   RECORD
+│   │       │   │   WHEEL
+│   │       │   │   
+│   │       │   └───licenses
+│   │       │           LICENSE.txt
+│   │       │           
+│   │       ├───iniconfig
+│   │       │   │   exceptions.py
+│   │       │   │   py.typed
+│   │       │   │   _parse.py
+│   │       │   │   _version.py
+│   │       │   │   __init__.py
+│   │       │   │   
+│   │       │   └───__pycache__
+│   │       │           exceptions.cpython-312.pyc
+│   │       │           _parse.cpython-312.pyc
+│   │       │           __init__.cpython-312.pyc
+│   │       │           
+│   │       ├───iniconfig-2.3.0.dist-info
+│   │       │   │   INSTALLER
+│   │       │   │   METADATA
+│   │       │   │   RECORD
+│   │       │   │   top_level.txt
+│   │       │   │   WHEEL
+│   │       │   │   
+│   │       │   └───licenses
+│   │       │           LICENSE
+│   │       │           
+│   │       ├───packaging
+│   │       │   │   dependency_groups.py
+│   │       │   │   direct_url.py
+│   │       │   │   errors.py
+│   │       │   │   markers.py
+│   │       │   │   metadata.py
+│   │       │   │   py.typed
+│   │       │   │   pylock.py
+│   │       │   │   ranges.py
+│   │       │   │   requirements.py
+│   │       │   │   specifiers.py
+│   │       │   │   tags.py
+│   │       │   │   utils.py
+│   │       │   │   version.py
+│   │       │   │   _elffile.py
+│   │       │   │   _manylinux.py
+│   │       │   │   _musllinux.py
+│   │       │   │   _parser.py
+│   │       │   │   _ranges.py
+│   │       │   │   _structures.py
+│   │       │   │   _tokenizer.py
+│   │       │   │   __init__.py
+│   │       │   │   
+│   │       │   ├───licenses
+│   │       │   │   │   _spdx.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   └───__pycache__
+│   │       ├───packaging-26.3.dist-info
+│   │       │   │   INSTALLER
+│   │       │   │   METADATA
+│   │       │   │   RECORD
+│   │       │   │   WHEEL
+│   │       │   │   
+│   │       │   └───licenses
+│   │       │           LICENSE
+│   │       │           LICENSE.APACHE
+│   │       │           LICENSE.BSD
+│   │       │           
+│   │       ├───pip
+│   │       │   │   py.typed
+│   │       │   │   __init__.py
+│   │       │   │   __main__.py
+│   │       │   │   __pip-runner__.py
+│   │       │   │   
+│   │       │   ├───_internal
+│   │       │   │   │   cache.py
+│   │       │   │   │   configuration.py
+│   │       │   │   │   exceptions.py
+│   │       │   │   │   main.py
+│   │       │   │   │   pyproject.py
+│   │       │   │   │   self_outdated_check.py
+│   │       │   │   │   wheel_builder.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   ├───build_env
+│   │       │   │   │   │   base.py
+│   │       │   │   │   │   installer.py
+│   │       │   │   │   │   noop.py
+│   │       │   │   │   │   venv.py
+│   │       │   │   │   │   virtual.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───cli
+│   │       │   │   │   │   autocompletion.py
+│   │       │   │   │   │   base_command.py
+│   │       │   │   │   │   cmdoptions.py
+│   │       │   │   │   │   command_context.py
+│   │       │   │   │   │   index_command.py
+│   │       │   │   │   │   main.py
+│   │       │   │   │   │   main_parser.py
+│   │       │   │   │   │   parser.py
+│   │       │   │   │   │   progress_bars.py
+│   │       │   │   │   │   req_command.py
+│   │       │   │   │   │   spinners.py
+│   │       │   │   │   │   status_codes.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───commands
+│   │       │   │   │   │   cache.py
+│   │       │   │   │   │   check.py
+│   │       │   │   │   │   completion.py
+│   │       │   │   │   │   configuration.py
+│   │       │   │   │   │   debug.py
+│   │       │   │   │   │   download.py
+│   │       │   │   │   │   freeze.py
+│   │       │   │   │   │   hash.py
+│   │       │   │   │   │   help.py
+│   │       │   │   │   │   index.py
+│   │       │   │   │   │   inspect.py
+│   │       │   │   │   │   install.py
+│   │       │   │   │   │   list.py
+│   │       │   │   │   │   lock.py
+│   │       │   │   │   │   search.py
+│   │       │   │   │   │   show.py
+│   │       │   │   │   │   uninstall.py
+│   │       │   │   │   │   wheel.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───distributions
+│   │       │   │   │   │   base.py
+│   │       │   │   │   │   installed.py
+│   │       │   │   │   │   sdist.py
+│   │       │   │   │   │   wheel.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───index
+│   │       │   │   │   │   collector.py
+│   │       │   │   │   │   package_finder.py
+│   │       │   │   │   │   sources.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───locations
+│   │       │   │   │   │   base.py
+│   │       │   │   │   │   _distutils.py
+│   │       │   │   │   │   _sysconfig.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───metadata
+│   │       │   │   │   │   base.py
+│   │       │   │   │   │   pkg_resources.py
+│   │       │   │   │   │   _json.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───importlib
+│   │       │   │   │   │   │   _compat.py
+│   │       │   │   │   │   │   _dists.py
+│   │       │   │   │   │   │   _envs.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───models
+│   │       │   │   │   │   candidate.py
+│   │       │   │   │   │   direct_url.py
+│   │       │   │   │   │   format_control.py
+│   │       │   │   │   │   index.py
+│   │       │   │   │   │   installation_report.py
+│   │       │   │   │   │   link.py
+│   │       │   │   │   │   release_control.py
+│   │       │   │   │   │   scheme.py
+│   │       │   │   │   │   search_scope.py
+│   │       │   │   │   │   selection_prefs.py
+│   │       │   │   │   │   target_python.py
+│   │       │   │   │   │   wheel.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───network
+│   │       │   │   │   │   auth.py
+│   │       │   │   │   │   cache.py
+│   │       │   │   │   │   download.py
+│   │       │   │   │   │   lazy_wheel.py
+│   │       │   │   │   │   session.py
+│   │       │   │   │   │   utils.py
+│   │       │   │   │   │   xmlrpc.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───operations
+│   │       │   │   │   │   check.py
+│   │       │   │   │   │   freeze.py
+│   │       │   │   │   │   prepare.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───build
+│   │       │   │   │   │   │   build_tracker.py
+│   │       │   │   │   │   │   metadata.py
+│   │       │   │   │   │   │   metadata_editable.py
+│   │       │   │   │   │   │   wheel.py
+│   │       │   │   │   │   │   wheel_editable.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───install
+│   │       │   │   │   │   │   wheel.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───req
+│   │       │   │   │   │   constructors.py
+│   │       │   │   │   │   pep723.py
+│   │       │   │   │   │   req_dependency_group.py
+│   │       │   │   │   │   req_file.py
+│   │       │   │   │   │   req_install.py
+│   │       │   │   │   │   req_set.py
+│   │       │   │   │   │   req_uninstall.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───resolution
+│   │       │   │   │   │   base.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───legacy
+│   │       │   │   │   │   │   resolver.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───resolvelib
+│   │       │   │   │   │   │   base.py
+│   │       │   │   │   │   │   candidates.py
+│   │       │   │   │   │   │   factory.py
+│   │       │   │   │   │   │   found_candidates.py
+│   │       │   │   │   │   │   provider.py
+│   │       │   │   │   │   │   reporter.py
+│   │       │   │   │   │   │   requirements.py
+│   │       │   │   │   │   │   resolver.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───utils
+│   │       │   │   │   │   appdirs.py
+│   │       │   │   │   │   compat.py
+│   │       │   │   │   │   compatibility_tags.py
+│   │       │   │   │   │   datetime.py
+│   │       │   │   │   │   deprecation.py
+│   │       │   │   │   │   direct_url_helpers.py
+│   │       │   │   │   │   egg_link.py
+│   │       │   │   │   │   entrypoints.py
+│   │       │   │   │   │   filesystem.py
+│   │       │   │   │   │   filetypes.py
+│   │       │   │   │   │   glibc.py
+│   │       │   │   │   │   hashes.py
+│   │       │   │   │   │   logging.py
+│   │       │   │   │   │   misc.py
+│   │       │   │   │   │   packaging.py
+│   │       │   │   │   │   pylock.py
+│   │       │   │   │   │   retry.py
+│   │       │   │   │   │   subprocess.py
+│   │       │   │   │   │   temp_dir.py
+│   │       │   │   │   │   unpacking.py
+│   │       │   │   │   │   urls.py
+│   │       │   │   │   │   virtualenv.py
+│   │       │   │   │   │   wheel.py
+│   │       │   │   │   │   _jaraco_text.py
+│   │       │   │   │   │   _log.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───vcs
+│   │       │   │   │   │   bazaar.py
+│   │       │   │   │   │   git.py
+│   │       │   │   │   │   mercurial.py
+│   │       │   │   │   │   subversion.py
+│   │       │   │   │   │   versioncontrol.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   └───__pycache__
+│   │       │   ├───_vendor
+│   │       │   │   │   bom.cdx.json
+│   │       │   │   │   README.rst
+│   │       │   │   │   vendor.txt
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   ├───cachecontrol
+│   │       │   │   │   │   adapter.py
+│   │       │   │   │   │   cache.py
+│   │       │   │   │   │   controller.py
+│   │       │   │   │   │   filewrapper.py
+│   │       │   │   │   │   heuristics.py
+│   │       │   │   │   │   LICENSE.txt
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   serialize.py
+│   │       │   │   │   │   wrapper.py
+│   │       │   │   │   │   _cmd.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───caches
+│   │       │   │   │   │   │   file_cache.py
+│   │       │   │   │   │   │   redis_cache.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───certifi
+│   │       │   │   │   │   cacert.pem
+│   │       │   │   │   │   core.py
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   __main__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───distlib
+│   │       │   │   │   │   compat.py
+│   │       │   │   │   │   LICENSE.txt
+│   │       │   │   │   │   resources.py
+│   │       │   │   │   │   scripts.py
+│   │       │   │   │   │   t32.exe
+│   │       │   │   │   │   t64-arm.exe
+│   │       │   │   │   │   t64.exe
+│   │       │   │   │   │   util.py
+│   │       │   │   │   │   w32.exe
+│   │       │   │   │   │   w64-arm.exe
+│   │       │   │   │   │   w64.exe
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───distro
+│   │       │   │   │   │   distro.py
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   __main__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───idna
+│   │       │   │   │   │   cli.py
+│   │       │   │   │   │   codec.py
+│   │       │   │   │   │   compat.py
+│   │       │   │   │   │   core.py
+│   │       │   │   │   │   idnadata.py
+│   │       │   │   │   │   intranges.py
+│   │       │   │   │   │   LICENSE.md
+│   │       │   │   │   │   package_data.py
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   uts46data.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   __main__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───msgpack
+│   │       │   │   │   │   COPYING
+│   │       │   │   │   │   exceptions.py
+│   │       │   │   │   │   ext.py
+│   │       │   │   │   │   fallback.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───packaging
+│   │       │   │   │   │   dependency_groups.py
+│   │       │   │   │   │   direct_url.py
+│   │       │   │   │   │   errors.py
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   LICENSE.APACHE
+│   │       │   │   │   │   LICENSE.BSD
+│   │       │   │   │   │   markers.py
+│   │       │   │   │   │   metadata.py
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   pylock.py
+│   │       │   │   │   │   requirements.py
+│   │       │   │   │   │   specifiers.py
+│   │       │   │   │   │   tags.py
+│   │       │   │   │   │   utils.py
+│   │       │   │   │   │   version.py
+│   │       │   │   │   │   _elffile.py
+│   │       │   │   │   │   _manylinux.py
+│   │       │   │   │   │   _musllinux.py
+│   │       │   │   │   │   _parser.py
+│   │       │   │   │   │   _structures.py
+│   │       │   │   │   │   _tokenizer.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───licenses
+│   │       │   │   │   │   │   _spdx.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───pkg_resources
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───platformdirs
+│   │       │   │   │   │   android.py
+│   │       │   │   │   │   api.py
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   macos.py
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   unix.py
+│   │       │   │   │   │   version.py
+│   │       │   │   │   │   windows.py
+│   │       │   │   │   │   _xdg.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   __main__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───pygments
+│   │       │   │   │   │   console.py
+│   │       │   │   │   │   filter.py
+│   │       │   │   │   │   formatter.py
+│   │       │   │   │   │   lexer.py
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   modeline.py
+│   │       │   │   │   │   plugin.py
+│   │       │   │   │   │   regexopt.py
+│   │       │   │   │   │   scanner.py
+│   │       │   │   │   │   sphinxext.py
+│   │       │   │   │   │   style.py
+│   │       │   │   │   │   token.py
+│   │       │   │   │   │   unistring.py
+│   │       │   │   │   │   util.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   __main__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───filters
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───formatters
+│   │       │   │   │   │   │   _mapping.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───lexers
+│   │       │   │   │   │   │   python.py
+│   │       │   │   │   │   │   _mapping.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───styles
+│   │       │   │   │   │   │   _mapping.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───pyproject_hooks
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   _impl.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───_in_process
+│   │       │   │   │   │   │   _in_process.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───requests
+│   │       │   │   │   │   adapters.py
+│   │       │   │   │   │   api.py
+│   │       │   │   │   │   auth.py
+│   │       │   │   │   │   certs.py
+│   │       │   │   │   │   compat.py
+│   │       │   │   │   │   cookies.py
+│   │       │   │   │   │   exceptions.py
+│   │       │   │   │   │   help.py
+│   │       │   │   │   │   hooks.py
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   models.py
+│   │       │   │   │   │   packages.py
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   sessions.py
+│   │       │   │   │   │   status_codes.py
+│   │       │   │   │   │   structures.py
+│   │       │   │   │   │   utils.py
+│   │       │   │   │   │   _internal_utils.py
+│   │       │   │   │   │   _types.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   __version__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───resolvelib
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   providers.py
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   reporters.py
+│   │       │   │   │   │   structs.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───resolvers
+│   │       │   │   │   │   │   abstract.py
+│   │       │   │   │   │   │   criterion.py
+│   │       │   │   │   │   │   exceptions.py
+│   │       │   │   │   │   │   resolution.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───rich
+│   │       │   │   │   │   abc.py
+│   │       │   │   │   │   align.py
+│   │       │   │   │   │   ansi.py
+│   │       │   │   │   │   bar.py
+│   │       │   │   │   │   box.py
+│   │       │   │   │   │   cells.py
+│   │       │   │   │   │   color.py
+│   │       │   │   │   │   color_triplet.py
+│   │       │   │   │   │   columns.py
+│   │       │   │   │   │   console.py
+│   │       │   │   │   │   constrain.py
+│   │       │   │   │   │   containers.py
+│   │       │   │   │   │   control.py
+│   │       │   │   │   │   default_styles.py
+│   │       │   │   │   │   diagnose.py
+│   │       │   │   │   │   emoji.py
+│   │       │   │   │   │   errors.py
+│   │       │   │   │   │   filesize.py
+│   │       │   │   │   │   file_proxy.py
+│   │       │   │   │   │   highlighter.py
+│   │       │   │   │   │   json.py
+│   │       │   │   │   │   jupyter.py
+│   │       │   │   │   │   layout.py
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   live.py
+│   │       │   │   │   │   live_render.py
+│   │       │   │   │   │   logging.py
+│   │       │   │   │   │   markup.py
+│   │       │   │   │   │   measure.py
+│   │       │   │   │   │   padding.py
+│   │       │   │   │   │   pager.py
+│   │       │   │   │   │   palette.py
+│   │       │   │   │   │   panel.py
+│   │       │   │   │   │   pretty.py
+│   │       │   │   │   │   progress.py
+│   │       │   │   │   │   progress_bar.py
+│   │       │   │   │   │   prompt.py
+│   │       │   │   │   │   protocol.py
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   region.py
+│   │       │   │   │   │   repr.py
+│   │       │   │   │   │   rule.py
+│   │       │   │   │   │   scope.py
+│   │       │   │   │   │   screen.py
+│   │       │   │   │   │   segment.py
+│   │       │   │   │   │   spinner.py
+│   │       │   │   │   │   status.py
+│   │       │   │   │   │   style.py
+│   │       │   │   │   │   styled.py
+│   │       │   │   │   │   syntax.py
+│   │       │   │   │   │   table.py
+│   │       │   │   │   │   terminal_theme.py
+│   │       │   │   │   │   text.py
+│   │       │   │   │   │   theme.py
+│   │       │   │   │   │   themes.py
+│   │       │   │   │   │   traceback.py
+│   │       │   │   │   │   tree.py
+│   │       │   │   │   │   _cell_widths.py
+│   │       │   │   │   │   _emoji_codes.py
+│   │       │   │   │   │   _emoji_replace.py
+│   │       │   │   │   │   _export_format.py
+│   │       │   │   │   │   _extension.py
+│   │       │   │   │   │   _fileno.py
+│   │       │   │   │   │   _inspect.py
+│   │       │   │   │   │   _log_render.py
+│   │       │   │   │   │   _loop.py
+│   │       │   │   │   │   _null_file.py
+│   │       │   │   │   │   _palettes.py
+│   │       │   │   │   │   _pick.py
+│   │       │   │   │   │   _ratio.py
+│   │       │   │   │   │   _spinners.py
+│   │       │   │   │   │   _stack.py
+│   │       │   │   │   │   _timer.py
+│   │       │   │   │   │   _win32_console.py
+│   │       │   │   │   │   _windows.py
+│   │       │   │   │   │   _windows_renderer.py
+│   │       │   │   │   │   _wrap.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   __main__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───tomli
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   _parser.py
+│   │       │   │   │   │   _re.py
+│   │       │   │   │   │   _types.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───tomli_w
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   _writer.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───truststore
+│   │       │   │   │   │   LICENSE
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   _api.py
+│   │       │   │   │   │   _macos.py
+│   │       │   │   │   │   _openssl.py
+│   │       │   │   │   │   _ssl_constants.py
+│   │       │   │   │   │   _windows.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───urllib3
+│   │       │   │   │   │   connection.py
+│   │       │   │   │   │   connectionpool.py
+│   │       │   │   │   │   exceptions.py
+│   │       │   │   │   │   fields.py
+│   │       │   │   │   │   filepost.py
+│   │       │   │   │   │   LICENSE.txt
+│   │       │   │   │   │   poolmanager.py
+│   │       │   │   │   │   py.typed
+│   │       │   │   │   │   response.py
+│   │       │   │   │   │   _base_connection.py
+│   │       │   │   │   │   _collections.py
+│   │       │   │   │   │   _request_methods.py
+│   │       │   │   │   │   _version.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───contrib
+│   │       │   │   │   │   │   pyopenssl.py
+│   │       │   │   │   │   │   socks.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   ├───emscripten
+│   │       │   │   │   │   │   │   connection.py
+│   │       │   │   │   │   │   │   emscripten_fetch_worker.js
+│   │       │   │   │   │   │   │   fetch.py
+│   │       │   │   │   │   │   │   request.py
+│   │       │   │   │   │   │   │   response.py
+│   │       │   │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   │   
+│   │       │   │   │   │   │   └───__pycache__
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───http2
+│   │       │   │   │   │   │   connection.py
+│   │       │   │   │   │   │   probe.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───util
+│   │       │   │   │   │   │   connection.py
+│   │       │   │   │   │   │   proxy.py
+│   │       │   │   │   │   │   request.py
+│   │       │   │   │   │   │   response.py
+│   │       │   │   │   │   │   retry.py
+│   │       │   │   │   │   │   ssltransport.py
+│   │       │   │   │   │   │   ssl_.py
+│   │       │   │   │   │   │   ssl_match_hostname.py
+│   │       │   │   │   │   │   timeout.py
+│   │       │   │   │   │   │   url.py
+│   │       │   │   │   │   │   util.py
+│   │       │   │   │   │   │   wait.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   └───__pycache__
+│   │       │   └───__pycache__
+│   │       ├───pip-26.2.1.dist-info
+│   │       │   │   entry_points.txt
+│   │       │   │   INSTALLER
+│   │       │   │   METADATA
+│   │       │   │   RECORD
+│   │       │   │   REQUESTED
+│   │       │   │   WHEEL
+│   │       │   │   
+│   │       │   └───licenses
+│   │       │       │   AUTHORS.txt
+│   │       │       │   LICENSE.txt
+│   │       │       │   
+│   │       │       └───src
+│   │       │           └───pip
+│   │       │               └───_vendor
+│   │       │                   ├───cachecontrol
+│   │       │                   │       LICENSE.txt
+│   │       │                   │       
+│   │       │                   ├───certifi
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───distlib
+│   │       │                   │       LICENSE.txt
+│   │       │                   │       
+│   │       │                   ├───distro
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───idna
+│   │       │                   │       LICENSE.md
+│   │       │                   │       
+│   │       │                   ├───msgpack
+│   │       │                   │       COPYING
+│   │       │                   │       
+│   │       │                   ├───packaging
+│   │       │                   │       LICENSE
+│   │       │                   │       LICENSE.APACHE
+│   │       │                   │       LICENSE.BSD
+│   │       │                   │       
+│   │       │                   ├───pkg_resources
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───platformdirs
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───pygments
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───pyproject_hooks
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───requests
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───resolvelib
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───rich
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───tomli
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───tomli_w
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   ├───truststore
+│   │       │                   │       LICENSE
+│   │       │                   │       
+│   │       │                   └───urllib3
+│   │       │                           LICENSE.txt
+│   │       │                           
+│   │       ├───pluggy
+│   │       │   │   py.typed
+│   │       │   │   _callers.py
+│   │       │   │   _hooks.py
+│   │       │   │   _manager.py
+│   │       │   │   _result.py
+│   │       │   │   _tracing.py
+│   │       │   │   _version.py
+│   │       │   │   _warnings.py
+│   │       │   │   __init__.py
+│   │       │   │   
+│   │       │   └───__pycache__
+│   │       │           _callers.cpython-312.pyc
+│   │       │           _hooks.cpython-312.pyc
+│   │       │           _manager.cpython-312.pyc
+│   │       │           _result.cpython-312.pyc
+│   │       │           _tracing.cpython-312.pyc
+│   │       │           _version.cpython-312.pyc
+│   │       │           _warnings.cpython-312.pyc
+│   │       │           __init__.cpython-312.pyc
+│   │       │           
+│   │       ├───pluggy-1.6.0.dist-info
+│   │       │   │   INSTALLER
+│   │       │   │   METADATA
+│   │       │   │   RECORD
+│   │       │   │   top_level.txt
+│   │       │   │   WHEEL
+│   │       │   │   
+│   │       │   └───licenses
+│   │       │           LICENSE
+│   │       │           
+│   │       ├───py4j
+│   │       │   │   clientserver.py
+│   │       │   │   compat.py
+│   │       │   │   finalizer.py
+│   │       │   │   java_collections.py
+│   │       │   │   java_gateway.py
+│   │       │   │   protocol.py
+│   │       │   │   signals.py
+│   │       │   │   version.py
+│   │       │   │   __init__.py
+│   │       │   │   
+│   │       │   ├───tests
+│   │       │   │   │   benchmark1.py
+│   │       │   │   │   byte_string_test.py
+│   │       │   │   │   client_server_test.py
+│   │       │   │   │   finalizer_test.py
+│   │       │   │   │   instrumented.py
+│   │       │   │   │   java_array_test.py
+│   │       │   │   │   java_callback_test.py
+│   │       │   │   │   java_dir_test.py
+│   │       │   │   │   java_gateway_test.py
+│   │       │   │   │   java_help_test.py
+│   │       │   │   │   java_list_test.py
+│   │       │   │   │   java_map_test.py
+│   │       │   │   │   java_set_test.py
+│   │       │   │   │   java_tls_test.py
+│   │       │   │   │   memory_leak_test.py
+│   │       │   │   │   multithreadtest.py
+│   │       │   │   │   py4j_callback_example.py
+│   │       │   │   │   py4j_callback_example2.py
+│   │       │   │   │   py4j_callback_listener_example.py
+│   │       │   │   │   py4j_callback_recursive_example.py
+│   │       │   │   │   py4j_example.py
+│   │       │   │   │   py4j_signals_test.py
+│   │       │   │   │   signals_test.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   └───__pycache__
+│   │       │           clientserver.cpython-312.pyc
+│   │       │           compat.cpython-312.pyc
+│   │       │           finalizer.cpython-312.pyc
+│   │       │           java_collections.cpython-312.pyc
+│   │       │           java_gateway.cpython-312.pyc
+│   │       │           protocol.cpython-312.pyc
+│   │       │           signals.cpython-312.pyc
+│   │       │           version.cpython-312.pyc
+│   │       │           __init__.cpython-312.pyc
+│   │       │           
+│   │       ├───py4j-0.10.9.9.dist-info
+│   │       │       INSTALLER
+│   │       │       LICENSE.txt
+│   │       │       METADATA
+│   │       │       RECORD
+│   │       │       top_level.txt
+│   │       │       WHEEL
+│   │       │       
+│   │       ├───pygments
+│   │       │   │   cmdline.py
+│   │       │   │   console.py
+│   │       │   │   filter.py
+│   │       │   │   formatter.py
+│   │       │   │   lexer.py
+│   │       │   │   modeline.py
+│   │       │   │   plugin.py
+│   │       │   │   regexopt.py
+│   │       │   │   scanner.py
+│   │       │   │   sphinxext.py
+│   │       │   │   style.py
+│   │       │   │   token.py
+│   │       │   │   unistring.py
+│   │       │   │   util.py
+│   │       │   │   __init__.py
+│   │       │   │   __main__.py
+│   │       │   │   
+│   │       │   ├───filters
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───formatters
+│   │       │   │   │   bbcode.py
+│   │       │   │   │   groff.py
+│   │       │   │   │   html.py
+│   │       │   │   │   img.py
+│   │       │   │   │   irc.py
+│   │       │   │   │   latex.py
+│   │       │   │   │   other.py
+│   │       │   │   │   pangomarkup.py
+│   │       │   │   │   rtf.py
+│   │       │   │   │   svg.py
+│   │       │   │   │   terminal.py
+│   │       │   │   │   terminal256.py
+│   │       │   │   │   _mapping.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           terminal.cpython-312.pyc
+│   │       │   │           _mapping.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───lexers
+│   │       │   │   │   actionscript.py
+│   │       │   │   │   ada.py
+│   │       │   │   │   agile.py
+│   │       │   │   │   algebra.py
+│   │       │   │   │   ambient.py
+│   │       │   │   │   amdgpu.py
+│   │       │   │   │   ampl.py
+│   │       │   │   │   apdlexer.py
+│   │       │   │   │   apl.py
+│   │       │   │   │   archetype.py
+│   │       │   │   │   arrow.py
+│   │       │   │   │   arturo.py
+│   │       │   │   │   asc.py
+│   │       │   │   │   asm.py
+│   │       │   │   │   asn1.py
+│   │       │   │   │   automation.py
+│   │       │   │   │   bare.py
+│   │       │   │   │   basic.py
+│   │       │   │   │   bdd.py
+│   │       │   │   │   berry.py
+│   │       │   │   │   bibtex.py
+│   │       │   │   │   blueprint.py
+│   │       │   │   │   boa.py
+│   │       │   │   │   bqn.py
+│   │       │   │   │   business.py
+│   │       │   │   │   capnproto.py
+│   │       │   │   │   carbon.py
+│   │       │   │   │   cddl.py
+│   │       │   │   │   chapel.py
+│   │       │   │   │   clean.py
+│   │       │   │   │   codeql.py
+│   │       │   │   │   comal.py
+│   │       │   │   │   compiled.py
+│   │       │   │   │   configs.py
+│   │       │   │   │   console.py
+│   │       │   │   │   cplint.py
+│   │       │   │   │   crystal.py
+│   │       │   │   │   csound.py
+│   │       │   │   │   css.py
+│   │       │   │   │   c_cpp.py
+│   │       │   │   │   c_like.py
+│   │       │   │   │   d.py
+│   │       │   │   │   dalvik.py
+│   │       │   │   │   data.py
+│   │       │   │   │   dax.py
+│   │       │   │   │   devicetree.py
+│   │       │   │   │   diff.py
+│   │       │   │   │   dns.py
+│   │       │   │   │   dotnet.py
+│   │       │   │   │   dsls.py
+│   │       │   │   │   dylan.py
+│   │       │   │   │   ecl.py
+│   │       │   │   │   eiffel.py
+│   │       │   │   │   elm.py
+│   │       │   │   │   elpi.py
+│   │       │   │   │   email.py
+│   │       │   │   │   erlang.py
+│   │       │   │   │   esoteric.py
+│   │       │   │   │   ezhil.py
+│   │       │   │   │   factor.py
+│   │       │   │   │   fantom.py
+│   │       │   │   │   felix.py
+│   │       │   │   │   fift.py
+│   │       │   │   │   floscript.py
+│   │       │   │   │   forth.py
+│   │       │   │   │   fortran.py
+│   │       │   │   │   foxpro.py
+│   │       │   │   │   freefem.py
+│   │       │   │   │   func.py
+│   │       │   │   │   functional.py
+│   │       │   │   │   futhark.py
+│   │       │   │   │   gcodelexer.py
+│   │       │   │   │   gdscript.py
+│   │       │   │   │   gleam.py
+│   │       │   │   │   go.py
+│   │       │   │   │   grammar_notation.py
+│   │       │   │   │   graph.py
+│   │       │   │   │   graphics.py
+│   │       │   │   │   graphql.py
+│   │       │   │   │   graphviz.py
+│   │       │   │   │   gsql.py
+│   │       │   │   │   hare.py
+│   │       │   │   │   haskell.py
+│   │       │   │   │   haxe.py
+│   │       │   │   │   hdl.py
+│   │       │   │   │   hexdump.py
+│   │       │   │   │   html.py
+│   │       │   │   │   idl.py
+│   │       │   │   │   igor.py
+│   │       │   │   │   inferno.py
+│   │       │   │   │   installers.py
+│   │       │   │   │   int_fiction.py
+│   │       │   │   │   iolang.py
+│   │       │   │   │   j.py
+│   │       │   │   │   javascript.py
+│   │       │   │   │   jmespath.py
+│   │       │   │   │   jslt.py
+│   │       │   │   │   json5.py
+│   │       │   │   │   jsonnet.py
+│   │       │   │   │   jsx.py
+│   │       │   │   │   julia.py
+│   │       │   │   │   jvm.py
+│   │       │   │   │   kuin.py
+│   │       │   │   │   kusto.py
+│   │       │   │   │   ldap.py
+│   │       │   │   │   lean.py
+│   │       │   │   │   lilypond.py
+│   │       │   │   │   lisp.py
+│   │       │   │   │   macaulay2.py
+│   │       │   │   │   make.py
+│   │       │   │   │   maple.py
+│   │       │   │   │   markup.py
+│   │       │   │   │   math.py
+│   │       │   │   │   matlab.py
+│   │       │   │   │   maxima.py
+│   │       │   │   │   meson.py
+│   │       │   │   │   mime.py
+│   │       │   │   │   minecraft.py
+│   │       │   │   │   mips.py
+│   │       │   │   │   ml.py
+│   │       │   │   │   modeling.py
+│   │       │   │   │   modula2.py
+│   │       │   │   │   mojo.py
+│   │       │   │   │   monte.py
+│   │       │   │   │   mosel.py
+│   │       │   │   │   ncl.py
+│   │       │   │   │   nimrod.py
+│   │       │   │   │   nit.py
+│   │       │   │   │   nix.py
+│   │       │   │   │   numbair.py
+│   │       │   │   │   oberon.py
+│   │       │   │   │   objective.py
+│   │       │   │   │   ooc.py
+│   │       │   │   │   openscad.py
+│   │       │   │   │   other.py
+│   │       │   │   │   parasail.py
+│   │       │   │   │   parsers.py
+│   │       │   │   │   pascal.py
+│   │       │   │   │   pawn.py
+│   │       │   │   │   pddl.py
+│   │       │   │   │   perl.py
+│   │       │   │   │   phix.py
+│   │       │   │   │   php.py
+│   │       │   │   │   pointless.py
+│   │       │   │   │   pony.py
+│   │       │   │   │   praat.py
+│   │       │   │   │   procfile.py
+│   │       │   │   │   prolog.py
+│   │       │   │   │   promql.py
+│   │       │   │   │   prql.py
+│   │       │   │   │   ptx.py
+│   │       │   │   │   python.py
+│   │       │   │   │   q.py
+│   │       │   │   │   qlik.py
+│   │       │   │   │   qvt.py
+│   │       │   │   │   r.py
+│   │       │   │   │   rdf.py
+│   │       │   │   │   rebol.py
+│   │       │   │   │   rego.py
+│   │       │   │   │   rell.py
+│   │       │   │   │   resource.py
+│   │       │   │   │   ride.py
+│   │       │   │   │   rita.py
+│   │       │   │   │   rnc.py
+│   │       │   │   │   roboconf.py
+│   │       │   │   │   robotframework.py
+│   │       │   │   │   ruby.py
+│   │       │   │   │   rust.py
+│   │       │   │   │   sas.py
+│   │       │   │   │   savi.py
+│   │       │   │   │   scdoc.py
+│   │       │   │   │   scripting.py
+│   │       │   │   │   sgf.py
+│   │       │   │   │   shell.py
+│   │       │   │   │   sieve.py
+│   │       │   │   │   slash.py
+│   │       │   │   │   smalltalk.py
+│   │       │   │   │   smithy.py
+│   │       │   │   │   smv.py
+│   │       │   │   │   snobol.py
+│   │       │   │   │   solidity.py
+│   │       │   │   │   soong.py
+│   │       │   │   │   sophia.py
+│   │       │   │   │   special.py
+│   │       │   │   │   spice.py
+│   │       │   │   │   sql.py
+│   │       │   │   │   srcinfo.py
+│   │       │   │   │   stata.py
+│   │       │   │   │   supercollider.py
+│   │       │   │   │   tablegen.py
+│   │       │   │   │   tact.py
+│   │       │   │   │   tal.py
+│   │       │   │   │   tcl.py
+│   │       │   │   │   teal.py
+│   │       │   │   │   templates.py
+│   │       │   │   │   teraterm.py
+│   │       │   │   │   testing.py
+│   │       │   │   │   text.py
+│   │       │   │   │   textedit.py
+│   │       │   │   │   textfmts.py
+│   │       │   │   │   theorem.py
+│   │       │   │   │   thingsdb.py
+│   │       │   │   │   tlb.py
+│   │       │   │   │   tls.py
+│   │       │   │   │   tnt.py
+│   │       │   │   │   trafficscript.py
+│   │       │   │   │   typoscript.py
+│   │       │   │   │   typst.py
+│   │       │   │   │   ul4.py
+│   │       │   │   │   unicon.py
+│   │       │   │   │   urbi.py
+│   │       │   │   │   usd.py
+│   │       │   │   │   varnish.py
+│   │       │   │   │   verification.py
+│   │       │   │   │   verifpal.py
+│   │       │   │   │   vip.py
+│   │       │   │   │   vyper.py
+│   │       │   │   │   web.py
+│   │       │   │   │   webassembly.py
+│   │       │   │   │   webidl.py
+│   │       │   │   │   webmisc.py
+│   │       │   │   │   wgsl.py
+│   │       │   │   │   whiley.py
+│   │       │   │   │   wowtoc.py
+│   │       │   │   │   wren.py
+│   │       │   │   │   x10.py
+│   │       │   │   │   xorg.py
+│   │       │   │   │   yang.py
+│   │       │   │   │   yara.py
+│   │       │   │   │   zig.py
+│   │       │   │   │   _ada_builtins.py
+│   │       │   │   │   _asy_builtins.py
+│   │       │   │   │   _cl_builtins.py
+│   │       │   │   │   _cocoa_builtins.py
+│   │       │   │   │   _csound_builtins.py
+│   │       │   │   │   _css_builtins.py
+│   │       │   │   │   _googlesql_builtins.py
+│   │       │   │   │   _julia_builtins.py
+│   │       │   │   │   _lasso_builtins.py
+│   │       │   │   │   _lilypond_builtins.py
+│   │       │   │   │   _luau_builtins.py
+│   │       │   │   │   _lua_builtins.py
+│   │       │   │   │   _mapping.py
+│   │       │   │   │   _mql_builtins.py
+│   │       │   │   │   _mysql_builtins.py
+│   │       │   │   │   _openedge_builtins.py
+│   │       │   │   │   _php_builtins.py
+│   │       │   │   │   _postgres_builtins.py
+│   │       │   │   │   _qlik_builtins.py
+│   │       │   │   │   _scheme_builtins.py
+│   │       │   │   │   _scilab_builtins.py
+│   │       │   │   │   _sourcemod_builtins.py
+│   │       │   │   │   _sql_builtins.py
+│   │       │   │   │   _stan_builtins.py
+│   │       │   │   │   _stata_builtins.py
+│   │       │   │   │   _tsql_builtins.py
+│   │       │   │   │   _usd_builtins.py
+│   │       │   │   │   _vbscript_builtins.py
+│   │       │   │   │   _vim_builtins.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           diff.cpython-312.pyc
+│   │       │   │           python.cpython-312.pyc
+│   │       │   │           _mapping.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───styles
+│   │       │   │   │   abap.py
+│   │       │   │   │   algol.py
+│   │       │   │   │   algol_nu.py
+│   │       │   │   │   arduino.py
+│   │       │   │   │   autumn.py
+│   │       │   │   │   borland.py
+│   │       │   │   │   bw.py
+│   │       │   │   │   coffee.py
+│   │       │   │   │   colorful.py
+│   │       │   │   │   default.py
+│   │       │   │   │   dracula.py
+│   │       │   │   │   emacs.py
+│   │       │   │   │   friendly.py
+│   │       │   │   │   friendly_grayscale.py
+│   │       │   │   │   fruity.py
+│   │       │   │   │   gh_dark.py
+│   │       │   │   │   gruvbox.py
+│   │       │   │   │   igor.py
+│   │       │   │   │   inkpot.py
+│   │       │   │   │   lightbulb.py
+│   │       │   │   │   lilypond.py
+│   │       │   │   │   lovelace.py
+│   │       │   │   │   manni.py
+│   │       │   │   │   material.py
+│   │       │   │   │   monokai.py
+│   │       │   │   │   murphy.py
+│   │       │   │   │   native.py
+│   │       │   │   │   nord.py
+│   │       │   │   │   onedark.py
+│   │       │   │   │   paraiso_dark.py
+│   │       │   │   │   paraiso_light.py
+│   │       │   │   │   pastie.py
+│   │       │   │   │   perldoc.py
+│   │       │   │   │   rainbow_dash.py
+│   │       │   │   │   rrt.py
+│   │       │   │   │   sas.py
+│   │       │   │   │   solarized.py
+│   │       │   │   │   staroffice.py
+│   │       │   │   │   stata_dark.py
+│   │       │   │   │   stata_light.py
+│   │       │   │   │   tango.py
+│   │       │   │   │   trac.py
+│   │       │   │   │   vim.py
+│   │       │   │   │   vs.py
+│   │       │   │   │   xcode.py
+│   │       │   │   │   zenburn.py
+│   │       │   │   │   _mapping.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           _mapping.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   └───__pycache__
+│   │       │           console.cpython-312.pyc
+│   │       │           filter.cpython-312.pyc
+│   │       │           formatter.cpython-312.pyc
+│   │       │           lexer.cpython-312.pyc
+│   │       │           modeline.cpython-312.pyc
+│   │       │           plugin.cpython-312.pyc
+│   │       │           regexopt.cpython-312.pyc
+│   │       │           token.cpython-312.pyc
+│   │       │           unistring.cpython-312.pyc
+│   │       │           util.cpython-312.pyc
+│   │       │           __init__.cpython-312.pyc
+│   │       │           
+│   │       ├───pygments-2.20.0.dist-info
+│   │       │   │   entry_points.txt
+│   │       │   │   INSTALLER
+│   │       │   │   METADATA
+│   │       │   │   RECORD
+│   │       │   │   WHEEL
+│   │       │   │   
+│   │       │   └───licenses
+│   │       │           AUTHORS
+│   │       │           LICENSE
+│   │       │           
+│   │       ├───pyspark
+│   │       │   │   accumulators.py
+│   │       │   │   conf.py
+│   │       │   │   daemon.py
+│   │       │   │   errors_doc_gen.py
+│   │       │   │   find_spark_home.py
+│   │       │   │   install.py
+│   │       │   │   instrumentation_utils.py
+│   │       │   │   java_gateway.py
+│   │       │   │   join.py
+│   │       │   │   loose_version.py
+│   │       │   │   memory_profiler_ext.py
+│   │       │   │   profiler.py
+│   │       │   │   py.typed
+│   │       │   │   rddsampler.py
+│   │       │   │   resultiterable.py
+│   │       │   │   serializers.py
+│   │       │   │   shell.py
+│   │       │   │   shuffle.py
+│   │       │   │   statcounter.py
+│   │       │   │   storagelevel.py
+│   │       │   │   taskcontext.py
+│   │       │   │   threaddump.py
+│   │       │   │   traceback_utils.py
+│   │       │   │   util.py
+│   │       │   │   version.py
+│   │       │   │   worker.py
+│   │       │   │   worker_util.py
+│   │       │   │   _globals.py
+│   │       │   │   _typing.pyi
+│   │       │   │   __init__.py
+│   │       │   │   
+│   │       │   ├───bin
+│   │       │   │       beeline
+│   │       │   │       beeline.cmd
+│   │       │   │       docker-image-tool.sh
+│   │       │   │       find-spark-home
+│   │       │   │       find-spark-home.cmd
+│   │       │   │       load-spark-env.cmd
+│   │       │   │       load-spark-env.sh
+│   │       │   │       pyspark
+│   │       │   │       pyspark.cmd
+│   │       │   │       pyspark2.cmd
+│   │       │   │       run-example
+│   │       │   │       run-example.cmd
+│   │       │   │       spark-class
+│   │       │   │       spark-class.cmd
+│   │       │   │       spark-class2.cmd
+│   │       │   │       spark-connect-shell
+│   │       │   │       spark-pipelines
+│   │       │   │       spark-shell
+│   │       │   │       spark-shell.cmd
+│   │       │   │       spark-shell2.cmd
+│   │       │   │       spark-sql
+│   │       │   │       spark-sql.cmd
+│   │       │   │       spark-sql2.cmd
+│   │       │   │       spark-submit
+│   │       │   │       spark-submit.cmd
+│   │       │   │       spark-submit2.cmd
+│   │       │   │       sparkR
+│   │       │   │       sparkR.cmd
+│   │       │   │       sparkR2.cmd
+│   │       │   │       
+│   │       │   ├───cloudpickle
+│   │       │   │   │   cloudpickle.py
+│   │       │   │   │   cloudpickle_fast.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           cloudpickle.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───core
+│   │       │   │   │   broadcast.py
+│   │       │   │   │   context.py
+│   │       │   │   │   files.py
+│   │       │   │   │   rdd.py
+│   │       │   │   │   status.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           broadcast.cpython-312.pyc
+│   │       │   │           context.cpython-312.pyc
+│   │       │   │           files.cpython-312.pyc
+│   │       │   │           rdd.cpython-312.pyc
+│   │       │   │           status.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───data
+│   │       │   │   ├───graphx
+│   │       │   │   │       followers.txt
+│   │       │   │   │       users.txt
+│   │       │   │   │       
+│   │       │   │   ├───mllib
+│   │       │   │   │   │   gmm_data.txt
+│   │       │   │   │   │   kmeans_data.txt
+│   │       │   │   │   │   pagerank_data.txt
+│   │       │   │   │   │   pic_data.txt
+│   │       │   │   │   │   sample_binary_classification_data.txt
+│   │       │   │   │   │   sample_fpgrowth.txt
+│   │       │   │   │   │   sample_isotonic_regression_libsvm_data.txt
+│   │       │   │   │   │   sample_kmeans_data.txt
+│   │       │   │   │   │   sample_lda_data.txt
+│   │       │   │   │   │   sample_lda_libsvm_data.txt
+│   │       │   │   │   │   sample_libsvm_data.txt
+│   │       │   │   │   │   sample_linear_regression_data.txt
+│   │       │   │   │   │   sample_movielens_data.txt
+│   │       │   │   │   │   sample_multiclass_classification_data.txt
+│   │       │   │   │   │   sample_svm_data.txt
+│   │       │   │   │   │   streaming_kmeans_data_test.txt
+│   │       │   │   │   │   
+│   │       │   │   │   ├───als
+│   │       │   │   │   │       sample_movielens_ratings.txt
+│   │       │   │   │   │       test.data
+│   │       │   │   │   │       
+│   │       │   │   │   ├───images
+│   │       │   │   │   │   │   license.txt
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───origin
+│   │       │   │   │   │       │   license.txt
+│   │       │   │   │   │       │   
+│   │       │   │   │   │       └───kittens
+│   │       │   │   │   │               not-image.txt
+│   │       │   │   │   │               
+│   │       │   │   │   └───ridge-data
+│   │       │   │   │           lpsa.data
+│   │       │   │   │           
+│   │       │   │   └───streaming
+│   │       │   │           AFINN-111.txt
+│   │       │   │           
+│   │       │   ├───errors
+│   │       │   │   │   error-conditions.json
+│   │       │   │   │   error_classes.py
+│   │       │   │   │   utils.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   ├───exceptions
+│   │       │   │   │   │   base.py
+│   │       │   │   │   │   captured.py
+│   │       │   │   │   │   connect.py
+│   │       │   │   │   │   tblib.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   │           base.cpython-312.pyc
+│   │       │   │   │           captured.cpython-312.pyc
+│   │       │   │   │           tblib.cpython-312.pyc
+│   │       │   │   │           __init__.cpython-312.pyc
+│   │       │   │   │           
+│   │       │   │   └───__pycache__
+│   │       │   │           error_classes.cpython-312.pyc
+│   │       │   │           utils.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───examples
+│   │       │   │   └───src
+│   │       │   │       └───main
+│   │       │   │           └───python
+│   │       │   │               │   als.py
+│   │       │   │               │   avro_inputformat.py
+│   │       │   │               │   kmeans.py
+│   │       │   │               │   logistic_regression.py
+│   │       │   │               │   pagerank.py
+│   │       │   │               │   parquet_inputformat.py
+│   │       │   │               │   pi.py
+│   │       │   │               │   sort.py
+│   │       │   │               │   status_api_demo.py
+│   │       │   │               │   transitive_closure.py
+│   │       │   │               │   wordcount.py
+│   │       │   │               │   __init__.py
+│   │       │   │               │   
+│   │       │   │               ├───ml
+│   │       │   │               │   │   aft_survival_regression.py
+│   │       │   │               │   │   als_example.py
+│   │       │   │               │   │   binarizer_example.py
+│   │       │   │               │   │   bisecting_k_means_example.py
+│   │       │   │               │   │   bucketed_random_projection_lsh_example.py
+│   │       │   │               │   │   bucketizer_example.py
+│   │       │   │               │   │   chisq_selector_example.py
+│   │       │   │               │   │   chi_square_test_example.py
+│   │       │   │               │   │   correlation_example.py
+│   │       │   │               │   │   count_vectorizer_example.py
+│   │       │   │               │   │   cross_validator.py
+│   │       │   │               │   │   dataframe_example.py
+│   │       │   │               │   │   dct_example.py
+│   │       │   │               │   │   decision_tree_classification_example.py
+│   │       │   │               │   │   decision_tree_regression_example.py
+│   │       │   │               │   │   elementwise_product_example.py
+│   │       │   │               │   │   estimator_transformer_param_example.py
+│   │       │   │               │   │   feature_hasher_example.py
+│   │       │   │               │   │   fm_classifier_example.py
+│   │       │   │               │   │   fm_regressor_example.py
+│   │       │   │               │   │   fpgrowth_example.py
+│   │       │   │               │   │   gaussian_mixture_example.py
+│   │       │   │               │   │   generalized_linear_regression_example.py
+│   │       │   │               │   │   gradient_boosted_tree_classifier_example.py
+│   │       │   │               │   │   gradient_boosted_tree_regressor_example.py
+│   │       │   │               │   │   imputer_example.py
+│   │       │   │               │   │   index_to_string_example.py
+│   │       │   │               │   │   interaction_example.py
+│   │       │   │               │   │   isotonic_regression_example.py
+│   │       │   │               │   │   kmeans_example.py
+│   │       │   │               │   │   lda_example.py
+│   │       │   │               │   │   linearsvc.py
+│   │       │   │               │   │   linear_regression_with_elastic_net.py
+│   │       │   │               │   │   logistic_regression_summary_example.py
+│   │       │   │               │   │   logistic_regression_with_elastic_net.py
+│   │       │   │               │   │   max_abs_scaler_example.py
+│   │       │   │               │   │   min_hash_lsh_example.py
+│   │       │   │               │   │   min_max_scaler_example.py
+│   │       │   │               │   │   multiclass_logistic_regression_with_elastic_net.py
+│   │       │   │               │   │   multilayer_perceptron_classification.py
+│   │       │   │               │   │   naive_bayes_example.py
+│   │       │   │               │   │   normalizer_example.py
+│   │       │   │               │   │   n_gram_example.py
+│   │       │   │               │   │   onehot_encoder_example.py
+│   │       │   │               │   │   one_vs_rest_example.py
+│   │       │   │               │   │   pca_example.py
+│   │       │   │               │   │   pipeline_example.py
+│   │       │   │               │   │   polynomial_expansion_example.py
+│   │       │   │               │   │   power_iteration_clustering_example.py
+│   │       │   │               │   │   prefixspan_example.py
+│   │       │   │               │   │   quantile_discretizer_example.py
+│   │       │   │               │   │   random_forest_classifier_example.py
+│   │       │   │               │   │   random_forest_regressor_example.py
+│   │       │   │               │   │   rformula_example.py
+│   │       │   │               │   │   robust_scaler_example.py
+│   │       │   │               │   │   sql_transformer.py
+│   │       │   │               │   │   standard_scaler_example.py
+│   │       │   │               │   │   stopwords_remover_example.py
+│   │       │   │               │   │   string_indexer_example.py
+│   │       │   │               │   │   summarizer_example.py
+│   │       │   │               │   │   target_encoder_example.py
+│   │       │   │               │   │   tf_idf_example.py
+│   │       │   │               │   │   tokenizer_example.py
+│   │       │   │               │   │   train_validation_split.py
+│   │       │   │               │   │   univariate_feature_selector_example.py
+│   │       │   │               │   │   variance_threshold_selector_example.py
+│   │       │   │               │   │   vector_assembler_example.py
+│   │       │   │               │   │   vector_indexer_example.py
+│   │       │   │               │   │   vector_size_hint_example.py
+│   │       │   │               │   │   vector_slicer_example.py
+│   │       │   │               │   │   word2vec_example.py
+│   │       │   │               │   │   
+│   │       │   │               │   └───__pycache__
+│   │       │   │               ├───mllib
+│   │       │   │               │   │   binary_classification_metrics_example.py
+│   │       │   │               │   │   bisecting_k_means_example.py
+│   │       │   │               │   │   correlations.py
+│   │       │   │               │   │   correlations_example.py
+│   │       │   │               │   │   decision_tree_classification_example.py
+│   │       │   │               │   │   decision_tree_regression_example.py
+│   │       │   │               │   │   elementwise_product_example.py
+│   │       │   │               │   │   fpgrowth_example.py
+│   │       │   │               │   │   gaussian_mixture_example.py
+│   │       │   │               │   │   gaussian_mixture_model.py
+│   │       │   │               │   │   gradient_boosting_classification_example.py
+│   │       │   │               │   │   gradient_boosting_regression_example.py
+│   │       │   │               │   │   hypothesis_testing_example.py
+│   │       │   │               │   │   hypothesis_testing_kolmogorov_smirnov_test_example.py
+│   │       │   │               │   │   isotonic_regression_example.py
+│   │       │   │               │   │   kernel_density_estimation_example.py
+│   │       │   │               │   │   kmeans.py
+│   │       │   │               │   │   k_means_example.py
+│   │       │   │               │   │   latent_dirichlet_allocation_example.py
+│   │       │   │               │   │   linear_regression_with_sgd_example.py
+│   │       │   │               │   │   logistic_regression.py
+│   │       │   │               │   │   logistic_regression_with_lbfgs_example.py
+│   │       │   │               │   │   multi_class_metrics_example.py
+│   │       │   │               │   │   multi_label_metrics_example.py
+│   │       │   │               │   │   naive_bayes_example.py
+│   │       │   │               │   │   normalizer_example.py
+│   │       │   │               │   │   pca_rowmatrix_example.py
+│   │       │   │               │   │   power_iteration_clustering_example.py
+│   │       │   │               │   │   random_forest_classification_example.py
+│   │       │   │               │   │   random_forest_regression_example.py
+│   │       │   │               │   │   random_rdd_generation.py
+│   │       │   │               │   │   ranking_metrics_example.py
+│   │       │   │               │   │   recommendation_example.py
+│   │       │   │               │   │   regression_metrics_example.py
+│   │       │   │               │   │   sampled_rdds.py
+│   │       │   │               │   │   standard_scaler_example.py
+│   │       │   │               │   │   stratified_sampling_example.py
+│   │       │   │               │   │   streaming_k_means_example.py
+│   │       │   │               │   │   streaming_linear_regression_example.py
+│   │       │   │               │   │   summary_statistics_example.py
+│   │       │   │               │   │   svd_example.py
+│   │       │   │               │   │   svm_with_sgd_example.py
+│   │       │   │               │   │   tf_idf_example.py
+│   │       │   │               │   │   word2vec.py
+│   │       │   │               │   │   word2vec_example.py
+│   │       │   │               │   │   __init__.py
+│   │       │   │               │   │   
+│   │       │   │               │   └───__pycache__
+│   │       │   │               ├───sql
+│   │       │   │               │   │   arrow.py
+│   │       │   │               │   │   basic.py
+│   │       │   │               │   │   datasource.py
+│   │       │   │               │   │   hive.py
+│   │       │   │               │   │   jdbc.py
+│   │       │   │               │   │   udtf.py
+│   │       │   │               │   │   __init__.py
+│   │       │   │               │   │   
+│   │       │   │               │   ├───streaming
+│   │       │   │               │   │   │   structured_blockchain_admission_control.py
+│   │       │   │               │   │   │   structured_kafka_wordcount.py
+│   │       │   │               │   │   │   structured_network_wordcount.py
+│   │       │   │               │   │   │   structured_network_wordcount_session_window.py
+│   │       │   │               │   │   │   structured_network_wordcount_windowed.py
+│   │       │   │               │   │   │   structured_sessionization.py
+│   │       │   │               │   │   │   
+│   │       │   │               │   │   └───__pycache__
+│   │       │   │               │   └───__pycache__
+│   │       │   │               ├───streaming
+│   │       │   │               │   │   hdfs_wordcount.py
+│   │       │   │               │   │   network_wordcount.py
+│   │       │   │               │   │   network_wordjoinsentiments.py
+│   │       │   │               │   │   queue_stream.py
+│   │       │   │               │   │   recoverable_network_wordcount.py
+│   │       │   │               │   │   sql_network_wordcount.py
+│   │       │   │               │   │   stateful_network_wordcount.py
+│   │       │   │               │   │   __init__.py
+│   │       │   │               │   │   
+│   │       │   │               │   └───__pycache__
+│   │       │   │               └───__pycache__
+│   │       │   ├───jars
+│   │       │   │   │   aircompressor-2.0.3.jar
+│   │       │   │   │   algebra_2.13-2.8.0.jar
+│   │       │   │   │   antlr-runtime-3.5.2.jar
+│   │       │   │   │   antlr4-runtime-4.13.1.jar
+│   │       │   │   │   aopalliance-repackaged-3.0.6.jar
+│   │       │   │   │   arpack-3.2.0.jar
+│   │       │   │   │   arpack_combined_all-0.1.jar
+│   │       │   │   │   arrow-compression-19.0.0.jar
+│   │       │   │   │   arrow-format-19.0.0.jar
+│   │       │   │   │   arrow-memory-core-19.0.0.jar
+│   │       │   │   │   arrow-memory-netty-19.0.0.jar
+│   │       │   │   │   arrow-memory-netty-buffer-patch-19.0.0.jar
+│   │       │   │   │   arrow-vector-19.0.0.jar
+│   │       │   │   │   audience-annotations-0.12.0.jar
+│   │       │   │   │   avro-1.12.1.jar
+│   │       │   │   │   avro-ipc-1.12.1.jar
+│   │       │   │   │   avro-mapred-1.12.1.jar
+│   │       │   │   │   blas-3.2.0.jar
+│   │       │   │   │   breeze-macros_2.13-2.1.0.jar
+│   │       │   │   │   breeze_2.13-2.1.0.jar
+│   │       │   │   │   cats-kernel_2.13-2.8.0.jar
+│   │       │   │   │   chill-java-0.10.0.jar
+│   │       │   │   │   chill_2.13-0.10.0.jar
+│   │       │   │   │   commons-cli-1.11.0.jar
+│   │       │   │   │   commons-codec-1.22.0.jar
+│   │       │   │   │   commons-collections4-4.5.0.jar
+│   │       │   │   │   commons-compiler-3.1.9.jar
+│   │       │   │   │   commons-compress-1.28.0.jar
+│   │       │   │   │   commons-crypto-1.1.0.jar
+│   │       │   │   │   commons-dbcp-1.4.jar
+│   │       │   │   │   commons-io-2.22.0.jar
+│   │       │   │   │   commons-lang-2.6.jar
+│   │       │   │   │   commons-lang3-3.20.0.jar
+│   │       │   │   │   commons-math3-3.6.1.jar
+│   │       │   │   │   commons-pool-1.5.4.jar
+│   │       │   │   │   commons-text-1.15.0.jar
+│   │       │   │   │   compress-lzf-1.2.0.jar
+│   │       │   │   │   curator-client-5.9.0.jar
+│   │       │   │   │   curator-framework-5.9.0.jar
+│   │       │   │   │   curator-recipes-5.9.0.jar
+│   │       │   │   │   datanucleus-api-jdo-4.2.4.jar
+│   │       │   │   │   datanucleus-core-4.1.17.jar
+│   │       │   │   │   datanucleus-rdbms-4.1.19.jar
+│   │       │   │   │   datasketches-java-6.2.0.jar
+│   │       │   │   │   datasketches-memory-3.0.2.jar
+│   │       │   │   │   derby-10.16.1.1.jar
+│   │       │   │   │   derbyshared-10.16.1.1.jar
+│   │       │   │   │   derbytools-10.16.1.1.jar
+│   │       │   │   │   dropwizard-metrics-hadoop-metrics2-reporter-0.1.2.jar
+│   │       │   │   │   failureaccess-1.0.3.jar
+│   │       │   │   │   flatbuffers-java-25.2.10.jar
+│   │       │   │   │   gson-2.13.2.jar
+│   │       │   │   │   guava-33.6.0-jre.jar
+│   │       │   │   │   hadoop-client-api-3.5.0.jar
+│   │       │   │   │   hadoop-client-runtime-3.5.0.jar
+│   │       │   │   │   HikariCP-2.5.1.jar
+│   │       │   │   │   hive-beeline-2.3.10.jar
+│   │       │   │   │   hive-cli-2.3.10.jar
+│   │       │   │   │   hive-common-2.3.10.jar
+│   │       │   │   │   hive-exec-2.3.10-core.jar
+│   │       │   │   │   hive-jdbc-2.3.10.jar
+│   │       │   │   │   hive-metastore-2.3.10.jar
+│   │       │   │   │   hive-serde-2.3.10.jar
+│   │       │   │   │   hive-service-rpc-4.0.0.jar
+│   │       │   │   │   hive-shims-0.23-2.3.10.jar
+│   │       │   │   │   hive-shims-2.3.10.jar
+│   │       │   │   │   hive-shims-common-2.3.10.jar
+│   │       │   │   │   hive-shims-scheduler-2.3.10.jar
+│   │       │   │   │   hive-storage-api-2.8.1.jar
+│   │       │   │   │   hk2-api-3.0.6.jar
+│   │       │   │   │   hk2-locator-3.0.6.jar
+│   │       │   │   │   hk2-utils-3.0.6.jar
+│   │       │   │   │   httpclient-4.5.14.jar
+│   │       │   │   │   httpcore-4.4.16.jar
+│   │       │   │   │   icu4j-78.3.jar
+│   │       │   │   │   istack-commons-runtime-4.1.2.jar
+│   │       │   │   │   ivy-2.5.3.jar
+│   │       │   │   │   jackson-annotations-2.21.jar
+│   │       │   │   │   jackson-core-2.21.2.jar
+│   │       │   │   │   jackson-databind-2.21.2.jar
+│   │       │   │   │   jackson-dataformat-yaml-2.21.2.jar
+│   │       │   │   │   jackson-datatype-jsr310-2.21.2.jar
+│   │       │   │   │   jackson-module-scala_2.13-2.21.2.jar
+│   │       │   │   │   jakarta.activation-api-2.1.4.jar
+│   │       │   │   │   jakarta.annotation-api-2.1.1.jar
+│   │       │   │   │   jakarta.inject-api-2.0.1.jar
+│   │       │   │   │   jakarta.servlet-api-6.0.0.jar
+│   │       │   │   │   jakarta.validation-api-3.0.2.jar
+│   │       │   │   │   jakarta.ws.rs-api-3.1.0.jar
+│   │       │   │   │   jakarta.xml.bind-api-4.0.5.jar
+│   │       │   │   │   janino-3.1.9.jar
+│   │       │   │   │   java-diff-utils-4.16.jar
+│   │       │   │   │   javassist-3.30.2-GA.jar
+│   │       │   │   │   javax.jdo-3.2.0-m3.jar
+│   │       │   │   │   javax.servlet-api-4.0.1.jar
+│   │       │   │   │   javolution-5.5.1.jar
+│   │       │   │   │   jaxb-core-4.0.6.jar
+│   │       │   │   │   jaxb-runtime-4.0.6.jar
+│   │       │   │   │   jcl-over-slf4j-2.0.17.jar
+│   │       │   │   │   jdo-api-3.0.1.jar
+│   │       │   │   │   jersey-client-3.1.11.jar
+│   │       │   │   │   jersey-common-3.1.11.jar
+│   │       │   │   │   jersey-container-servlet-3.1.11.jar
+│   │       │   │   │   jersey-container-servlet-core-3.1.11.jar
+│   │       │   │   │   jersey-hk2-3.1.11.jar
+│   │       │   │   │   jersey-server-3.1.11.jar
+│   │       │   │   │   jjwt-api-0.13.0.jar
+│   │       │   │   │   jjwt-impl-0.13.0.jar
+│   │       │   │   │   jjwt-jackson-0.13.0.jar
+│   │       │   │   │   JLargeArrays-1.5.jar
+│   │       │   │   │   jline-2.14.6.jar
+│   │       │   │   │   jline-3.29.0-jdk8.jar
+│   │       │   │   │   joda-time-2.14.1.jar
+│   │       │   │   │   jpam-1.1.jar
+│   │       │   │   │   json-1.8.jar
+│   │       │   │   │   json4s-ast_2.13-4.0.7.jar
+│   │       │   │   │   json4s-core_2.13-4.0.7.jar
+│   │       │   │   │   json4s-jackson-core_2.13-4.0.7.jar
+│   │       │   │   │   json4s-jackson_2.13-4.0.7.jar
+│   │       │   │   │   json4s-scalap_2.13-4.0.7.jar
+│   │       │   │   │   jsr305-3.0.0.jar
+│   │       │   │   │   jta-1.1.jar
+│   │       │   │   │   JTransforms-3.1.jar
+│   │       │   │   │   jts-core-1.20.0.jar
+│   │       │   │   │   jul-to-slf4j-2.0.17.jar
+│   │       │   │   │   kryo-shaded-4.0.3.jar
+│   │       │   │   │   kubernetes-client-7.6.1.jar
+│   │       │   │   │   kubernetes-client-api-7.6.1.jar
+│   │       │   │   │   kubernetes-httpclient-vertx-7.6.1.jar
+│   │       │   │   │   kubernetes-model-admissionregistration-7.6.1.jar
+│   │       │   │   │   kubernetes-model-apiextensions-7.6.1.jar
+│   │       │   │   │   kubernetes-model-apps-7.6.1.jar
+│   │       │   │   │   kubernetes-model-autoscaling-7.6.1.jar
+│   │       │   │   │   kubernetes-model-batch-7.6.1.jar
+│   │       │   │   │   kubernetes-model-certificates-7.6.1.jar
+│   │       │   │   │   kubernetes-model-common-7.6.1.jar
+│   │       │   │   │   kubernetes-model-coordination-7.6.1.jar
+│   │       │   │   │   kubernetes-model-core-7.6.1.jar
+│   │       │   │   │   kubernetes-model-discovery-7.6.1.jar
+│   │       │   │   │   kubernetes-model-events-7.6.1.jar
+│   │       │   │   │   kubernetes-model-extensions-7.6.1.jar
+│   │       │   │   │   kubernetes-model-flowcontrol-7.6.1.jar
+│   │       │   │   │   kubernetes-model-gatewayapi-7.6.1.jar
+│   │       │   │   │   kubernetes-model-metrics-7.6.1.jar
+│   │       │   │   │   kubernetes-model-networking-7.6.1.jar
+│   │       │   │   │   kubernetes-model-node-7.6.1.jar
+│   │       │   │   │   kubernetes-model-policy-7.6.1.jar
+│   │       │   │   │   kubernetes-model-rbac-7.6.1.jar
+│   │       │   │   │   kubernetes-model-resource-7.6.1.jar
+│   │       │   │   │   kubernetes-model-scheduling-7.6.1.jar
+│   │       │   │   │   kubernetes-model-storageclass-7.6.1.jar
+│   │       │   │   │   lapack-3.2.0.jar
+│   │       │   │   │   leveldbjni-all-1.8.jar
+│   │       │   │   │   libfb303-0.9.3.jar
+│   │       │   │   │   libthrift-0.16.0.jar
+│   │       │   │   │   log4j-1.2-api-2.25.4.jar
+│   │       │   │   │   log4j-api-2.25.4.jar
+│   │       │   │   │   log4j-core-2.25.4.jar
+│   │       │   │   │   log4j-layout-template-json-2.25.4.jar
+│   │       │   │   │   log4j-slf4j2-impl-2.25.4.jar
+│   │       │   │   │   lz4-java-1.11.0.jar
+│   │       │   │   │   metrics-core-4.2.37.jar
+│   │       │   │   │   metrics-graphite-4.2.37.jar
+│   │       │   │   │   metrics-jmx-4.2.37.jar
+│   │       │   │   │   metrics-json-4.2.37.jar
+│   │       │   │   │   metrics-jvm-4.2.37.jar
+│   │       │   │   │   minlog-1.3.0.jar
+│   │       │   │   │   netty-all-4.2.13.Final.jar
+│   │       │   │   │   netty-buffer-4.2.13.Final.jar
+│   │       │   │   │   netty-codec-4.2.13.Final.jar
+│   │       │   │   │   netty-codec-base-4.2.13.Final.jar
+│   │       │   │   │   netty-codec-compression-4.2.13.Final.jar
+│   │       │   │   │   netty-codec-dns-4.2.13.Final.jar
+│   │       │   │   │   netty-codec-http-4.2.13.Final.jar
+│   │       │   │   │   netty-codec-http2-4.2.13.Final.jar
+│   │       │   │   │   netty-codec-socks-4.2.13.Final.jar
+│   │       │   │   │   netty-common-4.2.13.Final.jar
+│   │       │   │   │   netty-handler-4.2.13.Final.jar
+│   │       │   │   │   netty-handler-proxy-4.2.13.Final.jar
+│   │       │   │   │   netty-resolver-4.2.13.Final.jar
+│   │       │   │   │   netty-resolver-dns-4.2.13.Final.jar
+│   │       │   │   │   netty-tcnative-boringssl-static-2.0.76.Final-linux-aarch_64.jar
+│   │       │   │   │   netty-tcnative-boringssl-static-2.0.76.Final-linux-x86_64.jar
+│   │       │   │   │   netty-tcnative-boringssl-static-2.0.76.Final-osx-aarch_64.jar
+│   │       │   │   │   netty-tcnative-boringssl-static-2.0.76.Final-osx-x86_64.jar
+│   │       │   │   │   netty-tcnative-boringssl-static-2.0.76.Final-windows-x86_64.jar
+│   │       │   │   │   netty-tcnative-classes-2.0.76.Final.jar
+│   │       │   │   │   netty-transport-4.2.13.Final.jar
+│   │       │   │   │   netty-transport-classes-epoll-4.2.13.Final.jar
+│   │       │   │   │   netty-transport-classes-kqueue-4.2.13.Final.jar
+│   │       │   │   │   netty-transport-native-epoll-4.2.13.Final-linux-aarch_64.jar
+│   │       │   │   │   netty-transport-native-epoll-4.2.13.Final-linux-riscv64.jar
+│   │       │   │   │   netty-transport-native-epoll-4.2.13.Final-linux-x86_64.jar
+│   │       │   │   │   netty-transport-native-kqueue-4.2.13.Final-osx-aarch_64.jar
+│   │       │   │   │   netty-transport-native-kqueue-4.2.13.Final-osx-x86_64.jar
+│   │       │   │   │   netty-transport-native-unix-common-4.2.13.Final.jar
+│   │       │   │   │   objenesis-3.5.jar
+│   │       │   │   │   opencsv-2.3.jar
+│   │       │   │   │   orc-core-2.3.0-shaded-protobuf.jar
+│   │       │   │   │   orc-format-1.1.1-shaded-protobuf.jar
+│   │       │   │   │   orc-mapreduce-2.3.0-shaded-protobuf.jar
+│   │       │   │   │   orc-shims-2.3.0.jar
+│   │       │   │   │   oro-2.0.8.jar
+│   │       │   │   │   osgi-resource-locator-1.0.3.jar
+│   │       │   │   │   paranamer-2.8.3.jar
+│   │       │   │   │   parquet-column-1.17.0.jar
+│   │       │   │   │   parquet-common-1.17.0.jar
+│   │       │   │   │   parquet-encoding-1.17.0.jar
+│   │       │   │   │   parquet-format-structures-1.17.0.jar
+│   │       │   │   │   parquet-hadoop-1.17.0.jar
+│   │       │   │   │   parquet-jackson-1.17.0.jar
+│   │       │   │   │   pickle-1.5.jar
+│   │       │   │   │   py4j-0.10.9.9.jar
+│   │       │   │   │   RoaringBitmap-1.6.10.jar
+│   │       │   │   │   rocksdbjni-9.8.4.jar
+│   │       │   │   │   scala-compiler-2.13.18.jar
+│   │       │   │   │   scala-library-2.13.18.jar
+│   │       │   │   │   scala-parallel-collections_2.13-1.2.0.jar
+│   │       │   │   │   scala-parser-combinators_2.13-2.4.0.jar
+│   │       │   │   │   scala-reflect-2.13.18.jar
+│   │       │   │   │   scala-xml_2.13-2.4.0.jar
+│   │       │   │   │   slf4j-api-2.0.17.jar
+│   │       │   │   │   snakeyaml-2.5.jar
+│   │       │   │   │   snakeyaml-engine-3.0.1.jar
+│   │       │   │   │   snappy-java-1.1.10.8.jar
+│   │       │   │   │   spark-catalyst_2.13-4.2.0.jar
+│   │       │   │   │   spark-common-utils-java_2.13-4.2.0.jar
+│   │       │   │   │   spark-common-utils_2.13-4.2.0.jar
+│   │       │   │   │   spark-connect_2.13-4.2.0.jar
+│   │       │   │   │   spark-core_2.13-4.2.0.jar
+│   │       │   │   │   spark-graphx_2.13-4.2.0.jar
+│   │       │   │   │   spark-hive-thriftserver_2.13-4.2.0.jar
+│   │       │   │   │   spark-hive_2.13-4.2.0.jar
+│   │       │   │   │   spark-kubernetes_2.13-4.2.0.jar
+│   │       │   │   │   spark-kvstore_2.13-4.2.0.jar
+│   │       │   │   │   spark-launcher_2.13-4.2.0.jar
+│   │       │   │   │   spark-mllib-local_2.13-4.2.0.jar
+│   │       │   │   │   spark-mllib_2.13-4.2.0.jar
+│   │       │   │   │   spark-network-common_2.13-4.2.0.jar
+│   │       │   │   │   spark-network-shuffle_2.13-4.2.0.jar
+│   │       │   │   │   spark-pipelines_2.13-4.2.0.jar
+│   │       │   │   │   spark-repl_2.13-4.2.0.jar
+│   │       │   │   │   spark-sketch_2.13-4.2.0.jar
+│   │       │   │   │   spark-sql-api_2.13-4.2.0.jar
+│   │       │   │   │   spark-sql_2.13-4.2.0.jar
+│   │       │   │   │   spark-streaming_2.13-4.2.0.jar
+│   │       │   │   │   spark-tags_2.13-4.2.0.jar
+│   │       │   │   │   spark-unsafe_2.13-4.2.0.jar
+│   │       │   │   │   spark-variant_2.13-4.2.0.jar
+│   │       │   │   │   spark-yarn_2.13-4.2.0.jar
+│   │       │   │   │   spire-macros_2.13-0.18.0.jar
+│   │       │   │   │   spire-platform_2.13-0.18.0.jar
+│   │       │   │   │   spire-util_2.13-0.18.0.jar
+│   │       │   │   │   spire_2.13-0.18.0.jar
+│   │       │   │   │   ST4-4.0.4.jar
+│   │       │   │   │   stax-api-1.0.1.jar
+│   │       │   │   │   stream-2.9.8.jar
+│   │       │   │   │   super-csv-2.2.0.jar
+│   │       │   │   │   threeten-extra-1.8.0.jar
+│   │       │   │   │   tink-1.20.0.jar
+│   │       │   │   │   transaction-api-1.1.jar
+│   │       │   │   │   univocity-parsers-2.9.1.jar
+│   │       │   │   │   vertx-auth-common-4.5.26.jar
+│   │       │   │   │   vertx-core-4.5.26.jar
+│   │       │   │   │   vertx-uri-template-4.5.26.jar
+│   │       │   │   │   vertx-web-client-4.5.26.jar
+│   │       │   │   │   vertx-web-common-4.5.26.jar
+│   │       │   │   │   volcano-client-7.6.1.jar
+│   │       │   │   │   volcano-model-7.6.1.jar
+│   │       │   │   │   xbean-asm9-shaded-4.30.jar
+│   │       │   │   │   xmlschema-core-2.3.1.jar
+│   │       │   │   │   xz-1.12.jar
+│   │       │   │   │   zjsonpatch-7.6.1.jar
+│   │       │   │   │   zookeeper-3.9.5.jar
+│   │       │   │   │   zookeeper-jute-3.9.5.jar
+│   │       │   │   │   zstd-jni-1.5.7-7.jar
+│   │       │   │   │   
+│   │       │   │   └───connect-repl
+│   │       │   │           ammonite-compiler-interface_2.13.18-3.0.8.jar
+│   │       │   │           ammonite-compiler_2.13.18-3.0.8.jar
+│   │       │   │           ammonite-interp-api_2.13.18-3.0.8.jar
+│   │       │   │           ammonite-interp_2.13.18-3.0.8.jar
+│   │       │   │           ammonite-repl-api_2.13.18-3.0.8.jar
+│   │       │   │           ammonite-repl_2.13.18-3.0.8.jar
+│   │       │   │           ammonite-runtime_2.13.18-3.0.8.jar
+│   │       │   │           ammonite-terminal_2.13-3.0.8.jar
+│   │       │   │           ammonite-util_2.13-3.0.8.jar
+│   │       │   │           ammonite_2.13.18-3.0.8.jar
+│   │       │   │           bsp4j-2.1.1.jar
+│   │       │   │           class-path-util_2.13-0.1.4.jar
+│   │       │   │           common_2.13-4.13.10.jar
+│   │       │   │           dependency-interface_2.13-0.3.2.jar
+│   │       │   │           dependency_2.13-0.3.2.jar
+│   │       │   │           fansi_2.13-0.5.1.jar
+│   │       │   │           fastparse_2.13-3.1.1.jar
+│   │       │   │           geny_2.13-1.1.1.jar
+│   │       │   │           interface-1.0.28.jar
+│   │       │   │           io_2.13-4.13.10.jar
+│   │       │   │           javaparser-core-3.2.12.jar
+│   │       │   │           lenses_2.13-0.11.15.jar
+│   │       │   │           mainargs_2.13-0.7.6.jar
+│   │       │   │           org.eclipse.lsp4j.generator-0.20.1.jar
+│   │       │   │           org.eclipse.lsp4j.jsonrpc-0.20.1.jar
+│   │       │   │           org.eclipse.xtend.lib-2.28.0.jar
+│   │       │   │           org.eclipse.xtend.lib.macro-2.28.0.jar
+│   │       │   │           org.eclipse.xtext.xbase.lib-2.28.0.jar
+│   │       │   │           os-lib_2.13-0.11.5.jar
+│   │       │   │           os-zip-0.11.5.jar
+│   │       │   │           parsers_2.13-4.13.10.jar
+│   │       │   │           pprint_2.13-0.9.0.jar
+│   │       │   │           requests_2.13-0.9.0.jar
+│   │       │   │           scalameta_2.13-4.13.10.jar
+│   │       │   │           scalaparse_2.13-3.1.1.jar
+│   │       │   │           scalapb-runtime_2.13-0.11.15.jar
+│   │       │   │           semanticdb-shared_2.13-4.13.10.jar
+│   │       │   │           sourcecode_2.13-0.4.4.jar
+│   │       │   │           spark-connect-client-jdbc_2.13-4.2.0.jar
+│   │       │   │           spark-connect-client-jvm_2.13-4.2.0.jar
+│   │       │   │           trees_2.13-4.13.10.jar
+│   │       │   │           typename_2.13-1.1.0.jar
+│   │       │   │           ujson_2.13-4.3.2.jar
+│   │       │   │           upack_2.13-4.3.2.jar
+│   │       │   │           upickle-core_2.13-4.3.2.jar
+│   │       │   │           upickle-implicits_2.13-4.3.2.jar
+│   │       │   │           upickle_2.13-4.3.2.jar
+│   │       │   │           
+│   │       │   ├───licenses
+│   │       │   │       LICENSE-AnchorJS.txt
+│   │       │   │       LICENSE-antlr.txt
+│   │       │   │       LICENSE-arpack.txt
+│   │       │   │       LICENSE-automaton.txt
+│   │       │   │       LICENSE-blas.txt
+│   │       │   │       LICENSE-bootstrap.txt
+│   │       │   │       LICENSE-CC0.txt
+│   │       │   │       LICENSE-cloudpickle.txt
+│   │       │   │       LICENSE-d3.min.js.txt
+│   │       │   │       LICENSE-dagre-d3.txt
+│   │       │   │       LICENSE-datatables.txt
+│   │       │   │       LICENSE-dnsjava.txt
+│   │       │   │       LICENSE-f2j.txt
+│   │       │   │       LICENSE-graphlib-dot.txt
+│   │       │   │       LICENSE-icu4j.txt
+│   │       │   │       LICENSE-istack-commons-runtime.txt
+│   │       │   │       LICENSE-jakarta-annotation-api
+│   │       │   │       LICENSE-jakarta-servlet-api.txt
+│   │       │   │       LICENSE-jakarta-ws-rs-api
+│   │       │   │       LICENSE-jakarta.activation-api.txt
+│   │       │   │       LICENSE-jakarta.xml.bind-api.txt
+│   │       │   │       LICENSE-janino.txt
+│   │       │   │       LICENSE-javassist.html
+│   │       │   │       LICENSE-javax-transaction-transaction-api.txt
+│   │       │   │       LICENSE-javolution.txt
+│   │       │   │       LICENSE-jaxb-runtime.txt
+│   │       │   │       LICENSE-JLargeArrays.txt
+│   │       │   │       LICENSE-jline.txt
+│   │       │   │       LICENSE-jline3.txt
+│   │       │   │       LICENSE-join.txt
+│   │       │   │       LICENSE-jquery.txt
+│   │       │   │       LICENSE-json-formatter.txt
+│   │       │   │       LICENSE-jsp-api.txt
+│   │       │   │       LICENSE-JTransforms.txt
+│   │       │   │       LICENSE-kryo.txt
+│   │       │   │       LICENSE-leveldbjni.txt
+│   │       │   │       LICENSE-loose-version.txt
+│   │       │   │       LICENSE-matchMedia-polyfill.txt
+│   │       │   │       LICENSE-minlog.txt
+│   │       │   │       LICENSE-modernizr.txt
+│   │       │   │       LICENSE-paranamer.txt
+│   │       │   │       LICENSE-pmml-model.txt
+│   │       │   │       LICENSE-protobuf.txt
+│   │       │   │       LICENSE-py4j.txt
+│   │       │   │       LICENSE-pyrolite.txt
+│   │       │   │       LICENSE-re2j.txt
+│   │       │   │       LICENSE-reflectasm.txt
+│   │       │   │       LICENSE-respond.txt
+│   │       │   │       LICENSE-sbt-launch-lib.txt
+│   │       │   │       LICENSE-scopt.txt
+│   │       │   │       LICENSE-slf4j.txt
+│   │       │   │       LICENSE-sorttable.js.txt
+│   │       │   │       LICENSE-spire.txt
+│   │       │   │       LICENSE-vis-timeline.txt
+│   │       │   │       LICENSE-xmlenc.txt
+│   │       │   │       LICENSE-xz.txt
+│   │       │   │       LICENSE-zstd-jni.txt
+│   │       │   │       LICENSE-zstd.txt
+│   │       │   │       
+│   │       │   ├───logger
+│   │       │   │   │   logger.py
+│   │       │   │   │   worker_io.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           logger.cpython-312.pyc
+│   │       │   │           worker_io.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───ml
+│   │       │   │   │   base.py
+│   │       │   │   │   classification.py
+│   │       │   │   │   clustering.py
+│   │       │   │   │   common.py
+│   │       │   │   │   dl_util.py
+│   │       │   │   │   evaluation.py
+│   │       │   │   │   feature.py
+│   │       │   │   │   fpm.py
+│   │       │   │   │   functions.py
+│   │       │   │   │   image.py
+│   │       │   │   │   model_cache.py
+│   │       │   │   │   pipeline.py
+│   │       │   │   │   recommendation.py
+│   │       │   │   │   regression.py
+│   │       │   │   │   stat.py
+│   │       │   │   │   tree.py
+│   │       │   │   │   tuning.py
+│   │       │   │   │   util.py
+│   │       │   │   │   wrapper.py
+│   │       │   │   │   _typing.pyi
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   ├───connect
+│   │       │   │   │   │   base.py
+│   │       │   │   │   │   classification.py
+│   │       │   │   │   │   evaluation.py
+│   │       │   │   │   │   feature.py
+│   │       │   │   │   │   functions.py
+│   │       │   │   │   │   io_utils.py
+│   │       │   │   │   │   pipeline.py
+│   │       │   │   │   │   proto.py
+│   │       │   │   │   │   readwrite.py
+│   │       │   │   │   │   serialize.py
+│   │       │   │   │   │   summarizer.py
+│   │       │   │   │   │   tuning.py
+│   │       │   │   │   │   util.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───deepspeed
+│   │       │   │   │   │   deepspeed_distributor.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───linalg
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───param
+│   │       │   │   │   │   shared.py
+│   │       │   │   │   │   _shared_params_code_gen.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───torch
+│   │       │   │   │   │   data.py
+│   │       │   │   │   │   distributor.py
+│   │       │   │   │   │   log_communication.py
+│   │       │   │   │   │   torch_run_process_wrapper.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   └───__pycache__
+│   │       │   ├───mllib
+│   │       │   │   │   classification.py
+│   │       │   │   │   clustering.py
+│   │       │   │   │   common.py
+│   │       │   │   │   evaluation.py
+│   │       │   │   │   feature.py
+│   │       │   │   │   fpm.py
+│   │       │   │   │   random.py
+│   │       │   │   │   recommendation.py
+│   │       │   │   │   regression.py
+│   │       │   │   │   tree.py
+│   │       │   │   │   util.py
+│   │       │   │   │   _typing.pyi
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   ├───linalg
+│   │       │   │   │   │   distributed.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───stat
+│   │       │   │   │   │   distribution.py
+│   │       │   │   │   │   KernelDensity.py
+│   │       │   │   │   │   test.py
+│   │       │   │   │   │   _statistics.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   └───__pycache__
+│   │       │   ├───pandas
+│   │       │   │   │   accessors.py
+│   │       │   │   │   base.py
+│   │       │   │   │   categorical.py
+│   │       │   │   │   config.py
+│   │       │   │   │   correlation.py
+│   │       │   │   │   datetimes.py
+│   │       │   │   │   exceptions.py
+│   │       │   │   │   extensions.py
+│   │       │   │   │   frame.py
+│   │       │   │   │   generic.py
+│   │       │   │   │   groupby.py
+│   │       │   │   │   indexing.py
+│   │       │   │   │   internal.py
+│   │       │   │   │   mlflow.py
+│   │       │   │   │   namespace.py
+│   │       │   │   │   numpy_compat.py
+│   │       │   │   │   resample.py
+│   │       │   │   │   series.py
+│   │       │   │   │   sql_formatter.py
+│   │       │   │   │   sql_processor.py
+│   │       │   │   │   strings.py
+│   │       │   │   │   supported_api_gen.py
+│   │       │   │   │   testing.py
+│   │       │   │   │   utils.py
+│   │       │   │   │   window.py
+│   │       │   │   │   _typing.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   ├───data_type_ops
+│   │       │   │   │   │   base.py
+│   │       │   │   │   │   binary_ops.py
+│   │       │   │   │   │   boolean_ops.py
+│   │       │   │   │   │   categorical_ops.py
+│   │       │   │   │   │   complex_ops.py
+│   │       │   │   │   │   datetime_ops.py
+│   │       │   │   │   │   date_ops.py
+│   │       │   │   │   │   null_ops.py
+│   │       │   │   │   │   num_ops.py
+│   │       │   │   │   │   string_ops.py
+│   │       │   │   │   │   timedelta_ops.py
+│   │       │   │   │   │   udt_ops.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───indexes
+│   │       │   │   │   │   base.py
+│   │       │   │   │   │   category.py
+│   │       │   │   │   │   datetimes.py
+│   │       │   │   │   │   multi.py
+│   │       │   │   │   │   timedelta.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───missing
+│   │       │   │   │   │   common.py
+│   │       │   │   │   │   frame.py
+│   │       │   │   │   │   general_functions.py
+│   │       │   │   │   │   groupby.py
+│   │       │   │   │   │   indexes.py
+│   │       │   │   │   │   resample.py
+│   │       │   │   │   │   scalars.py
+│   │       │   │   │   │   series.py
+│   │       │   │   │   │   window.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───plot
+│   │       │   │   │   │   core.py
+│   │       │   │   │   │   matplotlib.py
+│   │       │   │   │   │   plotly.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───spark
+│   │       │   │   │   │   accessors.py
+│   │       │   │   │   │   utils.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───typedef
+│   │       │   │   │   │   typehints.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───usage_logging
+│   │       │   │   │   │   usage_logger.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   └───__pycache__
+│   │       │   ├───pipelines
+│   │       │   │   │   add_pipeline_analysis_context.py
+│   │       │   │   │   api.py
+│   │       │   │   │   block_session_mutations.py
+│   │       │   │   │   cli.py
+│   │       │   │   │   flow.py
+│   │       │   │   │   graph_element_registry.py
+│   │       │   │   │   init_cli.py
+│   │       │   │   │   logging_utils.py
+│   │       │   │   │   output.py
+│   │       │   │   │   source_code_location.py
+│   │       │   │   │   spark_connect_graph_element_registry.py
+│   │       │   │   │   spark_connect_pipeline.py
+│   │       │   │   │   type_error_utils.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   ├───python
+│   │       │   │   ├───lib
+│   │       │   │   │       py4j-0.10.9.9-src.zip
+│   │       │   │   │       pyspark.zip
+│   │       │   │   │       
+│   │       │   │   └───pyspark
+│   │       │   │       │   shell.py
+│   │       │   │       │   
+│   │       │   │       └───__pycache__
+│   │       │   ├───resource
+│   │       │   │   │   information.py
+│   │       │   │   │   profile.py
+│   │       │   │   │   requests.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           information.cpython-312.pyc
+│   │       │   │           profile.cpython-312.pyc
+│   │       │   │           requests.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───sbin
+│   │       │   │       spark-config.sh
+│   │       │   │       spark-daemon.sh
+│   │       │   │       start-history-server.sh
+│   │       │   │       stop-history-server.sh
+│   │       │   │       
+│   │       │   ├───sql
+│   │       │   │   │   catalog.py
+│   │       │   │   │   column.py
+│   │       │   │   │   conf.py
+│   │       │   │   │   context.py
+│   │       │   │   │   conversion.py
+│   │       │   │   │   dataframe.py
+│   │       │   │   │   datasource.py
+│   │       │   │   │   datasource_internal.py
+│   │       │   │   │   geo_utils.py
+│   │       │   │   │   group.py
+│   │       │   │   │   interchange.py
+│   │       │   │   │   internal.py
+│   │       │   │   │   merge.py
+│   │       │   │   │   metrics.py
+│   │       │   │   │   observation.py
+│   │       │   │   │   profiler.py
+│   │       │   │   │   readwriter.py
+│   │       │   │   │   session.py
+│   │       │   │   │   sql_formatter.py
+│   │       │   │   │   table_arg.py
+│   │       │   │   │   tvf.py
+│   │       │   │   │   tvf_argument.py
+│   │       │   │   │   types.py
+│   │       │   │   │   udf.py
+│   │       │   │   │   udtf.py
+│   │       │   │   │   utils.py
+│   │       │   │   │   variant_utils.py
+│   │       │   │   │   window.py
+│   │       │   │   │   _typing.pyi
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   ├───avro
+│   │       │   │   │   │   functions.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───classic
+│   │       │   │   │   │   column.py
+│   │       │   │   │   │   dataframe.py
+│   │       │   │   │   │   table_arg.py
+│   │       │   │   │   │   window.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   │           column.cpython-312.pyc
+│   │       │   │   │           dataframe.cpython-312.pyc
+│   │       │   │   │           __init__.cpython-312.pyc
+│   │       │   │   │           
+│   │       │   │   ├───connect
+│   │       │   │   │   │   catalog.py
+│   │       │   │   │   │   column.py
+│   │       │   │   │   │   conf.py
+│   │       │   │   │   │   conversion.py
+│   │       │   │   │   │   dataframe.py
+│   │       │   │   │   │   datasource.py
+│   │       │   │   │   │   expressions.py
+│   │       │   │   │   │   group.py
+│   │       │   │   │   │   logging.py
+│   │       │   │   │   │   merge.py
+│   │       │   │   │   │   observation.py
+│   │       │   │   │   │   plan.py
+│   │       │   │   │   │   profiler.py
+│   │       │   │   │   │   readwriter.py
+│   │       │   │   │   │   session.py
+│   │       │   │   │   │   sql_formatter.py
+│   │       │   │   │   │   table_arg.py
+│   │       │   │   │   │   tvf.py
+│   │       │   │   │   │   types.py
+│   │       │   │   │   │   udf.py
+│   │       │   │   │   │   udtf.py
+│   │       │   │   │   │   utils.py
+│   │       │   │   │   │   window.py
+│   │       │   │   │   │   _typing.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───avro
+│   │       │   │   │   │   │   functions.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───client
+│   │       │   │   │   │   │   artifact.py
+│   │       │   │   │   │   │   core.py
+│   │       │   │   │   │   │   reattach.py
+│   │       │   │   │   │   │   retries.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───functions
+│   │       │   │   │   │   │   builtin.py
+│   │       │   │   │   │   │   partitioning.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───proto
+│   │       │   │   │   │   │   base_pb2.py
+│   │       │   │   │   │   │   base_pb2.pyi
+│   │       │   │   │   │   │   base_pb2_grpc.py
+│   │       │   │   │   │   │   catalog_pb2.py
+│   │       │   │   │   │   │   catalog_pb2.pyi
+│   │       │   │   │   │   │   commands_pb2.py
+│   │       │   │   │   │   │   commands_pb2.pyi
+│   │       │   │   │   │   │   common_pb2.py
+│   │       │   │   │   │   │   common_pb2.pyi
+│   │       │   │   │   │   │   example_plugins_pb2.py
+│   │       │   │   │   │   │   example_plugins_pb2.pyi
+│   │       │   │   │   │   │   expressions_pb2.py
+│   │       │   │   │   │   │   expressions_pb2.pyi
+│   │       │   │   │   │   │   ml_common_pb2.py
+│   │       │   │   │   │   │   ml_common_pb2.pyi
+│   │       │   │   │   │   │   ml_pb2.py
+│   │       │   │   │   │   │   ml_pb2.pyi
+│   │       │   │   │   │   │   pipelines_pb2.py
+│   │       │   │   │   │   │   pipelines_pb2.pyi
+│   │       │   │   │   │   │   relations_pb2.py
+│   │       │   │   │   │   │   relations_pb2.pyi
+│   │       │   │   │   │   │   types_pb2.py
+│   │       │   │   │   │   │   types_pb2.pyi
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───protobuf
+│   │       │   │   │   │   │   functions.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───resource
+│   │       │   │   │   │   │   profile.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───shell
+│   │       │   │   │   │   │   progress.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   ├───streaming
+│   │       │   │   │   │   │   query.py
+│   │       │   │   │   │   │   readwriter.py
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   ├───worker
+│   │       │   │   │   │   │   │   foreach_batch_worker.py
+│   │       │   │   │   │   │   │   listener_worker.py
+│   │       │   │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   │   
+│   │       │   │   │   │   │   └───__pycache__
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───functions
+│   │       │   │   │   │   builtin.py
+│   │       │   │   │   │   partitioning.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   │           builtin.cpython-312.pyc
+│   │       │   │   │           partitioning.cpython-312.pyc
+│   │       │   │   │           __init__.cpython-312.pyc
+│   │       │   │   │           
+│   │       │   │   ├───pandas
+│   │       │   │   │   │   conversion.py
+│   │       │   │   │   │   functions.py
+│   │       │   │   │   │   functions.pyi
+│   │       │   │   │   │   group_ops.py
+│   │       │   │   │   │   map_ops.py
+│   │       │   │   │   │   serializers.py
+│   │       │   │   │   │   typehints.py
+│   │       │   │   │   │   types.py
+│   │       │   │   │   │   utils.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───_typing
+│   │       │   │   │   │   │   __init__.pyi
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───protocols
+│   │       │   │   │   │           frame.pyi
+│   │       │   │   │   │           series.pyi
+│   │       │   │   │   │           __init__.pyi
+│   │       │   │   │   │           
+│   │       │   │   │   └───__pycache__
+│   │       │   │   │           conversion.cpython-312.pyc
+│   │       │   │   │           functions.cpython-312.pyc
+│   │       │   │   │           group_ops.cpython-312.pyc
+│   │       │   │   │           map_ops.cpython-312.pyc
+│   │       │   │   │           serializers.cpython-312.pyc
+│   │       │   │   │           typehints.cpython-312.pyc
+│   │       │   │   │           types.cpython-312.pyc
+│   │       │   │   │           utils.cpython-312.pyc
+│   │       │   │   │           __init__.cpython-312.pyc
+│   │       │   │   │           
+│   │       │   │   ├───plot
+│   │       │   │   │   │   core.py
+│   │       │   │   │   │   plotly.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───protobuf
+│   │       │   │   │   │   functions.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   ├───streaming
+│   │       │   │   │   │   datasource.py
+│   │       │   │   │   │   listener.py
+│   │       │   │   │   │   list_state_client.py
+│   │       │   │   │   │   map_state_client.py
+│   │       │   │   │   │   python_streaming_source_runner.py
+│   │       │   │   │   │   query.py
+│   │       │   │   │   │   readwriter.py
+│   │       │   │   │   │   state.py
+│   │       │   │   │   │   stateful_processor.py
+│   │       │   │   │   │   stateful_processor_api_client.py
+│   │       │   │   │   │   stateful_processor_util.py
+│   │       │   │   │   │   transform_with_state_driver_worker.py
+│   │       │   │   │   │   tws_tester.py
+│   │       │   │   │   │   value_state_client.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   ├───proto
+│   │       │   │   │   │   │   StateMessage_pb2.py
+│   │       │   │   │   │   │   StateMessage_pb2.pyi
+│   │       │   │   │   │   │   __init__.py
+│   │       │   │   │   │   │   
+│   │       │   │   │   │   └───__pycache__
+│   │       │   │   │   └───__pycache__
+│   │       │   │   │           listener.cpython-312.pyc
+│   │       │   │   │           list_state_client.cpython-312.pyc
+│   │       │   │   │           map_state_client.cpython-312.pyc
+│   │       │   │   │           query.cpython-312.pyc
+│   │       │   │   │           readwriter.cpython-312.pyc
+│   │       │   │   │           state.cpython-312.pyc
+│   │       │   │   │           stateful_processor.cpython-312.pyc
+│   │       │   │   │           stateful_processor_api_client.cpython-312.pyc
+│   │       │   │   │           tws_tester.cpython-312.pyc
+│   │       │   │   │           value_state_client.cpython-312.pyc
+│   │       │   │   │           __init__.cpython-312.pyc
+│   │       │   │   │           
+│   │       │   │   ├───worker
+│   │       │   │   │   │   analyze_udtf.py
+│   │       │   │   │   │   commit_data_source_write.py
+│   │       │   │   │   │   create_data_source.py
+│   │       │   │   │   │   data_source_pushdown_filters.py
+│   │       │   │   │   │   lookup_data_sources.py
+│   │       │   │   │   │   plan_data_source_read.py
+│   │       │   │   │   │   python_streaming_sink_runner.py
+│   │       │   │   │   │   utils.py
+│   │       │   │   │   │   write_into_data_source.py
+│   │       │   │   │   │   __init__.py
+│   │       │   │   │   │   
+│   │       │   │   │   └───__pycache__
+│   │       │   │   └───__pycache__
+│   │       │   │           catalog.cpython-312.pyc
+│   │       │   │           column.cpython-312.pyc
+│   │       │   │           conf.cpython-312.pyc
+│   │       │   │           context.cpython-312.pyc
+│   │       │   │           conversion.cpython-312.pyc
+│   │       │   │           dataframe.cpython-312.pyc
+│   │       │   │           geo_utils.cpython-312.pyc
+│   │       │   │           group.cpython-312.pyc
+│   │       │   │           merge.cpython-312.pyc
+│   │       │   │           observation.cpython-312.pyc
+│   │       │   │           profiler.cpython-312.pyc
+│   │       │   │           readwriter.cpython-312.pyc
+│   │       │   │           session.cpython-312.pyc
+│   │       │   │           sql_formatter.cpython-312.pyc
+│   │       │   │           table_arg.cpython-312.pyc
+│   │       │   │           tvf_argument.cpython-312.pyc
+│   │       │   │           types.cpython-312.pyc
+│   │       │   │           udf.cpython-312.pyc
+│   │       │   │           udtf.cpython-312.pyc
+│   │       │   │           utils.cpython-312.pyc
+│   │       │   │           variant_utils.cpython-312.pyc
+│   │       │   │           window.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───streaming
+│   │       │   │   │   context.py
+│   │       │   │   │   dstream.py
+│   │       │   │   │   kinesis.py
+│   │       │   │   │   listener.py
+│   │       │   │   │   util.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   ├───testing
+│   │       │   │   │   connectutils.py
+│   │       │   │   │   goldenutils.py
+│   │       │   │   │   mllibutils.py
+│   │       │   │   │   mlutils.py
+│   │       │   │   │   objects.py
+│   │       │   │   │   pandasutils.py
+│   │       │   │   │   sqlutils.py
+│   │       │   │   │   streamingutils.py
+│   │       │   │   │   unittestutils.py
+│   │       │   │   │   utils.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           unittestutils.cpython-312.pyc
+│   │       │   │           utils.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   └───__pycache__
+│   │       │           accumulators.cpython-312.pyc
+│   │       │           conf.cpython-312.pyc
+│   │       │           find_spark_home.cpython-312.pyc
+│   │       │           java_gateway.cpython-312.pyc
+│   │       │           join.cpython-312.pyc
+│   │       │           loose_version.cpython-312.pyc
+│   │       │           memory_profiler_ext.cpython-312.pyc
+│   │       │           profiler.cpython-312.pyc
+│   │       │           rddsampler.cpython-312.pyc
+│   │       │           resultiterable.cpython-312.pyc
+│   │       │           serializers.cpython-312.pyc
+│   │       │           shuffle.cpython-312.pyc
+│   │       │           statcounter.cpython-312.pyc
+│   │       │           storagelevel.cpython-312.pyc
+│   │       │           taskcontext.cpython-312.pyc
+│   │       │           traceback_utils.cpython-312.pyc
+│   │       │           util.cpython-312.pyc
+│   │       │           version.cpython-312.pyc
+│   │       │           _globals.cpython-312.pyc
+│   │       │           __init__.cpython-312.pyc
+│   │       │           
+│   │       ├───pyspark-4.2.0.dist-info
+│   │       │   │   INSTALLER
+│   │       │   │   METADATA
+│   │       │   │   RECORD
+│   │       │   │   REQUESTED
+│   │       │   │   top_level.txt
+│   │       │   │   WHEEL
+│   │       │   │   
+│   │       │   └───licenses
+│   │       │           LICENSE
+│   │       │           NOTICE
+│   │       │           
+│   │       ├───pytest
+│   │       │   │   py.typed
+│   │       │   │   __init__.py
+│   │       │   │   __main__.py
+│   │       │   │   
+│   │       │   └───__pycache__
+│   │       │           __init__.cpython-312.pyc
+│   │       │           __main__.cpython-312.pyc
+│   │       │           
+│   │       ├───pytest-9.1.1.dist-info
+│   │       │   │   entry_points.txt
+│   │       │   │   INSTALLER
+│   │       │   │   METADATA
+│   │       │   │   RECORD
+│   │       │   │   REQUESTED
+│   │       │   │   top_level.txt
+│   │       │   │   WHEEL
+│   │       │   │   
+│   │       │   └───licenses
+│   │       │           LICENSE
+│   │       │           
+│   │       ├───_pytest
+│   │       │   │   cacheprovider.py
+│   │       │   │   capture.py
+│   │       │   │   compat.py
+│   │       │   │   debugging.py
+│   │       │   │   deprecated.py
+│   │       │   │   doctest.py
+│   │       │   │   faulthandler.py
+│   │       │   │   fixtures.py
+│   │       │   │   freeze_support.py
+│   │       │   │   helpconfig.py
+│   │       │   │   hookspec.py
+│   │       │   │   junitxml.py
+│   │       │   │   legacypath.py
+│   │       │   │   logging.py
+│   │       │   │   main.py
+│   │       │   │   monkeypatch.py
+│   │       │   │   nodes.py
+│   │       │   │   outcomes.py
+│   │       │   │   pastebin.py
+│   │       │   │   pathlib.py
+│   │       │   │   py.typed
+│   │       │   │   pytester.py
+│   │       │   │   pytester_assertions.py
+│   │       │   │   python.py
+│   │       │   │   python_api.py
+│   │       │   │   raises.py
+│   │       │   │   recwarn.py
+│   │       │   │   reports.py
+│   │       │   │   runner.py
+│   │       │   │   scope.py
+│   │       │   │   setuponly.py
+│   │       │   │   setupplan.py
+│   │       │   │   skipping.py
+│   │       │   │   stash.py
+│   │       │   │   stepwise.py
+│   │       │   │   subtests.py
+│   │       │   │   terminal.py
+│   │       │   │   terminalprogress.py
+│   │       │   │   threadexception.py
+│   │       │   │   timing.py
+│   │       │   │   tmpdir.py
+│   │       │   │   tracemalloc.py
+│   │       │   │   unittest.py
+│   │       │   │   unraisableexception.py
+│   │       │   │   warnings.py
+│   │       │   │   warning_types.py
+│   │       │   │   _argcomplete.py
+│   │       │   │   _version.py
+│   │       │   │   __init__.py
+│   │       │   │   
+│   │       │   ├───assertion
+│   │       │   │   │   compare_text.py
+│   │       │   │   │   highlight.py
+│   │       │   │   │   rewrite.py
+│   │       │   │   │   truncate.py
+│   │       │   │   │   util.py
+│   │       │   │   │   _compare_any.py
+│   │       │   │   │   _compare_mapping.py
+│   │       │   │   │   _compare_sequence.py
+│   │       │   │   │   _compare_set.py
+│   │       │   │   │   _guards.py
+│   │       │   │   │   _typing.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           compare_text.cpython-312.pyc
+│   │       │   │           highlight.cpython-312.pyc
+│   │       │   │           rewrite.cpython-312.pyc
+│   │       │   │           truncate.cpython-312.pyc
+│   │       │   │           util.cpython-312.pyc
+│   │       │   │           _compare_any.cpython-312.pyc
+│   │       │   │           _compare_mapping.cpython-312.pyc
+│   │       │   │           _compare_sequence.cpython-312.pyc
+│   │       │   │           _compare_set.cpython-312.pyc
+│   │       │   │           _guards.cpython-312.pyc
+│   │       │   │           _typing.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───config
+│   │       │   │   │   argparsing.py
+│   │       │   │   │   exceptions.py
+│   │       │   │   │   findpaths.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           argparsing.cpython-312.pyc
+│   │       │   │           exceptions.cpython-312.pyc
+│   │       │   │           findpaths.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───mark
+│   │       │   │   │   expression.py
+│   │       │   │   │   structures.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           expression.cpython-312.pyc
+│   │       │   │           structures.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───_code
+│   │       │   │   │   code.py
+│   │       │   │   │   source.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           code.cpython-312.pyc
+│   │       │   │           source.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───_io
+│   │       │   │   │   pprint.py
+│   │       │   │   │   saferepr.py
+│   │       │   │   │   terminalwriter.py
+│   │       │   │   │   wcwidth.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           pprint.cpython-312.pyc
+│   │       │   │           saferepr.cpython-312.pyc
+│   │       │   │           terminalwriter.cpython-312.pyc
+│   │       │   │           wcwidth.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   ├───_py
+│   │       │   │   │   error.py
+│   │       │   │   │   path.py
+│   │       │   │   │   __init__.py
+│   │       │   │   │   
+│   │       │   │   └───__pycache__
+│   │       │   │           error.cpython-312.pyc
+│   │       │   │           path.cpython-312.pyc
+│   │       │   │           __init__.cpython-312.pyc
+│   │       │   │           
+│   │       │   └───__pycache__
+│   │       │           cacheprovider.cpython-312.pyc
+│   │       │           capture.cpython-312.pyc
+│   │       │           compat.cpython-312.pyc
+│   │       │           debugging.cpython-312.pyc
+│   │       │           deprecated.cpython-312.pyc
+│   │       │           doctest.cpython-312.pyc
+│   │       │           faulthandler.cpython-312.pyc
+│   │       │           fixtures.cpython-312.pyc
+│   │       │           freeze_support.cpython-312.pyc
+│   │       │           helpconfig.cpython-312.pyc
+│   │       │           hookspec.cpython-312.pyc
+│   │       │           junitxml.cpython-312.pyc
+│   │       │           legacypath.cpython-312.pyc
+│   │       │           logging.cpython-312.pyc
+│   │       │           main.cpython-312.pyc
+│   │       │           monkeypatch.cpython-312.pyc
+│   │       │           nodes.cpython-312.pyc
+│   │       │           outcomes.cpython-312.pyc
+│   │       │           pastebin.cpython-312.pyc
+│   │       │           pathlib.cpython-312.pyc
+│   │       │           pytester.cpython-312.pyc
+│   │       │           python.cpython-312.pyc
+│   │       │           python_api.cpython-312.pyc
+│   │       │           raises.cpython-312.pyc
+│   │       │           recwarn.cpython-312.pyc
+│   │       │           reports.cpython-312.pyc
+│   │       │           runner.cpython-312.pyc
+│   │       │           scope.cpython-312.pyc
+│   │       │           setuponly.cpython-312.pyc
+│   │       │           setupplan.cpython-312.pyc
+│   │       │           skipping.cpython-312.pyc
+│   │       │           stash.cpython-312.pyc
+│   │       │           stepwise.cpython-312.pyc
+│   │       │           subtests.cpython-312.pyc
+│   │       │           terminal.cpython-312.pyc
+│   │       │           terminalprogress.cpython-312-pytest-9.1.1.pyc
+│   │       │           threadexception.cpython-312.pyc
+│   │       │           timing.cpython-312.pyc
+│   │       │           tmpdir.cpython-312.pyc
+│   │       │           tracemalloc.cpython-312.pyc
+│   │       │           unittest.cpython-312.pyc
+│   │       │           unraisableexception.cpython-312.pyc
+│   │       │           warnings.cpython-312.pyc
+│   │       │           warning_types.cpython-312.pyc
+│   │       │           _argcomplete.cpython-312.pyc
+│   │       │           _version.cpython-312.pyc
+│   │       │           __init__.cpython-312.pyc
+│   │       │           
+│   │       └───__pycache__
+│   │               py.cpython-312.pyc
+│   │               
+│   ├───Scripts
+│   │   │   activate
+│   │   │   activate.bat
+│   │   │   Activate.ps1
+│   │   │   beeline
+│   │   │   beeline.cmd
+│   │   │   deactivate.bat
+│   │   │   docker-image-tool.sh
+│   │   │   find-spark-home
+│   │   │   find-spark-home.cmd
+│   │   │   find_spark_home.py
+│   │   │   load-spark-env.cmd
+│   │   │   load-spark-env.sh
+│   │   │   pip.exe
+│   │   │   pip3.12.exe
+│   │   │   pip3.exe
+│   │   │   py.test.exe
+│   │   │   pygmentize.exe
+│   │   │   pyspark
+│   │   │   pyspark.cmd
+│   │   │   pyspark2.cmd
+│   │   │   pytest.exe
+│   │   │   python.exe
+│   │   │   pythonw.exe
+│   │   │   run-example
+│   │   │   run-example.cmd
+│   │   │   spark-class
+│   │   │   spark-class.cmd
+│   │   │   spark-class2.cmd
+│   │   │   spark-connect-shell
+│   │   │   spark-pipelines
+│   │   │   spark-shell
+│   │   │   spark-shell.cmd
+│   │   │   spark-shell2.cmd
+│   │   │   spark-sql
+│   │   │   spark-sql.cmd
+│   │   │   spark-sql2.cmd
+│   │   │   spark-submit
+│   │   │   spark-submit.cmd
+│   │   │   spark-submit2.cmd
+│   │   │   sparkR
+│   │   │   sparkR.cmd
+│   │   │   sparkR2.cmd
+│   │   │   
+│   │   └───__pycache__
+│   └───share
+│       └───py4j
+│               py4j0.10.9.9.jar
+│               
+├───.vscode
+│       settings.json
+│       
+├───configs
+│       environment.variable-overrides.example.json
+│       README.md
+│       
+├───data
+│       README.md
+│       
+├───data_contract
+│       Card_domain_datacontract.yaml
+│       Customer_domain_datacontract.yaml
+│       Customer_domain_datacontract_ver2.yaml
+│       FinCrime_domain_datacontract.yaml
+│       Transaction_domain_datacontract.yaml
+│       
+├───docs
+│       banking_daily_change_catalog.md
+│       banking_error_injection_catalog.md
+│       Banking_Silver_Atomic_Warehouse.dbml
+│       customer_360_silver_guide.md
+│       error_injection_rule_mapping.md
+│       IMPLEMENTATION_SUMMARY.md
+│       NAB_TDM_MASKING_GUIDE.md
+│       Team_Workspace_Pipeline_Technical_Runbook.md
+│       
+├───resources
+│       apply_and_verify_pii_tags.job.yml
+│       banking_investigation.job.yml
+│       banking_investigation.pipeline.yml
+│       banking_investigation_bootstrap.job.yml
+│       run_integration_tests.yml
+│       
+├───scripts
+│   └───source_landing
+│           load_local_snapshots.sh
+│           README.md
+│           
+├───sql
+│   ├───customer_360
+│   │       01_active_customer_views.sql
+│   │       02_party_candidate_view.sql
+│   │       03_party_quality_checks.sql
+│   │       04_party_identifier_candidate_view.sql
+│   │       05_party_identifier_quality_checks.sql
+│   │       06_party_identity_resolution_candidate_view.sql
+│   │       07_party_identity_resolution_quality_checks.sql
+│   │       08_kyc_unresolved_diagnostics.sql
+│   │       09_party_kyc_assessment_and_quarantine_views.sql
+│   │       10_kyc_assessment_quality_checks.sql
+│   │       11_party_employment_resolution_and_quarantine_views.sql
+│   │       12_party_employment_quality_checks.sql
+│   │       13_employment_unresolved_diagnostics.sql
+│   │       14_kyc_employment_orphan_overlap_check.sql
+│   │       15_party_service_request_resolution_and_quarantine_views.sql
+│   │       16_party_service_request_quality_checks.sql
+│   │       17_request_unresolved_diagnostics.sql
+│   │       18_orphan_customer_overlap_summary.sql
+│   │       README.md
+│   │       
+│   └───infrastructure
+│           01_create_catalog_and_delegate.sql
+│           
+├───src
+│   ├───data_contracts
+│   │   │   manifest.mf
+│   │   │   normalization.py
+│   │   │   QUALITY_RULE_CONVENTIONS.md
+│   │   │   README.md
+│   │   │   table_catalog.py
+│   │   │   __init__.py
+│   │   │   
+│   │   ├───audit
+│   │   │       writer.py
+│   │   │       __init__.py
+│   │   │       
+│   │   ├───monitoring
+│   │   │   │   views.py
+│   │   │   │   __init__.py
+│   │   │   │   
+│   │   │   └───__pycache__
+│   │   ├───quality_rules
+│   │   │   │   registry.py
+│   │   │   │   __init__.py
+│   │   │   │   
+│   │   │   ├───domains
+│   │   │   │   │   card.py
+│   │   │   │   │   customer.py
+│   │   │   │   │   fincrime.py
+│   │   │   │   │   transaction.py
+│   │   │   │   │   __init__.py
+│   │   │   │   │   
+│   │   │   │   └───__pycache__
+│   │   │   └───__pycache__
+│   │   ├───schemas
+│   │   │       Card_domain_datacontract.yaml
+│   │   │       Customer_domain_datacontract.yaml
+│   │   │       Customer_domain_datacontract_ver2.yaml
+│   │   │       FinCrime_domain_datacontract.yaml
+│   │   │       Transaction_domain_datacontract.yaml
+│   │   │       
+│   │   └───__pycache__
+│   ├───legacy
+│   │   │   README.md
+│   │   │   
+│   │   └───notebooks
+│   │       │   README.md
+│   │       │   
+│   │       ├───pipeline
+│   │       │   └───transformations
+│   │       │           bronze_layer.py
+│   │       │           
+│   │       ├───setup
+│   │       │       README.md
+│   │       │       
+│   │       └───validation
+│   │               README.md
+│   │               
+│   ├───pipeline
+│   │   │   README.md
+│   │   │   run_context.py
+│   │   │   __init__.py
+│   │   │   
+│   │   ├───bronze
+│   │   │   │   source_to_bronze_ingestion.py
+│   │   │   │   
+│   │   │   └───__pycache__
+│   │   │           source_to_bronze_ingestion.cpython-312.pyc
+│   │   │           
+│   │   ├───gold
+│   │   │   │   aml_investigation_context.py
+│   │   │   │   customer_360_context.py
+│   │   │   │   fraud_transaction_context.py
+│   │   │   │   gold_common.py
+│   │   │   │   gold_layer_design_doc.md
+│   │   │   │   
+│   │   │   └───__pycache__
+│   │   ├───governance
+│   │   │       00_setup_catalog_and_schemas.py
+│   │   │       01_setup_tags_and_udf.py
+│   │   │       02_setup_abac_policy.py
+│   │   │       03_apply_and_verify_pii_tags.py
+│   │   │       
+│   │   ├───monitoring
+│   │   │       finalize_pipeline_run.py
+│   │   │       pre_transform_setup.py
+│   │   │       
+│   │   ├───silver
+│   │   │   │   bronze_to_validated_silver.py
+│   │   │   │   card_transformation.py
+│   │   │   │   customer_transformation.py
+│   │   │   │   fincrime_transformation.py
+│   │   │   │   transaction_transformation.py
+│   │   │   │   
+│   │   │   └───__pycache__
+│   │   ├───source_landing
+│   │   │       README.md
+│   │   │       
+│   │   └───__pycache__
+│   └───__pycache__
+├───tests
+│   │   conftest.py
+│   │   README.md
+│   │   run_unit_tests.py
+│   │   
+│   ├───bronze
+│   │   │   test_bronze.py
+│   │   │   
+│   │   └───__pycache__
+│   │           test_bronze.cpython-312-pytest-9.1.1.pyc
+│   │           
+│   ├───gold
+│   │   │   test_ai_aml_investigation_context.py
+│   │   │   test_customer_360_context.py
+│   │   │   test_fraud_transaction_context.py
+│   │   │   
+│   │   └───__pycache__
+│   ├───pipeline
+│   │   │   test_production_orchestration.py
+│   │   │   
+│   │   └───__pycache__
+│   ├───silver
+│   │   │   test_card_transformation.py
+│   │   │   test_customer_transformation.py
+│   │   │   test_fincrime_transformation.py
+│   │   │   test_quality_rules.py
+│   │   │   test_transaction_transformation.py
+│   │   │   
+│   │   └───__pycache__
+│   └───__pycache__
+│           conftest.cpython-312-pytest-8.4.1.pyc
+│           conftest.cpython-312-pytest-9.1.1.pyc
+│           
+├───tmp
+└───typings
+        __builtins__.pyi
+        
