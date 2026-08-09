@@ -1,0 +1,750 @@
+2026-08-07 18:26:23 [INFO] Databricks SparkSession injected and config getter safely patched.
+2026-08-07 18:26:23 [INFO] =================================================================
+2026-08-07 18:26:23 [INFO] AUTOMATED PIPELINE UNIT & INTEGRATION TEST SUITE
+2026-08-07 18:26:23 [INFO] Project Root : C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline
+2026-08-07 18:26:23 [INFO] Source directory   : C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline\src
+2026-08-07 18:26:23 [INFO] Target layer : ['bronze', 'gold', 'pipeline', 'silver']
+2026-08-07 18:26:23 [INFO] =================================================================
+============================= test session starts =============================
+platform win32 -- Python 3.12.0, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline\.venv\Scripts\python.exe
+rootdir: C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline
+collecting ... collected 90 items
+
+tests/bronze/test_bronze.py::test_schema_hints_cast_columns_to_correct_types_and_values PASSED [  1%]
+tests/bronze/test_bronze.py::test_schema_hints_skip_columns_not_present_on_the_df PASSED [  2%]
+tests/bronze/test_bronze.py::test_schema_hints_empty_string_is_a_no_op PASSED [  3%]
+tests/bronze/test_bronze.py::test_schema_hints_malformed_value_casts_to_null_rather_than_raising PASSED [  4%]
+tests/bronze/test_bronze.py::test_source_contract_adds_typed_null_for_pre_evolution_crm_snapshot PASSED [  5%]
+tests/bronze/test_bronze.py::test_source_contract_preserves_post_evolution_crm_value PASSED [  6%]
+tests/bronze/test_bronze.py::test_source_contract_is_versioned_optional_and_table_scoped PASSED [  7%]
+tests/bronze/test_bronze.py::test_derived_event_keys_only_apply_to_payment_gateway_status_event PASSED [  8%]
+tests/bronze/test_bronze.py::test_derived_event_keys_resolve_the_parent_reference_correctly[42-None-ACCOUNT:42] PASSED [ 10%]
+tests/bronze/test_bronze.py::test_derived_event_keys_resolve_the_parent_reference_correctly[None-99-CARD:99] PASSED [ 11%]
+tests/bronze/test_bronze.py::test_derived_event_keys_resolve_the_parent_reference_correctly[42-99-ACCOUNT:42] PASSED [ 12%]
+tests/bronze/test_bronze.py::test_derived_event_keys_resolve_the_parent_reference_correctly[None-None-<MISSING_PARENT>] PASSED [ 13%]
+tests/bronze/test_bronze.py::test_dedup_only_applies_to_account_transaction_status_event PASSED [ 14%]
+tests/bronze/test_bronze.py::test_dedup_leaves_every_other_table_untouched PASSED [ 15%]
+tests/bronze/test_bronze.py::test_metadata_adds_all_technical_columns_and_drops_layout_only_ones FAILED [ 16%]
+tests/bronze/test_bronze.py::test_metadata_business_date_domain_and_timestamps_are_correct FAILED [ 17%]
+tests/bronze/test_bronze.py::test_metadata_requires_a_file_backed_dataframe FAILED [ 18%]
+tests/bronze/test_bronze.py::test_business_dates_are_parsed_deduped_and_sorted PASSED [ 20%]
+tests/bronze/test_bronze.py::test_business_dates_result_is_cached PASSED [ 21%]
+tests/bronze/test_bronze.py::test_business_dates_listing_failure_raises_a_helpful_error PASSED [ 22%]
+tests/bronze/test_bronze.py::test_watermark_first_run_returns_the_earliest_snapshot FAILED [ 23%]
+tests/bronze/test_bronze.py::test_watermark_only_advances_to_snapshots_newer_than_the_current_one FAILED [ 24%]
+tests/bronze/test_bronze.py::test_watermark_returns_none_when_fully_caught_up FAILED [ 25%]
+tests/gold/test_ai_aml_investigation_context.py::test_ai_aml_investigation_context_aggregations_and_dq_status PASSED [ 26%]
+tests/gold/test_customer_360_context.py::test_ai_customer_360_context_core_scenarios PASSED [ 27%]
+tests/gold/test_customer_360_context.py::test_monthly_income_banding_boundaries PASSED [ 28%]
+tests/gold/test_fraud_transaction_context.py::test_ai_fraud_transaction_context_core_scenarios PASSED [ 30%]
+tests/gold/test_fraud_transaction_context.py::test_merchant_max_store_risk_ordering PASSED [ 31%]
+tests/pipeline/test_production_orchestration.py::test_active_context_sql_fails_closed_for_missing_or_ambiguous_contexts PASSED [ 32%]
+tests/pipeline/test_production_orchestration.py::test_active_context_rejects_invalid_non_default_catalogs[] PASSED [ 33%]
+tests/pipeline/test_production_orchestration.py::test_active_context_rejects_invalid_non_default_catalogs[workspace; DROP CATALOG workspace] PASSED [ 34%]
+tests/pipeline/test_production_orchestration.py::test_no_random_lineage_uuid_or_legacy_pipeline_lookup_remains PASSED [ 35%]
+tests/pipeline/test_production_orchestration.py::test_quarantine_resolves_the_same_canonical_active_run_context PASSED [ 36%]
+tests/pipeline/test_production_orchestration.py::test_silver_and_gold_keep_the_pipeline_run_lineage_column PASSED [ 37%]
+tests/pipeline/test_production_orchestration.py::test_bundle_has_one_physical_sdp_and_one_parent_pipeline_task PASSED [ 38%]
+tests/pipeline/test_production_orchestration.py::test_bootstrap_and_recurring_jobs_are_separate_entry_points PASSED [ 40%]
+tests/pipeline/test_production_orchestration.py::test_recurring_job_has_no_post_pipeline_layer_audit_tasks PASSED [ 41%]
+tests/pipeline/test_production_orchestration.py::test_native_event_log_views_supply_dashboard_monitoring_without_raw_access PASSED [ 42%]
+tests/pipeline/test_production_orchestration.py::test_monitoring_view_setup_failures_are_non_gating PASSED [ 43%]
+tests/pipeline/test_production_orchestration.py::test_abac_exceptions_and_run_as_are_variable_driven_without_personal_email PASSED [ 44%]
+tests/pipeline/test_production_orchestration.py::test_staging_target_preserves_existing_deployment_identity_and_s3_secrets PASSED [ 45%]
+tests/pipeline/test_production_orchestration.py::test_bootstrap_setup_validates_precreated_catalog_without_metastore_create PASSED [ 46%]
+tests/pipeline/test_production_orchestration.py::test_native_sdp_identity_and_national_id_masking_are_configured PASSED [ 47%]
+tests/pipeline/test_production_orchestration.py::test_crm_schema_evolution_is_optional_versioned_and_silver_safe PASSED [ 48%]
+tests/silver/test_card_transformation.py::test_hash_key_generation PASSED [ 50%]
+tests/silver/test_card_transformation.py::test_tokenize_pii PASSED       [ 51%]
+tests/silver/test_card_transformation.py::test_get_pipeline_run_id_existing_column PASSED [ 52%]
+tests/silver/test_card_transformation.py::test_build_account PASSED      [ 53%]
+tests/silver/test_card_transformation.py::test_build_payment_card PASSED [ 54%]
+tests/silver/test_card_transformation.py::test_build_party_account_role PASSED [ 55%]
+tests/silver/test_card_transformation.py::test_build_payment_card_limit_history PASSED [ 56%]
+tests/silver/test_card_transformation.py::test_build_merchant_and_location PASSED [ 57%]
+tests/silver/test_customer_transformation.py::test_hash_key_generation PASSED [ 58%]
+tests/silver/test_customer_transformation.py::test_tokenize_pii PASSED   [ 60%]
+tests/silver/test_customer_transformation.py::test_get_source_system PASSED [ 61%]
+tests/silver/test_customer_transformation.py::test_resolve_party_status PASSED [ 62%]
+tests/silver/test_customer_transformation.py::test_build_party PASSED    [ 63%]
+tests/silver/test_customer_transformation.py::test_build_party_identifier PASSED [ 64%]
+tests/silver/test_customer_transformation.py::test_build_party_identity_resolution PASSED [ 65%]
+tests/silver/test_customer_transformation.py::test_build_party_profile_version PASSED [ 66%]
+tests/silver/test_customer_transformation.py::test_build_party_kyc_employment_service_request PASSED [ 67%]
+tests/silver/test_fincrime_transformation.py::test_hash_key_generation PASSED [ 68%]
+tests/silver/test_fincrime_transformation.py::test_get_pipeline_run_id_existing_column PASSED [ 70%]
+tests/silver/test_fincrime_transformation.py::test_silver_financial_event_risk_score PASSED [ 71%]
+tests/silver/test_fincrime_transformation.py::test_silver_fraud_alert_and_link PASSED [ 72%]
+tests/silver/test_fincrime_transformation.py::test_silver_monitoring_alert_financial_event_union PASSED [ 73%]
+tests/silver/test_fincrime_transformation.py::test_silver_investigation_case_and_note PASSED [ 74%]
+tests/silver/test_fincrime_transformation.py::test_silver_call_center_contact_pii_masking PASSED [ 75%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_all_assessment_views_feed_one_shared_quarantine_table PASSED [ 76%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_all_required_card_columns_have_not_null_rules PASSED [ 77%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_assessment_views_publish_native_expectation_metrics PASSED [ 78%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_card_rules_are_isolated_in_the_card_domain_module PASSED [ 80%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_card_rules_are_lakeflow_expectation_dictionary PASSED [ 81%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_catalog_sentinel_rules_match_card_error_injection PASSED [ 82%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_customer_transaction_and_fincrime_injections_have_quarantine_rules PASSED [ 83%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_every_catalog_quarantine_table_is_covered_by_its_domain_registry PASSED [ 84%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_non_quarantine_catalog_handling_is_not_a_row_quarantine_rule PASSED [ 85%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_quality_pipelines_use_cdf_for_quarantine_history PASSED [ 86%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_quarantine_condition_matches_databricks_pattern PASSED [ 87%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_silver_validation_imports_the_shared_rule_module PASSED [ 88%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_silver_validation_quarantines_null_rule_evaluations PASSED [ 90%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_silver_validation_retains_scd2_history PASSED [ 91%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_tables_without_row_level_rules_have_a_non_quarantining_predicate PASSED [ 92%]
+tests/silver/test_quality_rules.py::QualityRulesTests::test_unknown_table_is_rejected PASSED [ 93%]
+tests/silver/test_transaction_transformation.py::test_hash_key_generation PASSED [ 94%]
+tests/silver/test_transaction_transformation.py::test_get_currency_col PASSED [ 95%]
+tests/silver/test_transaction_transformation.py::test_get_pipeline_run_id_existing_column PASSED [ 96%]
+tests/silver/test_transaction_transformation.py::test_silver_financial_event_header_union PASSED [ 97%]
+tests/silver/test_transaction_transformation.py::test_extension_tables_builders PASSED [ 98%]
+tests/silver/test_transaction_transformation.py::test_silver_financial_event_status_history_union PASSED [100%]
+
+================================== FAILURES ===================================
+_____ test_metadata_adds_all_technical_columns_and_drops_layout_only_ones _____
+tests\bronze\test_bronze.py:296: in test_metadata_adds_all_technical_columns_and_drops_layout_only_ones
+    raw = _read_back(
+tests\bronze\test_bronze.py:289: in _read_back
+    spark.createDataFrame(rows).write.mode("overwrite").parquet(target_path)
+.venv\Lib\site-packages\pyspark\sql\readwriter.py:2093: in parquet
+    self._jwrite.parquet(path)
+.venv\Lib\site-packages\py4j\java_gateway.py:1362: in __call__
+    return_value = get_return_value(
+.venv\Lib\site-packages\pyspark\errors\exceptions\captured.py:251: in deco
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+.venv\Lib\site-packages\py4j\protocol.py:327: in get_return_value
+    raise Py4JJavaError(
+E   py4j.protocol.Py4JJavaError: An error occurred while calling o447.parquet.
+E   : java.lang.RuntimeException: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.getWinUtilsPath(Shell.java:790)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:299)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:315)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.setPermission(RawLocalFileSystem.java:1179)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkOneDirWithMode(RawLocalFileSystem.java:861)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:901)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter.setupJob(FileOutputCommitter.java:361)
+E   	at org.apache.spark.internal.io.HadoopMapReduceCommitProtocol.setupJob(HadoopMapReduceCommitProtocol.scala:180)
+E   	at org.apache.spark.sql.execution.datasources.FileFormatWriter$.write(FileFormatWriter.scala:156)
+E   	at org.apache.spark.sql.execution.datasources.InsertIntoHadoopFsRelationCommand.run(InsertIntoHadoopFsRelationCommand.scala:195)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult$lzycompute(commands.scala:117)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult(commands.scala:115)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.executeCollect(commands.scala:129)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$2(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$8(SQLExecution.scala:228)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSessionTagsApplied(SQLExecution.scala:352)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$7(SQLExecution.scala:189)
+E   	at org.apache.spark.JobArtifactSet$.withActiveJobArtifactState(JobArtifactSet.scala:94)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.$anonfun$withResources$1(ArtifactManager.scala:112)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withClassLoaderIfNeeded(ArtifactManager.scala:106)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withResources(ArtifactManager.scala:111)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$6(SQLExecution.scala:189)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSQLConfPropagated(SQLExecution.scala:375)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$1(SQLExecution.scala:188)
+E   	at org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:810)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId0(SQLExecution.scala:130)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId(SQLExecution.scala:317)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$1(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.QueryExecution$.withInternalError(QueryExecution.scala:872)
+E   	at org.apache.spark.sql.execution.QueryExecution$.runCommand(QueryExecution.scala:939)
+E   	at org.apache.spark.sql.execution.QueryExecution.org$apache$spark$sql$execution$QueryExecution$$eagerlyExecute$1(QueryExecution.scala:247)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:261)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.$anonfun$transformDownWithPruning$1(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.trees.CurrentOrigin$.withOrigin(origin.scala:107)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDownWithPruning(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.org$apache$spark$sql$catalyst$plans$logical$AnalysisHelper$$super$transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning(AnalysisHelper.scala:360)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning$(AnalysisHelper.scala:356)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDown(TreeNode.scala:471)
+E   	at org.apache.spark.sql.execution.QueryExecution.eagerlyExecuteCommands(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyCommandExecuted$1(QueryExecution.scala:218)
+E   	at scala.util.Try$.apply(Try.scala:217)
+E   	at org.apache.spark.util.Utils$.doTryWithCallerStacktrace(Utils.scala:1407)
+E   	at org.apache.spark.util.Utils$.getTryWithCallerStacktrace(Utils.scala:1457)
+E   	at org.apache.spark.util.LazyTry.get(LazyTry.scala:61)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$commandExecuted$1(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.withAbortTransactionOnFailure(QueryExecution.scala:632)
+E   	at org.apache.spark.sql.execution.QueryExecution.commandExecuted(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.assertCommandExecuted(QueryExecution.scala:309)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.runCommand(DataFrameWriter.scala:615)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.save(DataFrameWriter.scala:115)
+E   	at org.apache.spark.sql.DataFrameWriter.parquet(DataFrameWriter.scala:381)
+E   	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+E   	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+E   	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+E   	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:374)
+E   	at py4j.Gateway.invoke(Gateway.java:282)
+E   	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+E   	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+E   	at py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:184)
+E   	at py4j.ClientServerConnection.run(ClientServerConnection.java:108)
+E   	at java.base/java.lang.Thread.run(Thread.java:1575)
+E   Caused by: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.fileNotFoundException(Shell.java:602)
+E   	at org.apache.hadoop.util.Shell.getHadoopHomeDir(Shell.java:623)
+E   	at org.apache.hadoop.util.Shell.getQualifiedBin(Shell.java:646)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:743)
+E   	at org.apache.hadoop.util.StringUtils.<clinit>(StringUtils.java:80)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDurationHelper(Configuration.java:1938)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1896)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1869)
+E   	at org.apache.hadoop.util.ShutdownHookManager.getShutdownTimeout(ShutdownHookManager.java:184)
+E   	at org.apache.hadoop.util.ShutdownHookManager$HookEntry.<init>(ShutdownHookManager.java:208)
+E   	at org.apache.hadoop.util.ShutdownHookManager.addShutdownHook(ShutdownHookManager.java:305)
+E   	at org.apache.spark.util.SparkShutdownHookManager.$anonfun$install$1(ShutdownHookManager.scala:194)
+E   	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)
+E   	at scala.Option.fold(Option.scala:263)
+E   	at org.apache.spark.util.SparkShutdownHookManager.install(ShutdownHookManager.scala:195)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks$lzycompute(ShutdownHookManager.scala:55)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks(ShutdownHookManager.scala:53)
+E   	at org.apache.spark.util.ShutdownHookManager$.addShutdownHook(ShutdownHookManager.scala:159)
+E   	at org.apache.spark.util.ShutdownHookManager$.<clinit>(ShutdownHookManager.scala:63)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:249)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir(SparkFileUtils.scala:125)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir$(SparkFileUtils.scala:124)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:97)
+E   	at org.apache.spark.deploy.SparkSubmit.prepareSubmitEnvironment(SparkSubmit.scala:381)
+E   	at org.apache.spark.deploy.SparkSubmit.org$apache$spark$deploy$SparkSubmit$$runMain(SparkSubmit.scala:965)
+E   	at org.apache.spark.deploy.SparkSubmit.doRunMain$1(SparkSubmit.scala:203)
+E   	at org.apache.spark.deploy.SparkSubmit.submit(SparkSubmit.scala:226)
+E   	at org.apache.spark.deploy.SparkSubmit.doSubmit(SparkSubmit.scala:95)
+E   	at org.apache.spark.deploy.SparkSubmit$$anon$2.doSubmit(SparkSubmit.scala:1171)
+E   	at org.apache.spark.deploy.SparkSubmit$.main(SparkSubmit.scala:1180)
+E   	at org.apache.spark.deploy.SparkSubmit.main(SparkSubmit.scala)
+E   Caused by: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset.
+E   	at org.apache.hadoop.util.Shell.checkHadoopHomeInner(Shell.java:522)
+E   	at org.apache.hadoop.util.Shell.checkHadoopHome(Shell.java:493)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:570)
+E   	... 27 more
+________ test_metadata_business_date_domain_and_timestamps_are_correct ________
+tests\bronze\test_bronze.py:314: in test_metadata_business_date_domain_and_timestamps_are_correct
+    raw = _read_back(
+tests\bronze\test_bronze.py:289: in _read_back
+    spark.createDataFrame(rows).write.mode("overwrite").parquet(target_path)
+.venv\Lib\site-packages\pyspark\sql\readwriter.py:2093: in parquet
+    self._jwrite.parquet(path)
+.venv\Lib\site-packages\py4j\java_gateway.py:1362: in __call__
+    return_value = get_return_value(
+.venv\Lib\site-packages\pyspark\errors\exceptions\captured.py:251: in deco
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+.venv\Lib\site-packages\py4j\protocol.py:327: in get_return_value
+    raise Py4JJavaError(
+E   py4j.protocol.Py4JJavaError: An error occurred while calling o473.parquet.
+E   : java.lang.RuntimeException: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.getWinUtilsPath(Shell.java:790)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:299)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:315)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.setPermission(RawLocalFileSystem.java:1179)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkOneDirWithMode(RawLocalFileSystem.java:861)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:901)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter.setupJob(FileOutputCommitter.java:361)
+E   	at org.apache.spark.internal.io.HadoopMapReduceCommitProtocol.setupJob(HadoopMapReduceCommitProtocol.scala:180)
+E   	at org.apache.spark.sql.execution.datasources.FileFormatWriter$.write(FileFormatWriter.scala:156)
+E   	at org.apache.spark.sql.execution.datasources.InsertIntoHadoopFsRelationCommand.run(InsertIntoHadoopFsRelationCommand.scala:195)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult$lzycompute(commands.scala:117)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult(commands.scala:115)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.executeCollect(commands.scala:129)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$2(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$8(SQLExecution.scala:228)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSessionTagsApplied(SQLExecution.scala:352)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$7(SQLExecution.scala:189)
+E   	at org.apache.spark.JobArtifactSet$.withActiveJobArtifactState(JobArtifactSet.scala:94)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.$anonfun$withResources$1(ArtifactManager.scala:112)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withClassLoaderIfNeeded(ArtifactManager.scala:106)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withResources(ArtifactManager.scala:111)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$6(SQLExecution.scala:189)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSQLConfPropagated(SQLExecution.scala:375)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$1(SQLExecution.scala:188)
+E   	at org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:810)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId0(SQLExecution.scala:130)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId(SQLExecution.scala:317)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$1(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.QueryExecution$.withInternalError(QueryExecution.scala:872)
+E   	at org.apache.spark.sql.execution.QueryExecution$.runCommand(QueryExecution.scala:939)
+E   	at org.apache.spark.sql.execution.QueryExecution.org$apache$spark$sql$execution$QueryExecution$$eagerlyExecute$1(QueryExecution.scala:247)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:261)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.$anonfun$transformDownWithPruning$1(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.trees.CurrentOrigin$.withOrigin(origin.scala:107)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDownWithPruning(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.org$apache$spark$sql$catalyst$plans$logical$AnalysisHelper$$super$transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning(AnalysisHelper.scala:360)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning$(AnalysisHelper.scala:356)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDown(TreeNode.scala:471)
+E   	at org.apache.spark.sql.execution.QueryExecution.eagerlyExecuteCommands(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyCommandExecuted$1(QueryExecution.scala:218)
+E   	at scala.util.Try$.apply(Try.scala:217)
+E   	at org.apache.spark.util.Utils$.doTryWithCallerStacktrace(Utils.scala:1407)
+E   	at org.apache.spark.util.Utils$.getTryWithCallerStacktrace(Utils.scala:1457)
+E   	at org.apache.spark.util.LazyTry.get(LazyTry.scala:61)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$commandExecuted$1(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.withAbortTransactionOnFailure(QueryExecution.scala:632)
+E   	at org.apache.spark.sql.execution.QueryExecution.commandExecuted(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.assertCommandExecuted(QueryExecution.scala:309)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.runCommand(DataFrameWriter.scala:615)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.save(DataFrameWriter.scala:115)
+E   	at org.apache.spark.sql.DataFrameWriter.parquet(DataFrameWriter.scala:381)
+E   	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+E   	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+E   	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+E   	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:374)
+E   	at py4j.Gateway.invoke(Gateway.java:282)
+E   	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+E   	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+E   	at py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:184)
+E   	at py4j.ClientServerConnection.run(ClientServerConnection.java:108)
+E   	at java.base/java.lang.Thread.run(Thread.java:1575)
+E   Caused by: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.fileNotFoundException(Shell.java:602)
+E   	at org.apache.hadoop.util.Shell.getHadoopHomeDir(Shell.java:623)
+E   	at org.apache.hadoop.util.Shell.getQualifiedBin(Shell.java:646)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:743)
+E   	at org.apache.hadoop.util.StringUtils.<clinit>(StringUtils.java:80)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDurationHelper(Configuration.java:1938)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1896)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1869)
+E   	at org.apache.hadoop.util.ShutdownHookManager.getShutdownTimeout(ShutdownHookManager.java:184)
+E   	at org.apache.hadoop.util.ShutdownHookManager$HookEntry.<init>(ShutdownHookManager.java:208)
+E   	at org.apache.hadoop.util.ShutdownHookManager.addShutdownHook(ShutdownHookManager.java:305)
+E   	at org.apache.spark.util.SparkShutdownHookManager.$anonfun$install$1(ShutdownHookManager.scala:194)
+E   	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)
+E   	at scala.Option.fold(Option.scala:263)
+E   	at org.apache.spark.util.SparkShutdownHookManager.install(ShutdownHookManager.scala:195)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks$lzycompute(ShutdownHookManager.scala:55)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks(ShutdownHookManager.scala:53)
+E   	at org.apache.spark.util.ShutdownHookManager$.addShutdownHook(ShutdownHookManager.scala:159)
+E   	at org.apache.spark.util.ShutdownHookManager$.<clinit>(ShutdownHookManager.scala:63)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:249)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir(SparkFileUtils.scala:125)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir$(SparkFileUtils.scala:124)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:97)
+E   	at org.apache.spark.deploy.SparkSubmit.prepareSubmitEnvironment(SparkSubmit.scala:381)
+E   	at org.apache.spark.deploy.SparkSubmit.org$apache$spark$deploy$SparkSubmit$$runMain(SparkSubmit.scala:965)
+E   	at org.apache.spark.deploy.SparkSubmit.doRunMain$1(SparkSubmit.scala:203)
+E   	at org.apache.spark.deploy.SparkSubmit.submit(SparkSubmit.scala:226)
+E   	at org.apache.spark.deploy.SparkSubmit.doSubmit(SparkSubmit.scala:95)
+E   	at org.apache.spark.deploy.SparkSubmit$$anon$2.doSubmit(SparkSubmit.scala:1171)
+E   	at org.apache.spark.deploy.SparkSubmit$.main(SparkSubmit.scala:1180)
+E   	at org.apache.spark.deploy.SparkSubmit.main(SparkSubmit.scala)
+E   Caused by: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset.
+E   	at org.apache.hadoop.util.Shell.checkHadoopHomeInner(Shell.java:522)
+E   	at org.apache.hadoop.util.Shell.checkHadoopHome(Shell.java:493)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:570)
+E   	... 27 more
+_______________ test_metadata_requires_a_file_backed_dataframe ________________
+tests\bronze\test_bronze.py:332: in test_metadata_requires_a_file_backed_dataframe
+    with pytest.raises(Exception):
+E   Failed: DID NOT RAISE Exception
+___________ test_watermark_first_run_returns_the_earliest_snapshot ____________
+tests\bronze\test_bronze.py:437: in test_watermark_first_run_returns_the_earliest_snapshot
+    write_snapshot("2026-01-01", row_id=20260101)
+tests\bronze\test_bronze.py:419: in write_snapshot
+    test_spark.createDataFrame([Row(id=row_id)]).write.mode("overwrite").parquet(
+.venv\Lib\site-packages\pyspark\sql\readwriter.py:2093: in parquet
+    self._jwrite.parquet(path)
+.venv\Lib\site-packages\py4j\java_gateway.py:1362: in __call__
+    return_value = get_return_value(
+.venv\Lib\site-packages\pyspark\errors\exceptions\captured.py:251: in deco
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+.venv\Lib\site-packages\py4j\protocol.py:327: in get_return_value
+    raise Py4JJavaError(
+E   py4j.protocol.Py4JJavaError: An error occurred while calling o535.parquet.
+E   : java.lang.RuntimeException: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.getWinUtilsPath(Shell.java:790)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:299)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:315)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.setPermission(RawLocalFileSystem.java:1179)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkOneDirWithMode(RawLocalFileSystem.java:861)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:901)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter.setupJob(FileOutputCommitter.java:361)
+E   	at org.apache.spark.internal.io.HadoopMapReduceCommitProtocol.setupJob(HadoopMapReduceCommitProtocol.scala:180)
+E   	at org.apache.spark.sql.execution.datasources.FileFormatWriter$.write(FileFormatWriter.scala:156)
+E   	at org.apache.spark.sql.execution.datasources.InsertIntoHadoopFsRelationCommand.run(InsertIntoHadoopFsRelationCommand.scala:195)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult$lzycompute(commands.scala:117)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult(commands.scala:115)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.executeCollect(commands.scala:129)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$2(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$8(SQLExecution.scala:228)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSessionTagsApplied(SQLExecution.scala:352)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$7(SQLExecution.scala:189)
+E   	at org.apache.spark.JobArtifactSet$.withActiveJobArtifactState(JobArtifactSet.scala:94)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.$anonfun$withResources$1(ArtifactManager.scala:112)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withClassLoaderIfNeeded(ArtifactManager.scala:106)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withResources(ArtifactManager.scala:111)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$6(SQLExecution.scala:189)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSQLConfPropagated(SQLExecution.scala:375)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$1(SQLExecution.scala:188)
+E   	at org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:810)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId0(SQLExecution.scala:130)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId(SQLExecution.scala:317)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$1(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.QueryExecution$.withInternalError(QueryExecution.scala:872)
+E   	at org.apache.spark.sql.execution.QueryExecution$.runCommand(QueryExecution.scala:939)
+E   	at org.apache.spark.sql.execution.QueryExecution.org$apache$spark$sql$execution$QueryExecution$$eagerlyExecute$1(QueryExecution.scala:247)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:261)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.$anonfun$transformDownWithPruning$1(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.trees.CurrentOrigin$.withOrigin(origin.scala:107)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDownWithPruning(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.org$apache$spark$sql$catalyst$plans$logical$AnalysisHelper$$super$transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning(AnalysisHelper.scala:360)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning$(AnalysisHelper.scala:356)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDown(TreeNode.scala:471)
+E   	at org.apache.spark.sql.execution.QueryExecution.eagerlyExecuteCommands(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyCommandExecuted$1(QueryExecution.scala:218)
+E   	at scala.util.Try$.apply(Try.scala:217)
+E   	at org.apache.spark.util.Utils$.doTryWithCallerStacktrace(Utils.scala:1407)
+E   	at org.apache.spark.util.Utils$.getTryWithCallerStacktrace(Utils.scala:1457)
+E   	at org.apache.spark.util.LazyTry.get(LazyTry.scala:61)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$commandExecuted$1(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.withAbortTransactionOnFailure(QueryExecution.scala:632)
+E   	at org.apache.spark.sql.execution.QueryExecution.commandExecuted(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.assertCommandExecuted(QueryExecution.scala:309)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.runCommand(DataFrameWriter.scala:615)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.save(DataFrameWriter.scala:115)
+E   	at org.apache.spark.sql.DataFrameWriter.parquet(DataFrameWriter.scala:381)
+E   	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+E   	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+E   	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+E   	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:374)
+E   	at py4j.Gateway.invoke(Gateway.java:282)
+E   	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+E   	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+E   	at py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:184)
+E   	at py4j.ClientServerConnection.run(ClientServerConnection.java:108)
+E   	at java.base/java.lang.Thread.run(Thread.java:1575)
+E   Caused by: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.fileNotFoundException(Shell.java:602)
+E   	at org.apache.hadoop.util.Shell.getHadoopHomeDir(Shell.java:623)
+E   	at org.apache.hadoop.util.Shell.getQualifiedBin(Shell.java:646)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:743)
+E   	at org.apache.hadoop.util.StringUtils.<clinit>(StringUtils.java:80)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDurationHelper(Configuration.java:1938)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1896)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1869)
+E   	at org.apache.hadoop.util.ShutdownHookManager.getShutdownTimeout(ShutdownHookManager.java:184)
+E   	at org.apache.hadoop.util.ShutdownHookManager$HookEntry.<init>(ShutdownHookManager.java:208)
+E   	at org.apache.hadoop.util.ShutdownHookManager.addShutdownHook(ShutdownHookManager.java:305)
+E   	at org.apache.spark.util.SparkShutdownHookManager.$anonfun$install$1(ShutdownHookManager.scala:194)
+E   	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)
+E   	at scala.Option.fold(Option.scala:263)
+E   	at org.apache.spark.util.SparkShutdownHookManager.install(ShutdownHookManager.scala:195)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks$lzycompute(ShutdownHookManager.scala:55)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks(ShutdownHookManager.scala:53)
+E   	at org.apache.spark.util.ShutdownHookManager$.addShutdownHook(ShutdownHookManager.scala:159)
+E   	at org.apache.spark.util.ShutdownHookManager$.<clinit>(ShutdownHookManager.scala:63)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:249)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir(SparkFileUtils.scala:125)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir$(SparkFileUtils.scala:124)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:97)
+E   	at org.apache.spark.deploy.SparkSubmit.prepareSubmitEnvironment(SparkSubmit.scala:381)
+E   	at org.apache.spark.deploy.SparkSubmit.org$apache$spark$deploy$SparkSubmit$$runMain(SparkSubmit.scala:965)
+E   	at org.apache.spark.deploy.SparkSubmit.doRunMain$1(SparkSubmit.scala:203)
+E   	at org.apache.spark.deploy.SparkSubmit.submit(SparkSubmit.scala:226)
+E   	at org.apache.spark.deploy.SparkSubmit.doSubmit(SparkSubmit.scala:95)
+E   	at org.apache.spark.deploy.SparkSubmit$$anon$2.doSubmit(SparkSubmit.scala:1171)
+E   	at org.apache.spark.deploy.SparkSubmit$.main(SparkSubmit.scala:1180)
+E   	at org.apache.spark.deploy.SparkSubmit.main(SparkSubmit.scala)
+E   Caused by: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset.
+E   	at org.apache.hadoop.util.Shell.checkHadoopHomeInner(Shell.java:522)
+E   	at org.apache.hadoop.util.Shell.checkHadoopHome(Shell.java:493)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:570)
+E   	... 27 more
+____ test_watermark_only_advances_to_snapshots_newer_than_the_current_one _____
+tests\bronze\test_bronze.py:455: in test_watermark_only_advances_to_snapshots_newer_than_the_current_one
+    write_snapshot("2026-01-01", row_id=20260101)
+tests\bronze\test_bronze.py:419: in write_snapshot
+    test_spark.createDataFrame([Row(id=row_id)]).write.mode("overwrite").parquet(
+.venv\Lib\site-packages\pyspark\sql\readwriter.py:2093: in parquet
+    self._jwrite.parquet(path)
+.venv\Lib\site-packages\py4j\java_gateway.py:1362: in __call__
+    return_value = get_return_value(
+.venv\Lib\site-packages\pyspark\errors\exceptions\captured.py:251: in deco
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+.venv\Lib\site-packages\py4j\protocol.py:327: in get_return_value
+    raise Py4JJavaError(
+E   py4j.protocol.Py4JJavaError: An error occurred while calling o561.parquet.
+E   : java.lang.RuntimeException: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.getWinUtilsPath(Shell.java:790)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:299)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:315)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.setPermission(RawLocalFileSystem.java:1179)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkOneDirWithMode(RawLocalFileSystem.java:861)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:901)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter.setupJob(FileOutputCommitter.java:361)
+E   	at org.apache.spark.internal.io.HadoopMapReduceCommitProtocol.setupJob(HadoopMapReduceCommitProtocol.scala:180)
+E   	at org.apache.spark.sql.execution.datasources.FileFormatWriter$.write(FileFormatWriter.scala:156)
+E   	at org.apache.spark.sql.execution.datasources.InsertIntoHadoopFsRelationCommand.run(InsertIntoHadoopFsRelationCommand.scala:195)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult$lzycompute(commands.scala:117)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult(commands.scala:115)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.executeCollect(commands.scala:129)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$2(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$8(SQLExecution.scala:228)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSessionTagsApplied(SQLExecution.scala:352)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$7(SQLExecution.scala:189)
+E   	at org.apache.spark.JobArtifactSet$.withActiveJobArtifactState(JobArtifactSet.scala:94)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.$anonfun$withResources$1(ArtifactManager.scala:112)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withClassLoaderIfNeeded(ArtifactManager.scala:106)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withResources(ArtifactManager.scala:111)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$6(SQLExecution.scala:189)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSQLConfPropagated(SQLExecution.scala:375)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$1(SQLExecution.scala:188)
+E   	at org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:810)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId0(SQLExecution.scala:130)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId(SQLExecution.scala:317)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$1(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.QueryExecution$.withInternalError(QueryExecution.scala:872)
+E   	at org.apache.spark.sql.execution.QueryExecution$.runCommand(QueryExecution.scala:939)
+E   	at org.apache.spark.sql.execution.QueryExecution.org$apache$spark$sql$execution$QueryExecution$$eagerlyExecute$1(QueryExecution.scala:247)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:261)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.$anonfun$transformDownWithPruning$1(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.trees.CurrentOrigin$.withOrigin(origin.scala:107)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDownWithPruning(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.org$apache$spark$sql$catalyst$plans$logical$AnalysisHelper$$super$transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning(AnalysisHelper.scala:360)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning$(AnalysisHelper.scala:356)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDown(TreeNode.scala:471)
+E   	at org.apache.spark.sql.execution.QueryExecution.eagerlyExecuteCommands(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyCommandExecuted$1(QueryExecution.scala:218)
+E   	at scala.util.Try$.apply(Try.scala:217)
+E   	at org.apache.spark.util.Utils$.doTryWithCallerStacktrace(Utils.scala:1407)
+E   	at org.apache.spark.util.Utils$.getTryWithCallerStacktrace(Utils.scala:1457)
+E   	at org.apache.spark.util.LazyTry.get(LazyTry.scala:61)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$commandExecuted$1(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.withAbortTransactionOnFailure(QueryExecution.scala:632)
+E   	at org.apache.spark.sql.execution.QueryExecution.commandExecuted(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.assertCommandExecuted(QueryExecution.scala:309)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.runCommand(DataFrameWriter.scala:615)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.save(DataFrameWriter.scala:115)
+E   	at org.apache.spark.sql.DataFrameWriter.parquet(DataFrameWriter.scala:381)
+E   	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+E   	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+E   	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+E   	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:374)
+E   	at py4j.Gateway.invoke(Gateway.java:282)
+E   	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+E   	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+E   	at py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:184)
+E   	at py4j.ClientServerConnection.run(ClientServerConnection.java:108)
+E   	at java.base/java.lang.Thread.run(Thread.java:1575)
+E   Caused by: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.fileNotFoundException(Shell.java:602)
+E   	at org.apache.hadoop.util.Shell.getHadoopHomeDir(Shell.java:623)
+E   	at org.apache.hadoop.util.Shell.getQualifiedBin(Shell.java:646)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:743)
+E   	at org.apache.hadoop.util.StringUtils.<clinit>(StringUtils.java:80)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDurationHelper(Configuration.java:1938)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1896)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1869)
+E   	at org.apache.hadoop.util.ShutdownHookManager.getShutdownTimeout(ShutdownHookManager.java:184)
+E   	at org.apache.hadoop.util.ShutdownHookManager$HookEntry.<init>(ShutdownHookManager.java:208)
+E   	at org.apache.hadoop.util.ShutdownHookManager.addShutdownHook(ShutdownHookManager.java:305)
+E   	at org.apache.spark.util.SparkShutdownHookManager.$anonfun$install$1(ShutdownHookManager.scala:194)
+E   	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)
+E   	at scala.Option.fold(Option.scala:263)
+E   	at org.apache.spark.util.SparkShutdownHookManager.install(ShutdownHookManager.scala:195)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks$lzycompute(ShutdownHookManager.scala:55)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks(ShutdownHookManager.scala:53)
+E   	at org.apache.spark.util.ShutdownHookManager$.addShutdownHook(ShutdownHookManager.scala:159)
+E   	at org.apache.spark.util.ShutdownHookManager$.<clinit>(ShutdownHookManager.scala:63)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:249)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir(SparkFileUtils.scala:125)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir$(SparkFileUtils.scala:124)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:97)
+E   	at org.apache.spark.deploy.SparkSubmit.prepareSubmitEnvironment(SparkSubmit.scala:381)
+E   	at org.apache.spark.deploy.SparkSubmit.org$apache$spark$deploy$SparkSubmit$$runMain(SparkSubmit.scala:965)
+E   	at org.apache.spark.deploy.SparkSubmit.doRunMain$1(SparkSubmit.scala:203)
+E   	at org.apache.spark.deploy.SparkSubmit.submit(SparkSubmit.scala:226)
+E   	at org.apache.spark.deploy.SparkSubmit.doSubmit(SparkSubmit.scala:95)
+E   	at org.apache.spark.deploy.SparkSubmit$$anon$2.doSubmit(SparkSubmit.scala:1171)
+E   	at org.apache.spark.deploy.SparkSubmit$.main(SparkSubmit.scala:1180)
+E   	at org.apache.spark.deploy.SparkSubmit.main(SparkSubmit.scala)
+E   Caused by: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset.
+E   	at org.apache.hadoop.util.Shell.checkHadoopHomeInner(Shell.java:522)
+E   	at org.apache.hadoop.util.Shell.checkHadoopHome(Shell.java:493)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:570)
+E   	... 27 more
+______________ test_watermark_returns_none_when_fully_caught_up _______________
+tests\bronze\test_bronze.py:471: in test_watermark_returns_none_when_fully_caught_up
+    write_snapshot("2026-01-01", row_id=20260101)
+tests\bronze\test_bronze.py:419: in write_snapshot
+    test_spark.createDataFrame([Row(id=row_id)]).write.mode("overwrite").parquet(
+.venv\Lib\site-packages\pyspark\sql\readwriter.py:2093: in parquet
+    self._jwrite.parquet(path)
+.venv\Lib\site-packages\py4j\java_gateway.py:1362: in __call__
+    return_value = get_return_value(
+.venv\Lib\site-packages\pyspark\errors\exceptions\captured.py:251: in deco
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+.venv\Lib\site-packages\py4j\protocol.py:327: in get_return_value
+    raise Py4JJavaError(
+E   py4j.protocol.Py4JJavaError: An error occurred while calling o587.parquet.
+E   : java.lang.RuntimeException: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.getWinUtilsPath(Shell.java:790)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:299)
+E   	at org.apache.hadoop.util.Shell.getSetPermissionCommand(Shell.java:315)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.setPermission(RawLocalFileSystem.java:1179)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkOneDirWithMode(RawLocalFileSystem.java:861)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:901)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirsWithOptionalPermission(RawLocalFileSystem.java:900)
+E   	at org.apache.hadoop.fs.RawLocalFileSystem.mkdirs(RawLocalFileSystem.java:873)
+E   	at org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter.setupJob(FileOutputCommitter.java:361)
+E   	at org.apache.spark.internal.io.HadoopMapReduceCommitProtocol.setupJob(HadoopMapReduceCommitProtocol.scala:180)
+E   	at org.apache.spark.sql.execution.datasources.FileFormatWriter$.write(FileFormatWriter.scala:156)
+E   	at org.apache.spark.sql.execution.datasources.InsertIntoHadoopFsRelationCommand.run(InsertIntoHadoopFsRelationCommand.scala:195)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult$lzycompute(commands.scala:117)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.sideEffectResult(commands.scala:115)
+E   	at org.apache.spark.sql.execution.command.DataWritingCommandExec.executeCollect(commands.scala:129)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$2(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$8(SQLExecution.scala:228)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSessionTagsApplied(SQLExecution.scala:352)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$7(SQLExecution.scala:189)
+E   	at org.apache.spark.JobArtifactSet$.withActiveJobArtifactState(JobArtifactSet.scala:94)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.$anonfun$withResources$1(ArtifactManager.scala:112)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withClassLoaderIfNeeded(ArtifactManager.scala:106)
+E   	at org.apache.spark.sql.artifact.ArtifactManager.withResources(ArtifactManager.scala:111)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$6(SQLExecution.scala:189)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withSQLConfPropagated(SQLExecution.scala:375)
+E   	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId0$1(SQLExecution.scala:188)
+2026-08-07 18:35:46 [ERROR] Test suite execution failed with exit code: 1
+E   	at org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:810)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId0(SQLExecution.scala:130)
+E   	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId(SQLExecution.scala:317)
+E   	at org.apache.spark.sql.execution.QueryExecution$.$anonfun$runCommand$1(QueryExecution.scala:940)
+E   	at org.apache.spark.sql.execution.QueryExecution$.withInternalError(QueryExecution.scala:872)
+E   	at org.apache.spark.sql.execution.QueryExecution$.runCommand(QueryExecution.scala:939)
+E   	at org.apache.spark.sql.execution.QueryExecution.org$apache$spark$sql$execution$QueryExecution$$eagerlyExecute$1(QueryExecution.scala:247)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:261)
+E   	at org.apache.spark.sql.execution.QueryExecution$$anonfun$eagerlyExecuteCommands$1.applyOrElse(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.$anonfun$transformDownWithPruning$1(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.trees.CurrentOrigin$.withOrigin(origin.scala:107)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDownWithPruning(TreeNode.scala:495)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.org$apache$spark$sql$catalyst$plans$logical$AnalysisHelper$$super$transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning(AnalysisHelper.scala:360)
+E   	at org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.transformDownWithPruning$(AnalysisHelper.scala:356)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.transformDownWithPruning(LogicalPlan.scala:37)
+E   	at org.apache.spark.sql.catalyst.trees.TreeNode.transformDown(TreeNode.scala:471)
+E   	at org.apache.spark.sql.execution.QueryExecution.eagerlyExecuteCommands(QueryExecution.scala:254)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyCommandExecuted$1(QueryExecution.scala:218)
+E   	at scala.util.Try$.apply(Try.scala:217)
+E   	at org.apache.spark.util.Utils$.doTryWithCallerStacktrace(Utils.scala:1407)
+E   	at org.apache.spark.util.Utils$.getTryWithCallerStacktrace(Utils.scala:1457)
+E   	at org.apache.spark.util.LazyTry.get(LazyTry.scala:61)
+E   	at org.apache.spark.sql.execution.QueryExecution.$anonfun$commandExecuted$1(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.withAbortTransactionOnFailure(QueryExecution.scala:632)
+E   	at org.apache.spark.sql.execution.QueryExecution.commandExecuted(QueryExecution.scala:224)
+E   	at org.apache.spark.sql.execution.QueryExecution.assertCommandExecuted(QueryExecution.scala:309)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.runCommand(DataFrameWriter.scala:615)
+E   	at org.apache.spark.sql.classic.DataFrameWriter.save(DataFrameWriter.scala:115)
+E   	at org.apache.spark.sql.DataFrameWriter.parquet(DataFrameWriter.scala:381)
+E   	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+E   	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+E   	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+E   	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:374)
+E   	at py4j.Gateway.invoke(Gateway.java:282)
+E   	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+E   	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+E   	at py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:184)
+E   	at py4j.ClientServerConnection.run(ClientServerConnection.java:108)
+E   	at java.base/java.lang.Thread.run(Thread.java:1575)
+E   Caused by: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+E   	at org.apache.hadoop.util.Shell.fileNotFoundException(Shell.java:602)
+E   	at org.apache.hadoop.util.Shell.getHadoopHomeDir(Shell.java:623)
+E   	at org.apache.hadoop.util.Shell.getQualifiedBin(Shell.java:646)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:743)
+E   	at org.apache.hadoop.util.StringUtils.<clinit>(StringUtils.java:80)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDurationHelper(Configuration.java:1938)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1896)
+E   	at org.apache.hadoop.conf.Configuration.getTimeDuration(Configuration.java:1869)
+E   	at org.apache.hadoop.util.ShutdownHookManager.getShutdownTimeout(ShutdownHookManager.java:184)
+E   	at org.apache.hadoop.util.ShutdownHookManager$HookEntry.<init>(ShutdownHookManager.java:208)
+E   	at org.apache.hadoop.util.ShutdownHookManager.addShutdownHook(ShutdownHookManager.java:305)
+E   	at org.apache.spark.util.SparkShutdownHookManager.$anonfun$install$1(ShutdownHookManager.scala:194)
+E   	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)
+E   	at scala.Option.fold(Option.scala:263)
+E   	at org.apache.spark.util.SparkShutdownHookManager.install(ShutdownHookManager.scala:195)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks$lzycompute(ShutdownHookManager.scala:55)
+E   	at org.apache.spark.util.ShutdownHookManager$.shutdownHooks(ShutdownHookManager.scala:53)
+E   	at org.apache.spark.util.ShutdownHookManager$.addShutdownHook(ShutdownHookManager.scala:159)
+E   	at org.apache.spark.util.ShutdownHookManager$.<clinit>(ShutdownHookManager.scala:63)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:249)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir(SparkFileUtils.scala:125)
+E   	at org.apache.spark.util.SparkFileUtils.createTempDir$(SparkFileUtils.scala:124)
+E   	at org.apache.spark.util.Utils$.createTempDir(Utils.scala:97)
+E   	at org.apache.spark.deploy.SparkSubmit.prepareSubmitEnvironment(SparkSubmit.scala:381)
+E   	at org.apache.spark.deploy.SparkSubmit.org$apache$spark$deploy$SparkSubmit$$runMain(SparkSubmit.scala:965)
+E   	at org.apache.spark.deploy.SparkSubmit.doRunMain$1(SparkSubmit.scala:203)
+E   	at org.apache.spark.deploy.SparkSubmit.submit(SparkSubmit.scala:226)
+E   	at org.apache.spark.deploy.SparkSubmit.doSubmit(SparkSubmit.scala:95)
+E   	at org.apache.spark.deploy.SparkSubmit$$anon$2.doSubmit(SparkSubmit.scala:1171)
+E   	at org.apache.spark.deploy.SparkSubmit$.main(SparkSubmit.scala:1180)
+E   	at org.apache.spark.deploy.SparkSubmit.main(SparkSubmit.scala)
+E   Caused by: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset.
+E   	at org.apache.hadoop.util.Shell.checkHadoopHomeInner(Shell.java:522)
+E   	at org.apache.hadoop.util.Shell.checkHadoopHome(Shell.java:493)
+E   	at org.apache.hadoop.util.Shell.<clinit>(Shell.java:570)
+E   	... 27 more
+============================== warnings summary ===============================
+tests\silver\test_card_transformation.py:216
+  C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline\tests\silver\test_card_transformation.py:216: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/bronze/test_bronze.py::test_metadata_adds_all_technical_columns_and_drops_layout_only_ones
+FAILED tests/bronze/test_bronze.py::test_metadata_business_date_domain_and_timestamps_are_correct
+FAILED tests/bronze/test_bronze.py::test_metadata_requires_a_file_backed_dataframe
+FAILED tests/bronze/test_bronze.py::test_watermark_first_run_returns_the_earliest_snapshot
+FAILED tests/bronze/test_bronze.py::test_watermark_only_advances_to_snapshots_newer_than_the_current_one
+FAILED tests/bronze/test_bronze.py::test_watermark_returns_none_when_fully_caught_up
+============= 6 failed, 84 passed, 1 warning in 563.46s (0:09:23) =============
+Traceback (most recent call last):
+  File "C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline\tests\run_unit_tests.py", line 193, in <module>
+    main()
+  File "C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline\tests\run_unit_tests.py", line 189, in main
+    runner.run()
+  File "C:\Users\Admin\OneDrive\Tài liệu\zero-trust-banking-pipeline\tests\run_unit_tests.py", line 182, in run
+    raise RuntimeError(f"PyTest suite failed with exit code {exit_code}.")
+RuntimeError: PyTest suite failed with exit code 1.
+2026-08-07 18:35:46 [INFO] Closing down clientserver connection
+SUCCESS: The process with PID 11404 (child process of PID 16768) has been terminated.
+SUCCESS: The process with PID 16768 (child process of PID 21884) has been terminated.
+SUCCESS: The process with PID 21884 (child process of PID 4444) has been terminated.

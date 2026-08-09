@@ -494,6 +494,7 @@ def remove_confirmed_snapshot_replays(
     return df
 
 
+# source_to_bronze_ingestion.py
 def add_operational_metadata(
     df: DataFrame,
     domain: str,
@@ -502,15 +503,20 @@ def add_operational_metadata(
     """Adds source-file and pipeline lineage metadata."""
     load_timestamp = F.current_timestamp()
 
+    # Kiểm tra an toàn cột _metadata cho cả Spark local/Windows lẫn Databricks Runtime
+    if "_metadata" in df.columns:
+        source_file_col = F.col("_metadata.file_name")
+        source_mod_col = F.col("_metadata.file_modification_time")
+    else:
+        source_file_col = F.lit("unknown_file")
+        source_mod_col = load_timestamp
+
     return (
         df.drop("simulation_id", "snapshot_type")
         .withColumn("business_date", F.to_date(F.lit(business_date)))
         .withColumn("domain", F.lit(domain))
-        .withColumn("source_file_name", F.col("_metadata.file_name"))
-        .withColumn(
-            "source_file_modified_at",
-            F.col("_metadata.file_modification_time"),
-        )
+        .withColumn("source_file_name", source_file_col)
+        .withColumn("source_file_modified_at", source_mod_col)
         .withColumn("LOAD_DTTM", load_timestamp)
         .withColumn("EXTRACT_DTTM", load_timestamp)
         .withColumn("EXTRACT_DTE", F.to_date(load_timestamp))

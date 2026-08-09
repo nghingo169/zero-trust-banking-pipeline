@@ -1,46 +1,71 @@
 """
 Pytest configuration and fixtures for pipeline tests.
 """
-
 import os
 import sys
 from pathlib import Path
-
 import pytest
 from pyspark.sql import SparkSession
 
-# Add src to path
+# Ép PySpark Worker dùng 'python.exe' từ Virtual Environment
+venv_python = sys.executable
+os.environ["PYSPARK_PYTHON"] = venv_python
+os.environ["PYSPARK_DRIVER_PYTHON"] = venv_python
+
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "src"))
+src_dir = project_root / "src"
+
+paths_to_inject = [
+    str(project_root),
+    str(src_dir),
+    str(src_dir / "data_contracts"),
+    str(src_dir / "pipeline"),
+    str(src_dir / "pipeline" / "silver"),
+    str(src_dir / "pipeline" / "bronze"),
+    str(src_dir / "pipeline" / "gold"),
+]
+for p in paths_to_inject:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 
 @pytest.fixture(scope="session")
 def spark():
-    """Create a local Spark session for testing."""
-    return (
+    """Khởi tạo Local Spark Session tương thích hoàn toàn với Windows Local I/O."""
+    try:
+        active = SparkSession.getActiveSession()
+        if active:
+            active.conf.set("spark.sql.stackTracesInDataFrameContext", "1")
+            return active
+    except Exception:
+        pass
+
+    session = (
         SparkSession.builder.master("local[2]")
         .appName("pipeline-tests")
-        .config("spark.sql.warehouse.dir", "/tmp/spark-warehouse")
+        .config("spark.sql.warehouse.dir", "file:///C:/tmp/spark-warehouse")
         .config("spark.driver.memory", "2g")
+        .config("spark.sql.stackTracesInDataFrameContext", "1")
+        # BỎ QUA KIỂM TRA WINUTILS / HADOOP PERMISSIONS TRÊN WINDOWS
+        .config("spark.hadoop.fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem")
         .getOrCreate()
     )
+    session.conf.set("spark.sql.stackTracesInDataFrameContext", "1")
+    return session
 
 
 @pytest.fixture(scope="session")
 def test_catalog():
-    """Test catalog name."""
-    return "test_catalog"
+    return "workspace"
 
 
 @pytest.fixture(scope="session")
 def test_schema():
-    """Test schema name."""
     return "test_schema"
 
 
 @pytest.fixture
 def sample_dataframe(spark):
-    """Create a sample DataFrame for testing."""
     data = [
         ("CB-001", "John Doe", "123456789"),
         ("CRM-002", "Jane Smith", "987654321"),

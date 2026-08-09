@@ -32,21 +32,17 @@ except NameError:
         SparkSession.builder.master("local[2]")
         .appName("Pipeline-UnitTest-Bronze")
         .config("spark.sql.shuffle.partitions", "1")
+        .config("spark.hadoop.fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem")
         .getOrCreate()
     )
 
 builtins.spark = test_spark_session
-# source_to_bronze_ingestion calls dbutils.fs.ls(...) inside
 builtins.dbutils = MagicMock(name="dbutils")
 
-# Local temp directory standing in for the Bronze snapshot source root - no
-# S3 / Volume needed. Created once at import time (module-level, same as the
-# Spark session above), since the module under test reads
-# pipeline.source_root at import time too.
-_SOURCE_ROOT = f"file:{tempfile.mkdtemp(prefix='bronze_source_root_')}"
+# Local temp directory - POSIX URI format cho Spark Windows IO
+_SOURCE_TMP_DIR = Path(tempfile.mkdtemp(prefix="bronze_source_root_"))
+_SOURCE_ROOT = f"file:///{_SOURCE_TMP_DIR.as_posix()}"
 
-# Set default pipeline configs to prevent AnalysisException on Databricks
-# Connect - same try/except-swallow pattern as test_customer_transformation.py.
 _PIPELINE_CONF_DEFAULTS = {
     "pipeline.source_mode": "volume",
     "pipeline.source_root": _SOURCE_ROOT,
@@ -93,7 +89,6 @@ def test_spark():
 
 @pytest.fixture(scope="module")
 def fake_dp():
-    """The mocked pyspark.pipelines module that source_to_bronze_ingestion imports as `dp`."""
     return pipelines_mock
 
 
@@ -105,7 +100,6 @@ import source_to_bronze_ingestion
 
 @pytest.fixture(autouse=True)
 def _reset_business_date_cache():
-    """get_available_business_dates() caches its result - reset between tests."""
     source_to_bronze_ingestion.CACHED_BUSINESS_DATES = None
     yield
     source_to_bronze_ingestion.CACHED_BUSINESS_DATES = None
@@ -113,7 +107,6 @@ def _reset_business_date_cache():
 
 # ==============================================================================
 # SECTION 1: SCHEMA VALIDATION + DATA TRANSFORMATION
-# apply_schema_hints(df, hints)
 # ==============================================================================
 
 
@@ -128,13 +121,12 @@ def test_schema_hints_cast_columns_to_correct_types_and_values(test_spark):
 
     assert isinstance(schema["account_id"], LongType)
     assert isinstance(schema["amount"], DecimalType)
-    assert isinstance(schema["label"], StringType)  # not named in hints -> untouched
+    assert isinstance(schema["label"], StringType)
     assert row["account_id"] == 123
     assert row["amount"] == 45.50
 
 
 def test_schema_hints_skip_columns_not_present_on_the_df(test_spark):
-    """A hint naming a column the snapshot doesn't have must not raise."""
     df = test_spark.createDataFrame([Row(only_col="value")])
 
     out = source_to_bronze_ingestion.apply_schema_hints(
@@ -153,7 +145,6 @@ def test_schema_hints_empty_string_is_a_no_op(test_spark):
 
 
 def test_schema_hints_malformed_value_casts_to_null_rather_than_raising(test_spark):
-    """Data-quality edge case: a non-numeric string cast to DECIMAL -> NULL, not a crash."""
     df = test_spark.createDataFrame([Row(amount="not-a-number")])
 
     out = source_to_bronze_ingestion.apply_schema_hints(df, "amount DECIMAL(12,2)")
@@ -206,7 +197,6 @@ def test_source_contract_is_versioned_optional_and_table_scoped(test_spark):
 
 # ==============================================================================
 # SECTION 2: DATA TRANSFORMATION
-# add_derived_event_keys(df, table_name)
 # ==============================================================================
 
 _EVENT_KEY_SCHEMA = "account_txn_id BIGINT, card_txn_id BIGINT"
@@ -225,14 +215,10 @@ def test_derived_event_keys_only_apply_to_payment_gateway_status_event(test_spar
 @pytest.mark.parametrize(
     "account_txn_id, card_txn_id, expected",
     [
-        (42, None, "ACCOUNT:42"),  # account id present -> account ref
-        (None, 99, "CARD:99"),  # only card id present -> card ref
-        (42, 99, "ACCOUNT:42"),  # both present -> account takes priority
-        (
-            None,
-            None,
-            "<MISSING_PARENT>",
-        ),  # neither present -> explicit sentinel, not NULL
+        (42, None, "ACCOUNT:42"),
+        (None, 99, "CARD:99"),
+        (42, 99, "ACCOUNT:42"),
+        (None, None, "<MISSING_PARENT>"),
     ],
 )
 def test_derived_event_keys_resolve_the_parent_reference_correctly(
@@ -251,7 +237,6 @@ def test_derived_event_keys_resolve_the_parent_reference_correctly(
 
 # ==============================================================================
 # SECTION 3: DATA QUALITY
-# remove_confirmed_snapshot_replays(df, table_name, keys)
 # ==============================================================================
 
 
@@ -259,7 +244,7 @@ def test_dedup_only_applies_to_account_transaction_status_event(test_spark):
     df = test_spark.createDataFrame(
         [
             Row(status_event_id=1, account_txn_id=100),
-            Row(status_event_id=1, account_txn_id=100),  # exact replay
+            Row(status_event_id=1, account_txn_id=100),
             Row(status_event_id=2, account_txn_id=101),
         ]
     )
@@ -272,10 +257,6 @@ def test_dedup_only_applies_to_account_transaction_status_event(test_spark):
 
 
 def test_dedup_leaves_every_other_table_untouched(test_spark):
-    """
-    By design: an unexpected duplicate key on any other table should fail
-    visibly downstream rather than be silently dropped here.
-    """
     df = test_spark.createDataFrame(
         [Row(account_txn_id=1, amount=10.0), Row(account_txn_id=1, amount=10.0)]
     )
@@ -289,17 +270,22 @@ def test_dedup_leaves_every_other_table_untouched(test_spark):
 
 # ==============================================================================
 # SECTION 4: METADATA
-# add_operational_metadata(df, domain, business_date)
 # ==============================================================================
 WORKSPACE_TMP_DIR = PROJECT_ROOT / ".tmp_pytest"
 WORKSPACE_TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
+
 def _read_back(spark, tmp_path, rows, subdir="snapshot"):
-    # Generate unique test path inside project workspace directory
     target_dir = WORKSPACE_TMP_DIR / tmp_path.name / subdir
     target_dir.parent.mkdir(parents=True, exist_ok=True)
-    target_path = str(target_dir)
+    
+    # Format URI chuẩn hóa cho cả Windows và Linux
+    path_str = target_dir.as_posix()
+    if not path_str.startswith("/"):
+        path_str = "/" + path_str
+    target_path = f"file://{path_str}"
+    
     spark.createDataFrame(rows).write.mode("overwrite").parquet(target_path)
     return spark.read.parquet(target_path)
 
@@ -341,11 +327,6 @@ def test_metadata_business_date_domain_and_timestamps_are_correct(test_spark, tm
 
 
 def test_metadata_requires_a_file_backed_dataframe(test_spark):
-    """
-    An in-memory DataFrame has no `_metadata` column.
-    Accessing `out.schema` triggers the Spark Analyzer on the Driver to raise
-    the exception without submitting a failed Spark Job to the cluster UI.
-    """
     df = test_spark.createDataFrame([Row(a=1, simulation_id="s", snapshot_type="FULL")])
 
     with pytest.raises(Exception):
@@ -357,12 +338,10 @@ def test_metadata_requires_a_file_backed_dataframe(test_spark):
 
 # ==============================================================================
 # SECTION 5: INCREMENTAL LOGIC
-# get_available_business_dates(), build_snapshot_flow()'s watermark closure
 # ==============================================================================
 
 
 def _dir(path: str) -> SimpleNamespace:
-    """Minimal stand-in for the FileInfo objects dbutils.fs.ls() returns."""
     return SimpleNamespace(path=path)
 
 
@@ -370,8 +349,8 @@ def test_business_dates_are_parsed_deduped_and_sorted(monkeypatch):
     listing = [
         _dir("dbfs:/root/business_date=2026-03-01/"),
         _dir("dbfs:/root/business_date=2026-01-15/"),
-        _dir("dbfs:/root/business_date=2026-01-15/customer_master/"),  # duplicate date
-        _dir("dbfs:/root/_delta_log/"),  # doesn't match the pattern -> ignored
+        _dir("dbfs:/root/business_date=2026-01-15/customer_master/"),
+        _dir("dbfs:/root/_delta_log/"),
     ]
     monkeypatch.setattr(builtins.dbutils.fs, "ls", lambda root: listing)
 
@@ -405,18 +384,38 @@ def test_business_dates_listing_failure_raises_a_helpful_error(monkeypatch):
         source_to_bronze_ingestion.get_available_business_dates()
 
 
+# tests/bronze/test_bronze.py
+
+
 @pytest.fixture
 def watermark_source(fake_dp, test_spark, tmp_path_factory, monkeypatch, request):
+    # CRITICAL FIX 1: Reset cache ngày business date trước mỗi test watermark
+    source_to_bronze_ingestion.CACHED_BUSINESS_DATES = None
+
     domain, table = "wm_domain", f"wm_table_{request.node.name}"
 
-    # Store temporary test snapshots under project root workspace folder
     root = WORKSPACE_TMP_DIR / tmp_path_factory.mktemp("watermark_root").name
     root.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setattr(source_to_bronze_ingestion, "SOURCE_ROOT", str(root))
+
+    # CRITICAL FIX 2: Chuẩn hóa URI
+    root_posix = root.as_posix()
+    if not root_posix.startswith("/"):
+        root_posix = "/" + root_posix
+    root_uri = f"file://{root_posix}"
+
+    monkeypatch.setattr(
+        source_to_bronze_ingestion, "SOURCE_ROOT", root_uri
+    )
 
     def write_snapshot(business_date: str, row_id: int):
         target_dir = root / f"business_date={business_date}" / domain / table
-        target_path = str(target_dir)
+        target_dir.mkdir(parents=True, exist_ok=True)
+        
+        target_posix = target_dir.as_posix()
+        if not target_posix.startswith("/"):
+            target_posix = "/" + target_posix
+        target_path = f"file://{target_posix}"
+        
         test_spark.createDataFrame([Row(id=row_id)]).write.mode("overwrite").parquet(
             target_path
         )
@@ -431,7 +430,6 @@ def watermark_source(fake_dp, test_spark, tmp_path_factory, monkeypatch, request
     source_fn = fake_dp.create_auto_cdc_from_snapshot_flow.call_args.kwargs["source"]
     return source_fn, write_snapshot
 
-
 def test_watermark_first_run_returns_the_earliest_snapshot(
     watermark_source, monkeypatch
 ):
@@ -444,7 +442,7 @@ def test_watermark_first_run_returns_the_earliest_snapshot(
         lambda: [20260101, 20260201],
     )
 
-    df, version = source_fn(None)  # no watermark yet -> first run
+    df, version = source_fn(None)
 
     assert version == 20260101
     assert df.collect()[0]["id"] == 20260101
@@ -462,14 +460,13 @@ def test_watermark_only_advances_to_snapshots_newer_than_the_current_one(
         lambda: [20260101, 20260201],
     )
 
-    df, version = source_fn(20260101)  # already processed 2026-01-01
+    df, version = source_fn(20260101)
 
     assert version == 20260201
     assert df.collect()[0]["id"] == 20260201
 
 
 def test_watermark_returns_none_when_fully_caught_up(watermark_source, monkeypatch):
-    """Edge case: nothing new to ingest since the last run."""
     source_fn, write_snapshot = watermark_source
     write_snapshot("2026-01-01", row_id=20260101)
     monkeypatch.setattr(
@@ -479,6 +476,5 @@ def test_watermark_returns_none_when_fully_caught_up(watermark_source, monkeypat
     assert source_fn(20260101) is None
 
 
-# Direct execution entrypoint
 if __name__ == "__main__":
     pytest.main(["-v", "-s", __file__])
