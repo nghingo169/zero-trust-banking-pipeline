@@ -2,6 +2,7 @@ resources:
   pipelines:
     banking_investigation_pipeline:
       name: banking-investigation-pipeline
+      allow_duplicate_names: true
       catalog: ${var.catalog}
       schema: ${var.bronze_schema}
       serverless: true
